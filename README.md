@@ -2,11 +2,11 @@
 It's called SharkChain because all my projects are SharkXXXXXXX, when forked you can call it what you like!
 
 
-##Purpose:
+## Purpose:
 
 To think about blockchain currencies differently, in this case to try to solve the issues that currently affect coin systems in production.  To use PoW & PoS to good affect.
 
-##The concept as spewing from my head (to be refined as thoughts gather):
+## The concept as spewing from my head (to be refined as thoughts gather):
 
 There are two paralell parts to the chain, 1) the ORE, 2) the tradition transactions chain.
 
@@ -18,10 +18,15 @@ Tokens are defined as an address which describes the ore they were found in and 
 
 The blockchain itself is signed/sealed on a fixed time basis, so every X seconds the nominated node will validate all of the outstanding transactions, sign them and enter them into the chain.  The next node is nominated (with failovers), based on a lottery.  The entrants are all the miners who have found tokens within the last X seconds, weigted by the value of tokens found.  When nominated, they get to validate the next block, and if it is due, they also create the next ORE block as well.
 
-##Benefits?
+## Benefits?
 
 *  Distributed
 *  Blockchain itself is just transactions, so small and fast to syncronise
 *  ORE system, means hashrate is distributed across entire chain, therefore stopping anyone smashing the network with nicehash/asic rigs.
 *  No fixed reward and no fixed supply.   Only a likelyhood of reward/total supply, based on the amount of effort used to mine the ore.  This stops early adopters from getting anythign more than late adopters, because they are not rewarded for being first other than the low value easy tokens.
 *  ORE does not need to be stored on all nodes, but transactions will.  This will allow for space limited installations of nodes.
+
+## Downsides?
+
+* Low value tokens may be found too fast and there may be a significant chance of a miners "find" having been claimed already.  Therefore miners may avoid low value tokens, making it difficault to send tokens to other addresses.
+* As above, tokens mimic real word money, in that you can have T0.01, T0.20 & T1.00, but you could not send T0.30 to someone as you do not have the denomination to do so.  The network would have to try to distribute large and small tokens to make sure there was always enough "change" to have transactions succeed.
