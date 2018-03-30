@@ -33,3 +33,13 @@ The blockchain itself is signed/sealed on a fixed time basis, so every X seconds
 
 * Low value tokens may be found too fast and there may be a significant chance of a miners "find" having been claimed already.  Therefore miners may avoid low value tokens, making it difficault to send tokens to other addresses.
 * As above, tokens mimic real word money, in that you can have T0.01, T0.20 & T1.00, but you could not send T0.30 to someone as you do not have the denomination to do so.  The network would have to try to distribute large and small tokens to make sure there was always enough "change" to have transactions succeed.
+
+## Tokens?
+
+Tokens are described as the positional information of their location within the ore, the method used to generate it, and the value signature.
+
+And example would be:
+
+<ore hash><input 1 offset><method><input 2 offset><method><input 3 offset><method><input 4 offset><value>
+  
+
