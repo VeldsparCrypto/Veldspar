@@ -8,7 +8,10 @@ To think about blockchain currencies differently, in this case to try to solve t
 
 ## The concept as spewing from my head (to be refined as thoughts gather):
 
-There are two paralell parts to the chain, 1) the ORE, 2) the tradition transactions chain.
+There are two paralell parts to the chain, 
+
+1) the ORE to be mined, 
+2) the traditional transactions block chain.
 
 To mimic real life (resrouce based / effort based), there is ORE to mine, but this does not go away, you can mine this forever trying to find tokens.  Once found the miner can claim that token as theirs and it will be entered into the blockchain as the originating owner of that token.  The token value is based on complexity of the problem solved, so it will be easy to mine the ore to find low value tokens but take significantly longer to find larger value tokens, with an exponential curve on the effort/reward.
 
