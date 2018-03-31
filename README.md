@@ -40,6 +40,18 @@ Tokens are described as the positional information of their location within the 
 
 And example would be:
 
-<ore hash><input 1 offset><method><input 2 offset><method><input 3 offset><method><input 4 offset><value>
+<ore sig><input 1 offset><method><input 2 offset><method><input 3 offset><method><input 4 offset><value>
   
+### Methods:
 
+This would be an ennumeration of 0-255 styles of operation, for example 0 might be append, 1 might be prepend, 2 might be split & insert etc...  Becoming ever more CPU intensive to derrive more value from the find.
+
+The tokens should be hard to find, but very fast to validate, as the nodes will be required to validate all the finds so they can be incorporated into the ledger at a point in the future.
+  
+## Economy
+
+This is tricky, as it mimics real world resource availability and therefore there are no fixed emmissions of tokens, it is purely what is found in the ore provided, which is of course entirely random.
+
+## Network issues
+
+One of the major pain points is going to be the claiming of low value tokens, as a powerful machine may be able to find many hundreds of the smallest denominations per second, and there will be a "gold rush" as to who those tokens were allocated too.  With many miners finding the same tokens.
