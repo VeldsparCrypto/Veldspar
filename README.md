@@ -55,3 +55,7 @@ This is tricky, as it mimics real world resource availability and therefore ther
 ## Network issues
 
 One of the major pain points is going to be the claiming of low value tokens, as a powerful machine may be able to find many hundreds of the smallest denominations per second, and there will be a "gold rush" as to who those tokens were allocated too.  With many miners finding the same tokens.
+
+## Fairness
+
+As it is impossible (or at least not-likely) for developers to pre-mine the token, other than "knowing" about the coin first there is no fixed payout, only a reward for effort applied so this should reduce the amount of bagholding that early adopters have traditionally ammased.
