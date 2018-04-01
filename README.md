@@ -69,3 +69,9 @@ Sequential mining is discouraged as you will be likely to find blocks which have
 ## Mining
 
 So mining, consists of finding tokens within the ore.  By default, a block of ore is 256kb of data.  The miner has to try 4 x 64 byte sections of that ore, using one of 2 initial methods (prepend & append), then one of 4 hash alogrithims will be used to try to find a valid token.  This gives possibilities to try of approximately 3.8^22 combinations.  But with there being up to 256 methods and 256 algos, adn the increase in ore size to 512kb or even 1MB you would be looking at approximately 7.92^28 possible combinations per block of ore, which is released every 60 seconds.
+
+## Transparency
+
+This is a tricky one for me to really wrap my head around, personallly I love the idea of entirely anonyoumous currencies free from the outside snooping on what you have.  But in a fair and balanced society, everyone shoul dbe held to account for what they hold.  As only when something is free and open can trust be established.  Also, if you are looking to create a crypto currency that is welcomed with open arms by payment providers and governments, a certain amount of auditing must be possible whist still allowing some anonymity. 
+
+This will be a tricky problem to solve as you wish to balance the two, and ensure you are protecting both sides but still allowing the network to be entirely independant and beyound the control of any single individual or agency.
