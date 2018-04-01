@@ -40,7 +40,7 @@ Tokens are described as the positional information of their location within the 
 
 And example would be:
 
-<ore sig><input 1 offset><method><input 2 offset><method><input 3 offset><method><input 4 offset><value>
+<ore sig><input 1 offset><input 2 offset><input 3 offset><input 4 offset><method><algo><value>
   
 ### Methods:
 
