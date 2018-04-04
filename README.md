@@ -41,8 +41,11 @@ Tokens are described as the positional information of their location within the 
 And example would be:
 
 `<height><method><algorithm><value><add1>..<add n>`
+
 Which looks like for a 64bit token with 8 paths:
+
 `00000001-00-00-00000001-00046411-00005839-0002C3CD-000B5BA9-00010B6F-00002AEA-0007E24D-000EC5F6`
+  
   
 ### Methods:
 
