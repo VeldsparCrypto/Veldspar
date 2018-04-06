@@ -22,25 +22,58 @@
 
 import Foundation
 
+enum OreErrors : Error {
+    case OreDoesNotExist
+}
+
 class Ore {
     
-    private var seedHash: String
-    public var material: String = ""
+    // global ore cache, to be implemented in ram and generated/loaded from disk.
+
+    static private var cache: [UInt32:Ore] = [:]
+    static private var cacheLock: Mutex = Mutex()
     
-    init(_ seed: String) {
+    private var seedHash: String
+    public var rawMaterial: [UInt8] = []
+    public var height: UInt32
+    
+    init(_ seed: String, height: UInt32) {
         
-        seedHash = seed
+        self.height = height
+        self.seedHash = seed
         
-        // recreate the material from the seed, just recursively hash and append a sha512 hash until a significant amount of ore has been generated ready to be mined.  256k feels like enough to produce many billions of combinations of data to mine.
+        // recreate the material from the seed, just recursively hash and append a sha512 hash until a significant amount of ore has been generated ready to be mined.
         
-        var hashes: [String] = []
-        hashes.append(seedHash.sha512())
-        for _ in 1...2047 { // 256k block of ore
+        var hashes: [[UInt8]] = []
+        hashes.append(Array(seedHash.utf8).sha512())
+        for _ in 1...(((Config.OreSize * 1024) * 1024) / Array(seedHash.utf8).sha512().count) {
             hashes.append(hashes[hashes.count-1].sha512())
         }
         
         // feels odd, but this is really highly optimised and works really well.
-        material = hashes.joined(separator: "")
+        for a in hashes {
+            rawMaterial.append(contentsOf: a)
+        }
+        
+        // check this into the cache for use throuought the codebase
+        Ore.cacheLock.mutex {
+            Ore.cache[height] = self
+        }
+        
+    }
+    
+    class func atHeight(_ height: UInt32) throws -> Ore {
+        
+        var o: Ore? = nil
+        Ore.cacheLock.mutex {
+            o = Ore.cache[height]
+        }
+        
+        if o == nil {
+            throw OreErrors.OreDoesNotExist
+        }
+        
+        return o!
         
     }
 }

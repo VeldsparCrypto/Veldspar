@@ -20,4 +20,67 @@
 //    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //    SOFTWARE.
 
-let o = Ore("test")
+import Foundation
+
+let o = Ore("test", height: 1)
+
+var hit = 0
+var miss = 0
+var total: UInt32 = 0
+var lock = Mutex()
+var hashes = 1000000
+
+func getHashesRemaining() -> Int {
+    var r = 0
+    lock.mutex {
+        r = hashes
+    }
+    return r
+}
+
+func decrementHashes() {
+    lock.mutex {
+        hashes -= 1
+    }
+}
+
+for _ in 1...8 {
+    
+    Execute.background {
+        while getHashesRemaining() > 0 {
+            
+            var address: [UInt32] = []
+            for _ in 1...8 {
+                address.append(UInt32(arc4random_uniform(UInt32((Config.OreSize*1024)*1024)-UInt32(Config.TokenSegmentSize))))
+            }
+            let t = Token(height: o.height, address: address, algo: .sha512, method: .append)
+            if t.value > 0 {
+                lock.mutex {
+                    hit+=1
+                    total+=t.value
+                    print("hit : \(hit), miss : \(miss), total : \(total)")
+                    print(t.tokenId())
+                }
+            } else {
+                lock.mutex {
+                    miss+=1
+                }
+            }
+            decrementHashes()
+
+        }
+    }
+    
+}
+
+while getHashesRemaining() > 0 {
+    Thread.sleep(forTimeInterval: 10)
+    lock.mutex {
+        print("hit : \(hit), miss : \(miss), total : \(total)")
+    }
+}
+lock.mutex {
+    print("hit : \(hit), miss : \(miss), total : \(total)")
+}
+
+

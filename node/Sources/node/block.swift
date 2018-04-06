@@ -26,20 +26,16 @@ import CryptoSwift
 class Block {
     
     // block variables
-    var identifier: String
-    var nonce: UInt64?
     var height: UInt64
-    var creator: String?
-    
+    var hash: String?
+
     // block contents
-    var oreSeed: String
+    var oreSeed: String?
     var transactions: [Transaction] = []
     
     // initializer
     init(height: UInt64) {
         self.height = height
-        identifier = UUID().uuidString.sha512()
-        oreSeed = UUID().uuidString.sha512()
     }
     
 }

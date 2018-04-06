@@ -36,23 +36,92 @@ class Economy {
     
     // value of the pattern, given the complexity of the hashing algo
     static let sha224Value = 1
-    static let sha256Value = 2
-    static let sha384Value = 4
-    static let sha512Value = 8
+    static let sha256Value = 1
+    static let sha384Value = 1
+    static let sha512Value = 1
     
+    // pattern values - the value assigned given the chance of matching the pattern
     // token hash ff7a6c6b53c2e2a would have a value of 0
     // token hash fff7a6c6b53c2e2 would have a value of 1
+    // token hash ffff7a6c6b53c2e would have a value of 10
     // etc.....
 
-    static let patternValue = [0,0,1,10,100,1000,10000,100000,1000000,10000000,100000000]
+    static let patternByte = UInt8(255)
+    static let patternValue: [UInt32] = [0,0,1,100,10000,100000,1000000]
     
-    // value == OP x PatternValue x AlgoValue x Rounds
+    // sequential match value - additional value for all the subsequent sequential hashes which start with the patternByte
+    static let sequentialMatch = [10,100,1000,10000,100000,1000000]
     
-    class func validateToken(_ token: Token) -> Bool {
+    // match reward bytes - number of bytes (minus pattern matched) to attribute value for
+    static let matchRewardBytes = 16
+    
+    // match reward matrix - value awarded for number of additional bytes up to `matchRewardBytes`
+    static let matchRewardMatrix: [UInt32] = [1,10,20,40,80,160,320,640,1280,2560,5120,10240]
+    
+    // value == (OP x PatternValue x AlgoValue) + Sequential Value + (patternByte count for first 32 bytes)
+    
+    class func valueForToken(_ token: Token) -> UInt32 {
         
-    }
-    
-    class func valueForToken(_ token: Token) -> UInt64 {
+        // well the token is always valid, but does it meet any of the conditions
+        let hash = token.tokenHash()
+        if hash.starts(with: [patternByte]) {
+            
+            let count = token.patternByteCount()
+            let patFindValue = patternValue[count]
+            var opValue = 0
+            var algoValue = 0
+            
+            switch token.method {
+            case .append:
+                opValue = simpleOpValue
+            case .prepend:
+                opValue = simpleOpValue
+            }
+            
+            switch token.algorithm {
+            case .sha224:
+                algoValue = sha224Value
+            case .sha256:
+                algoValue = sha256Value
+            case .sha384:
+                algoValue = sha384Value
+            case .sha512:
+                algoValue = sha512Value
+            }
+            
+            
+            
+            // value == (OP x PatternValue x AlgoValue) + Sequential Value + (patternByteCount first 24 bytes)
+            
+            var value: UInt32 = (UInt32(opValue) * UInt32(patFindValue)) * UInt32(algoValue)
+            
+            if value > 0 {
+                
+                // now find the sequential value, by interating the hash, and seeing how many matching bytes are found
+                let iterativeMatches = token.iterativeMatches()
+                
+                if iterativeMatches > 0 {
+                    value += UInt32(sequentialMatch[iterativeMatches])
+                }
+
+                var byteCount = 0
+                for i in count...24 {
+                    if hash[i] == patternByte {
+                        byteCount += 1
+                    }
+                }
+                
+                // now to add some variance to the valuation, see how many times that patternByte appears in the first 24 bytes.  Excuding the starting matches which have already been rewarded.
+
+                value += UInt32(byteCount)
+                
+            }
+
+            return value
+            
+        } else {
+            return UInt32(0)
+        }
         
     }
     

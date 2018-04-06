@@ -21,30 +21,26 @@
 //    SOFTWARE.
 
 import Foundation
+import Dispatch
 
-class Config {
+class Execute {
     
-    static let CurrencyName = "SharkCoin"
-    static let CurrencyNetworkAddress = "53524b"
+    class func background(_ closure:@escaping (()->())) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            closure()
+        }
+    }
     
-    // number by which token value is divided to determine currency value
-    static let DenominationDivider = 100
+    class func serial(_ closure:@escaping (()->())) {
+        DispatchQueue.global(qos: .background).sync {
+            closure()
+        }
+    }
     
-    // regularity of block creation
-    static let BlockTime = 60
-    
-    // size of the ore segment in megabytes - 1mb gives posibilities of 1.169e^57 combinations @ address size of 8
-    static let OreSize = 1
-    
-    // release schedule of an ore segment
-    static let OreReleasePoint = 250000 // 250000 = approximately 2 blocks per year
-    
-    static let TokenSegmentSize = 64
-    
-    // number of addresses within the block that makes up a token address, exponentially increses ore payload
-    static let TokenAddressSize = 8
-    
-    // seed nodes
-    static let SeedNodes: [String] = []
+    class func main(_ closure:@escaping (()->())) {
+        DispatchQueue.main.async {
+            closure()
+        }
+    }
     
 }
