@@ -22,6 +22,30 @@
 
 import Foundation
 
-class Transaction {
+public class Config {
+    
+    public static let Version = "0.0.1"
+    public static let CurrencyName = "SharkCoin"
+    public static let CurrencyNetworkAddress = "53524b"
+    
+    // number by which token value is divided to determine currency value
+    public static let DenominationDivider = 100
+    
+    // regularity of block creation
+    public static let BlockTime = 60
+    
+    // size of the ore segment in megabytes - 1mb gives posibilities of 1.169e^57 combinations @ address size of 8
+    public static let OreSize = 1
+    
+    // release schedule of an ore segment
+    public static let OreReleasePoint = 250000 // 250000 = approximately 2 blocks per year
+    
+    public static let TokenSegmentSize = 64
+    
+    // number of addresses within the block that makes up a token address, exponentially increses ore payload
+    public static let TokenAddressSize = 8
+    
+    // seed nodes
+    public static let SeedNodes: [String] = []
     
 }

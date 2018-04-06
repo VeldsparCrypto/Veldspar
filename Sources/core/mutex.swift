@@ -21,29 +21,28 @@
 //    SOFTWARE.
 
 import Foundation
+import Dispatch
 
-enum LogType: String {
-    case Info =     "INFO    "
-    case Debug =    "DEBUG   "
-    case Warning =  "WARNING "
-    case Error =    "ERROR   "
-}
-
-class Logger {
+public class Mutex {
     
-    private var filename: String
-    private var lock: Mutex = Mutex()
+    private var thread: Thread? = nil;
+    private var lock: DispatchQueue
     
-    init(_ logfile: String) {
-        filename = logfile
+    public init() {
+        lock = DispatchQueue(label: UUID().uuidString.lowercased())
     }
     
-    func log(_ level: LogType,_ log: String) {
-        
-        let entry = "\(Date()) | \(level.rawValue) | \(log)"
-        try? entry.write(toFile: filename, atomically: true, encoding: .ascii)
-        print(entry)
-        
+    public func mutex(_ closure: ()->()) {
+        if thread != Thread.current {
+            lock.sync {
+                thread = Thread.current
+                closure()
+                thread = nil
+            }
+        } else {
+            closure()
+        }
     }
     
 }
+

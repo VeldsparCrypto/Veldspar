@@ -22,27 +22,27 @@
 
 import Foundation
 
-enum TokenHashingAlgorithm : UInt8 {
+public enum TokenHashingAlgorithm : UInt8 {
     case sha224 = 0
     case sha256 = 1
     case sha384 = 2
     case sha512 = 3
 }
 
-enum TokenCombinationMethod : UInt8 {
+public enum TokenCombinationMethod : UInt8 {
     case append = 0
     case prepend = 1
 }
 
-class Token {
+public class Token {
     
-    var height: UInt32
-    var address: [UInt32]
-    var algorithm: TokenHashingAlgorithm
-    var method: TokenCombinationMethod
-    var value: UInt32
+    public var height: UInt32
+    public var address: [UInt32]
+    public var algorithm: TokenHashingAlgorithm
+    public var method: TokenCombinationMethod
+    public var value: UInt32
     
-    init(height: UInt32, address: [UInt32], algo: TokenHashingAlgorithm, method: TokenCombinationMethod) {
+    public init(height: UInt32, address: [UInt32], algo: TokenHashingAlgorithm, method: TokenCombinationMethod) {
         
         self.height = height
         self.address = address
@@ -56,7 +56,7 @@ class Token {
     
     // <height><method><algorithm><value><add1>..<add n>
     // FFFFFFFFFFFFFFFF-FF-FF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF
-    func tokenId() -> String {
+    public func tokenId() -> String {
         var id = "\(self.height.toHex())-\(self.method.rawValue.toHex())-\(self.algorithm.rawValue.toHex())-\(self.value.toHex())"
         
         for a in self.address {
@@ -66,7 +66,7 @@ class Token {
         return id
     }
     
-    func tokenHash() -> [UInt8] {
+    public func tokenHash() -> [UInt8] {
         
         do {
             let ore = try Ore.atHeight(self.height)
@@ -103,7 +103,7 @@ class Token {
     
     }
     
-    func validate() -> Bool {
+    public func validate() -> Bool {
         
         // well the token is always valid, but does it meet any of the conditions
         let hash = self.tokenHash()
@@ -120,7 +120,7 @@ class Token {
         
     }
     
-    func patternByteCount() -> Int {
+    public func patternByteCount() -> Int {
         
         // well the token is always valid, but does it meet any of the conditions
         let hash = self.tokenHash()
@@ -144,11 +144,10 @@ class Token {
         
     }
     
-    func iterativeMatches() -> Int {
+    public func iterativeMatches() -> Int {
         
         // well the token is always valid, but does it meet any of the conditions
         var hash = self.tokenHash()
-        var startHash = self.tokenHash()
         var count = 0
         
         while hash.starts(with: [Economy.patternByte]) {

@@ -21,6 +21,9 @@
 //    SOFTWARE.
 
 import Foundation
+import SharkCore
+
+print("\(Config.CurrencyName) Miner v\(Config.Version)")
 
 let o = Ore("test", height: 1)
 
@@ -67,7 +70,7 @@ for _ in 1...8 {
                 }
             }
             decrementHashes()
-
+            
         }
     }
     
@@ -82,5 +85,6 @@ while getHashesRemaining() > 0 {
 lock.mutex {
     print("hit : \(hit), miss : \(miss), total : \(total)")
 }
+
 
 

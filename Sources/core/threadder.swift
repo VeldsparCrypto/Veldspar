@@ -21,21 +21,26 @@
 //    SOFTWARE.
 
 import Foundation
-import CryptoSwift
+import Dispatch
 
-class Block {
+public class Execute {
     
-    // block variables
-    var height: UInt64
-    var hash: String?
-
-    // block contents
-    var oreSeed: String?
-    var transactions: [Transaction] = []
+    public class func background(_ closure:@escaping (()->())) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            closure()
+        }
+    }
     
-    // initializer
-    init(height: UInt64) {
-        self.height = height
+    public class func serial(_ closure:@escaping (()->())) {
+        DispatchQueue.global(qos: .background).sync {
+            closure()
+        }
+    }
+    
+    public class func main(_ closure:@escaping (()->())) {
+        DispatchQueue.main.async {
+            closure()
+        }
     }
     
 }

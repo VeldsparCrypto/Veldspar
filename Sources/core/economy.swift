@@ -27,7 +27,7 @@ import CryptoSwift
  *      The Economy class will take tokens and verify their value, based on the complexity of the workload used to produce it.
  */
 
-class Economy {
+public class Economy {
     
     // value of certain operations on the ore
     static let simpleOpValue = 1
@@ -60,7 +60,7 @@ class Economy {
     
     // value == (OP x PatternValue x AlgoValue) + Sequential Value + (patternByte count for first 32 bytes)
     
-    class func valueForToken(_ token: Token) -> UInt32 {
+    public class func valueForToken(_ token: Token) -> UInt32 {
         
         // well the token is always valid, but does it meet any of the conditions
         let hash = token.tokenHash()

@@ -21,26 +21,7 @@
 //    SOFTWARE.
 
 import Foundation
-import Dispatch
 
-class Execute {
-    
-    class func background(_ closure:@escaping (()->())) {
-        DispatchQueue.global(qos: .userInitiated).async {
-            closure()
-        }
-    }
-    
-    class func serial(_ closure:@escaping (()->())) {
-        DispatchQueue.global(qos: .background).sync {
-            closure()
-        }
-    }
-    
-    class func main(_ closure:@escaping (()->())) {
-        DispatchQueue.main.async {
-            closure()
-        }
-    }
+public class Transaction {
     
 }

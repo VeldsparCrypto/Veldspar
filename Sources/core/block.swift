@@ -21,3 +21,21 @@
 //    SOFTWARE.
 
 import Foundation
+import CryptoSwift
+
+public class Block {
+    
+    // block variables
+    public var height: UInt64
+    public var hash: String?
+
+    // block contents
+    public var oreSeed: String?
+    public var transactions: [Transaction] = []
+    
+    // initializer
+    public init(height: UInt64) {
+        self.height = height
+    }
+    
+}
