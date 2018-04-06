@@ -31,7 +31,7 @@ The block chain itself is signed/sealed on a fixed time basis, so every X second
 
 ## Downsides?
 
-* Low value tokens may be found too fast and there may be a significant chance of a miners "find" having been claimed already.  Therefore, miners may avoid low value tokens, making it difficult to send tokens to other addresses.
+* Low value tokens will be extremely numerous, so sending a large transaction may have many 1000's of tokens within it.
 * As above, tokens mimic real word money, in that you can have T0.01, T0.20 & T1.00, but you could not send T0.30 to someone as you do not have the denomination to do so.  The network would have to try to distribute large and small tokens to make sure there was always enough "change" to have transactions succeed.
 
 ## Tokens?
