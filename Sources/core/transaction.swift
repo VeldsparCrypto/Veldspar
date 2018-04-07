@@ -22,6 +22,30 @@
 
 import Foundation
 
+public enum TransactionType: Int {
+    case allocation = 0     // allocates new/discovered tokens to a public view key
+    case transfer = 1       // transfers ownership of a token from one address to another
+}
+
 public class Transaction {
+    
+    public var id: String
+    public var type: TransactionType
+    public var key: String
+    public var signature: String
+    public var dest: String
+    public var ref: String = ""
+    public var value: Int = 0
+    public var date: UInt64
+    public var tokens: [String] = []
+    
+    public init(type: TransactionType, publicSpendKey: String, signature: String, dest: String, id: String) {
+        self.type = type
+        self.key = publicSpendKey
+        self.signature = signature
+        self.dest = dest
+        self.id = id
+        self.date = UInt64(Date().timeIntervalSince1970)
+    }
     
 }

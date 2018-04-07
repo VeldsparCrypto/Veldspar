@@ -22,6 +22,19 @@
 
 import Foundation
 
+// defines
+let AlgoStringToEnum: [String:TokenHashingAlgorithm] = [
+    "sha224" : TokenHashingAlgorithm.sha224,
+    "sha256" : TokenHashingAlgorithm.sha256,
+    "sha384" : TokenHashingAlgorithm.sha384,
+    "sha512" : TokenHashingAlgorithm.sha512
+]
+
+let MethodStringToEnum: [String : TokenCombinationMethod] = [
+    "append"    : TokenCombinationMethod.append,
+    "prepend"   : TokenCombinationMethod.prepend
+]
+
 extension String {
     
 }

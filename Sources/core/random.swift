@@ -20,36 +20,26 @@
 //    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //    SOFTWARE.
 
-import SharkCore
-import PerfectHTTP
-import PerfectHTTPServer
+import Foundation
 
-// defaults
-var port: Int = 14242
-
-print("\(Config.CurrencyName) Daemon v\(Config.Version)")
-
-let args: [String] = CommandLine.arguments
-var debug = false;
-
-if args.count > 1 {
-    for arg in args {
-        if arg.lowercased() == "--debug" {
-            debug = true
-        }
+public class Random {
+    
+    public class func Integer(_ max:Int) -> Int {
+        #if os(Linux)
+            return random() % max
+        #else
+            return Int(arc4random_uniform(UInt32(max)))
+        #endif
     }
+    
+    public class func Integer(_ min: Int, _ max: Int) -> Int {
+        #if os(Linux)
+            return ((random() % max) + min)
+        #else
+            return Int(arc4random_uniform(UInt32(max)) + UInt32(min))
+        #endif
+    }
+    
 }
 
-do {
-    
-    // Launch the servers based on the configuration data.
-    var r = Routes()
-    try r.add(uri: "/**", handler: handleRequest())
-    let server = HTTPServer()
-    server.serverPort = UInt16(port)
-    server.addRoutes(r)
-    try server.start()
-    
-} catch {
-    print("error: unable to start rest service.\n")
-}
+

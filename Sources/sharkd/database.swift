@@ -20,36 +20,7 @@
 //    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //    SOFTWARE.
 
+import Foundation
+import SQLiteStORM
 import SharkCore
-import PerfectHTTP
-import PerfectHTTPServer
 
-// defaults
-var port: Int = 14242
-
-print("\(Config.CurrencyName) Daemon v\(Config.Version)")
-
-let args: [String] = CommandLine.arguments
-var debug = false;
-
-if args.count > 1 {
-    for arg in args {
-        if arg.lowercased() == "--debug" {
-            debug = true
-        }
-    }
-}
-
-do {
-    
-    // Launch the servers based on the configuration data.
-    var r = Routes()
-    try r.add(uri: "/**", handler: handleRequest())
-    let server = HTTPServer()
-    server.serverPort = UInt16(port)
-    server.addRoutes(r)
-    try server.start()
-    
-} catch {
-    print("error: unable to start rest service.\n")
-}

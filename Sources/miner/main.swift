@@ -22,69 +22,72 @@
 
 import Foundation
 import SharkCore
+import CEd25519
+
+#if os(Linux)
+    srandom(UInt32(time(nil)))
+#endif
+
+// defaults
+var nodeAddress: String = "127.0.0.1:14242"
+var oreBlocks: [Ore] = []
+var payoutAddress: String = ""
+var miningMethods: [TokenCombinationMethod] = [
+    TokenCombinationMethod.append,
+    TokenCombinationMethod.prepend
+]
+var miningAlgos: [TokenHashingAlgorithm] = [
+    TokenHashingAlgorithm.sha224,
+    TokenHashingAlgorithm.sha256,
+    TokenHashingAlgorithm.sha384,
+    TokenHashingAlgorithm.sha512
+]
 
 print("\(Config.CurrencyName) Miner v\(Config.Version)")
 
-let o = Ore("test", height: 1)
+print("Connecting to server \(nodeAddress)")
+// connect to the server, download the ore seeds and the allowed methods & algos
+// TODO: Network call
 
-var hit = 0
-var miss = 0
-var total: UInt32 = 0
-var lock = Mutex()
-var hashes = 1000000
+print("Generating ORE, this may take some time ........")
+oreBlocks.append(Ore("test", height: 1))
+oreBlocks.append(Ore("my", height: 2))
+oreBlocks.append(Ore("balls", height: 3))
 
-func getHashesRemaining() -> Int {
-    var r = 0
-    lock.mutex {
-        r = hashes
-    }
-    return r
-}
-
-func decrementHashes() {
-    lock.mutex {
-        hashes -= 1
-    }
-}
+print("Mining ore .........")
 
 for _ in 1...8 {
     
     Execute.background {
-        while getHashesRemaining() > 0 {
+        while true {
+            
+            let height = oreBlocks[Random.Integer(oreBlocks.count)].height
+            let oreSize = (((Config.OreSize * 1024) * 1024) - Config.TokenSegmentSize)
+            let algo = miningAlgos[Random.Integer(miningAlgos.count)]
+            let method = miningMethods[Random.Integer(miningMethods.count)]
             
             var address: [UInt32] = []
             for _ in 1...8 {
-                address.append(UInt32(arc4random_uniform(UInt32((Config.OreSize*1024)*1024)-UInt32(Config.TokenSegmentSize))))
+                address.append(UInt32(Random.Integer(oreSize)))
             }
-            let t = Token(height: o.height, address: address, algo: .sha512, method: .append)
+            let t = Token(height: height, address: address, algo: algo, method: method)
             if t.value > 0 {
-                lock.mutex {
-                    hit+=1
-                    total+=t.value
-                    print("hit : \(hit), miss : \(miss), total : \(total)")
-                    print(t.tokenId())
-                }
-            } else {
-                lock.mutex {
-                    miss+=1
-                }
+                print("Found token! Ore:\(height) algo:\(algo.rawValue) method:\(method.rawValue)")
+                print("Token Address: " + t.tokenId())
             }
-            decrementHashes()
+            
+            print("Registering token with network, keep up the good work.")
+            //TODO: call node and claim this token as owned by this miner
             
         }
     }
     
 }
 
-while getHashesRemaining() > 0 {
-    Thread.sleep(forTimeInterval: 10)
-    lock.mutex {
-        print("hit : \(hit), miss : \(miss), total : \(total)")
-    }
+while true {
+    sleep(1)
 }
-lock.mutex {
-    print("hit : \(hit), miss : \(miss), total : \(total)")
-}
+
 
 
 
