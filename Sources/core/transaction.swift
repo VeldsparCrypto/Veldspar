@@ -38,14 +38,17 @@ public class Transaction {
     public var value: Int = 0
     public var date: UInt64
     public var tokens: [String] = []
+    public var height: UInt64?
     
     public init(type: TransactionType, publicSpendKey: String, signature: String, dest: String, id: String) {
+        
         self.type = type
         self.key = publicSpendKey
         self.signature = signature
         self.dest = dest
         self.id = id
         self.date = UInt64(Date().timeIntervalSince1970)
+        
     }
     
 }

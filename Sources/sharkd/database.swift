@@ -24,3 +24,22 @@ import Foundation
 import SQLiteStORM
 import SharkCore
 
+SQLiteConnector.db = "./SessionDB"
+
+class Database {
+    
+    class func Initialize() {
+        
+    }
+    
+    class func WriteBlock(_ block: Block) -> Bool {
+        
+        return false
+    }
+    
+    class func BlockAtHeight(_ height: UInt64) -> Block {
+        
+        return false
+    }
+    
+}

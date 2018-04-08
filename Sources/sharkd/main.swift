@@ -37,6 +37,10 @@ if args.count > 1 {
         if arg.lowercased() == "--debug" {
             debug = true
         }
+        if arg.lowercased() == "--genesis" {
+            // setup the blockchain with an empty block starting the generation of Ore
+            
+        }
     }
 }
 

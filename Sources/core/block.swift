@@ -38,4 +38,18 @@ public class Block {
         self.height = height
     }
     
+    public func LatestTimestamp() -> UInt64 {
+        
+        var latest: UInt64 = 0
+        
+        for t in transactions {
+            if t.date > latest {
+                latest = t.date
+            }
+        }
+        
+        return 0
+        
+    }
+    
 }

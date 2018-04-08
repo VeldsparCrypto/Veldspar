@@ -27,6 +27,10 @@ public class Config {
     public static let Version = "0.0.1"
     public static let CurrencyName = "SharkCoin"
     public static let CurrencyNetworkAddress = "53524b"
+    public static let GenesisID = "af469d10bb7de931f856e5c89105b3b06837c5baeb51173758744e4644ea4ed9dee53b410b5a731a2a5d981e266719908a51c17e72f292583fd7e3417814b22b"
+    
+    // transaction maturity level - targets transactions for x number of blocks in the future to allow a consensus network to operate
+    public static let TransactionMaturityLevel = 2
     
     // number by which token value is divided to determine currency value
     public static let DenominationDivider = 100
