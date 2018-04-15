@@ -81,3 +81,18 @@ This is a tricky one for me to really wrap my head around, personally I love the
 
 This will be a tricky problem to solve as you wish to balance the two, and ensure you are protecting both sides but still allowing the network to be entirely independent and beyond the control of any single individual or agency.
 
+## Method
+
+There will be three data structures underlying the chain.
+
+1) The blockchain itself, containing <Blocks>, tied together with SHA512 hash of all it's transactions + previous block hash
+2) Transactions, containing the from -> to, date, ref & tokens to be reallocated
+3) Ledger, the in/out record for all tokens in the chain.  Ownership can be established by looking at the last allocation of a token, and tested before spending that token.  Also, registration of a token can be tested by the non-existence of an existing allocation for that token.
+  
+Because there will be no proof of work for the blockchain, we must make secure it via consensus.  With the seed nodes being authoritative whilst the network size is insufficient or quorum cannot be achieved.
+
+Consensus is based (due to timing anomalies) on transactions being submitted to the network with a target block membership, which is far enough in the future to ensure it’s distribution around the network in sufficient time (say at least 1 min).  Then when the next block is due to be produced the nodes will gather the outstanding transactions for the block, order the transactions by their identifier and hash them, then hash that result against the previous block.
+
+The node will then send this final hash around to other nodes to gain consensus, each node will record the number of hits/misses of that hash it receives and write that into the blockchain as a record of the network quorum for that block. In the case where there is significant disagreement, then the seed nodes become authoritative, although this should never happen or be inconsequentially irregular as to not be a problem.  
+
+In the case where a node becomes outnumbered in it’s resolution of a block, it will not commit that block into the store, and will instead ask another node (likely a seed node) for all it’s transactions for a block, then re-process that block and check the hash now matches the consensus and if it passes then write the block into the datastore.
