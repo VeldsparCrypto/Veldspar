@@ -89,7 +89,7 @@ There will be three data structures underlying the chain.
 2) Transactions, containing the from -> to, date, ref & tokens to be reallocated
 3) Ledger, the in/out record for all tokens in the chain.  Ownership can be established by looking at the last allocation of a token, and tested before spending that token.  Also, registration of a token can be tested by the non-existence of an existing allocation for that token.
   
-Because there will be no proof of work for the blockchain, we must make secure it via consensus.  With the seed nodes being authoritative whilst the network size is insufficient or quorum cannot be achieved.
+Because there will be no proof of work for the blockchain, we must secure it via consensus.  With the seed nodes being authoritative whilst the network size is insufficient or quorum cannot be achieved.
 
 Consensus is based (due to timing anomalies) on transactions being submitted to the network with a target block membership, which is far enough in the future to ensure it’s distribution around the network in sufficient time (say at least 1 min).  Then when the next block is due to be produced the nodes will gather the outstanding transactions for the block, order the transactions by their identifier and hash them, then hash that result against the previous block.
 
