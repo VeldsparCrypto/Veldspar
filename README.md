@@ -1,14 +1,15 @@
 # SharkChain
-It's called SharkChain because all my projects are SharkXXXXXXX, when forked you can call it what you like!
+The project is called SharkChain because all my projects are SharkXXXXXXX.  When forked, you can call it what you like!
 
 
 ## Purpose:
 
-To think about block chain currencies differently, in this case to try to solve the issues that currently affect coin systems in production.  To use PoW & PoS to good affect.
+* To think about block chain currencies differently (in this case to try to solve the issues that currently affect coin systems in production).  
+* To use PoW & PoS to good affect.
 
 ## The concept as spewing from my head (to be refined as thoughts gather):
 
-There are two parallel parts to the chain, 
+There are two parallel parts to the chain; 
 
 1) the ORE to be mined, 
 2) the traditional transactions block chain.
@@ -17,7 +18,7 @@ To mimic real life (resource based / effort based), there is ORE to mine, but th
 
 Because ORE can be mined forever, hash rate will be spread across the entire block chain not just used to crack a single block.  Miners may wish to mine only a single block of ORE for many months, trying to find the highest possible value token they can, before moving onto a new one.
 
-Tokens are defined as an address which describes the ore they were found in and a reproducible path to the discovery of the pattern.  Once the token has been found, it is submitted to the network with the miners’ details and an agreed timestamp (by consensus), if that miner was the first to find that token then it is written into the ledger, and that token is created, and its journey starts.
+Tokens are defined as addresses describing the ore they were found in, and a reproducible path to the discovery of the pattern.  Once a token has been found, it is submitted to the network with the miners’ details and an agreed timestamp (by consensus). If that miner was the first to find that token then it is written into the ledger, and that token is created, and its journey starts.
 
 The block chain itself is signed/sealed on a fixed time basis, so every X seconds the nominated node will validate all of the outstanding transactions, sign them and enter them into the chain.  The next node is nominated (with failovers), based on a lottery.  The entrants are all the miners who have found tokens within the last X seconds, weighted by the value of tokens found.  When nominated, they get to validate the next block, and if it is due, they also create the next ORE block as well.
 
@@ -63,11 +64,11 @@ This is tricky, as it mimics real world resource availability and therefore ther
 
 ## Network issues
 
-One of the major pain points is going to be the claiming of low value tokens, as a powerful machine may be able to find many hundreds of the smallest denominations per second, and there will be a "gold rush" as to who those tokens were allocated too.  With many miners finding the same tokens.
+One of the major pain points is going to be the claiming of low value tokens, as a powerful machine may be able to find many hundreds of the smallest denominations per second, and there will be a "gold rush" as to who those tokens were allocated to, with many miners finding the same tokens.
 
 ## Fairness
 
-As it is impossible (or at least not-likely) for developers to pre-mine the token, other than "knowing" about the coin first there is no fixed pay-out, only a reward for effort applied so this should reduce the amount of bag holding that early adopters have traditionally amassed.
+As it is impossible (or at least not-likely) for developers to pre-mine the token, other than "knowing" about the coin first, there is no fixed pay-out, only a reward for effort applied so this should reduce the amount of bag holding that early adopters have traditionally amassed.
 
 Sequential mining is discouraged as you will be likely to find blocks which have already been claimed, therefore, randomised mining of the ore would yield the best possible return for effort.
 
