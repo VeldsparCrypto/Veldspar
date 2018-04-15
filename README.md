@@ -85,7 +85,7 @@ This will be a tricky problem to solve as you wish to balance the two, and ensur
 
 There will be three data structures underlying the chain.
 
-1) The blockchain itself, containing <Blocks>, tied together with SHA512 hash of all it's transactions + previous block hash
+1) The blockchain itself, containing `<Blocks>`, tied together with SHA512 hash of all it's transactions + previous block hash
 2) Transactions, containing the from -> to, date, ref & tokens to be reallocated
 3) Ledger, the in/out record for all tokens in the chain.  Ownership can be established by looking at the last allocation of a token, and tested before spending that token.  Also, registration of a token can be tested by the non-existence of an existing allocation for that token.
   
