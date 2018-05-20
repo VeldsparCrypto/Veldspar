@@ -5,7 +5,7 @@ The project is called SharkChain because all my projects are SharkXXXXXXX.  When
 ## Purpose:
 
 * To think about block chain currencies differently (in this case to try to solve the issues that currently affect coin systems in production).  
-* To use PoW & PoS to good affect.
+* To use PoW & PoS to good affect.  The PoS actually being the amount in hash power you apply to the network.
 
 ## The concept as spewing from my head (to be refined as thoughts gather):
 
@@ -18,9 +18,9 @@ To mimic real life (resource based / effort based), there is ORE to mine, but th
 
 Because ORE can be mined forever, hash rate will be spread across the entire block chain not just used to crack a single block.  Miners may wish to mine only a single block of ORE for many months, trying to find the highest possible value token they can, before moving onto a new one.
 
-Tokens are defined as addresses describing the ore they were found in, and a reproducible path to the discovery of the pattern.  Once a token has been found, it is submitted to the network with the miners’ details and an agreed timestamp (by consensus). If that miner was the first to find that token then it is written into the ledger, and that token is created, and its journey starts.
+Tokens are defined as addresses describing the position within the ore they were found in, and a reproducible path to the discovery of the pattern.  Once a token has been found, it is submitted to the network with the miners’ details and an agreed timestamp (by consensus). If that miner was the first to find that token then it is written into the ledger, and that token is created, and its journey starts.
 
-The block chain itself is signed/sealed on a fixed time basis, so every X seconds the nominated node will validate all of the outstanding transactions, sign them and enter them into the chain.  The next node is nominated (with failovers), based on a lottery.  The entrants are all the miners who have found tokens within the last X seconds, weighted by the value of tokens found.  When nominated, they get to validate the next block, and if it is due, they also create the next ORE block as well.
+The block chain itself is signed/sealed on a fixed time basis, so every X seconds the  all of the outstanding transactions in arrears will be selected, signed and entered into the chain.  Once this has been done, the hash for the block is distributed to all connected nodes, and the originating nodes will receive other nodes' hashes.  Then quorum is established.  If the hash you supply is outvoted by a significant proportion of the other nodes, then that block is not written to the local store, and instead a copy of the transactions is gained from several sources, compared, and the process is run again.
 
 ## Benefits?
 
@@ -29,10 +29,11 @@ The block chain itself is signed/sealed on a fixed time basis, so every X second
 *  ORE system, means hash rate is distributed across entire chain, therefore stopping anyone smashing the network with nicehash/asic rigs.
 *  No fixed reward and no fixed supply.   Only a likelihood of reward/total supply, based on the amount of effort used to mine the ore.  This stops early adopters from getting anything more than late adopters, because they are not rewarded for being first other than the low value easy tokens.
 *  ORE does not need to be stored on all nodes, but transactions will.  This will allow for space limited installations of nodes.
+*  You are not fighting other miners, your effort is directly rewarded with wealth.  People who apply more hash-rate get proportionally more reward.
 
 ## Downsides?
 
-* Low value tokens will be extremely numerous, so sending a large transaction may have many 1000's of tokens within it.
+* Low value tokens will be extremely numerous, so sending large transaction may have many 1000's of tokens within it.
 * As above, tokens mimic real word money, in that you can have T0.01, T0.20 & T1.00, but you could not send T0.30 to someone as you do not have the denomination to do so.  The network would have to try to distribute large and small tokens to make sure there was always enough "change" to have transactions succeed.
 
 ## Tokens?
@@ -64,7 +65,7 @@ This is tricky, as it mimics real world resource availability and therefore ther
 
 ## Network issues
 
-One of the major pain points is going to be the claiming of low value tokens, as a powerful machine may be able to find many hundreds of the smallest denominations per second, and there will be a "gold rush" as to who those tokens were allocated to, with many miners finding the same tokens.
+One of the major pain points is going to be the claiming of low value tokens, as a powerful machine may be able to find many hundreds of the smallest denominations per second, and there will be a "gold rush" as to who those tokens were allocated to, with many miners finding the same tokens. This will be helped in the main by the miners applying random mining techniques.
 
 ## Fairness
 
