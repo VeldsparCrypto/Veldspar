@@ -27,7 +27,13 @@ import PerfectHTTPServer
 // defaults
 var port: Int = 14242
 
+print("---------------------------")
 print("\(Config.CurrencyName) Daemon v\(Config.Version)")
+print("---------------------------")
+
+// open the database connection
+Database.Initialize()
+print("Database connection opened")
 
 let args: [String] = CommandLine.arguments
 var debug = false;

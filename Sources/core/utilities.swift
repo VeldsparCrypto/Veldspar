@@ -23,17 +23,6 @@
 import Foundation
 
 // defines
-let AlgoStringToEnum: [String:TokenHashingAlgorithm] = [
-    "sha224" : TokenHashingAlgorithm.sha224,
-    "sha256" : TokenHashingAlgorithm.sha256,
-    "sha384" : TokenHashingAlgorithm.sha384,
-    "sha512" : TokenHashingAlgorithm.sha512
-]
-
-let MethodStringToEnum: [String : TokenCombinationMethod] = [
-    "append"    : TokenCombinationMethod.append,
-    "prepend"   : TokenCombinationMethod.prepend
-]
 
 extension String {
     
@@ -58,6 +47,22 @@ extension UInt64 {
 extension UInt32 {
     private func rawBytes() -> [UInt8] {
         let totalBytes = MemoryLayout<UInt32>.size
+        var value = self
+        return withUnsafePointer(to: &value) { valuePtr in
+            return valuePtr.withMemoryRebound(to: UInt8.self, capacity: totalBytes) { reboundPtr in
+                return Array(UnsafeBufferPointer(start: reboundPtr, count: totalBytes))
+            }
+        }
+    }
+    func toHex() -> String {
+        let byteArray = self.rawBytes().reversed()
+        return byteArray.map{String(format: "%02X", $0)}.joined()
+    }
+}
+
+extension UInt16 {
+    private func rawBytes() -> [UInt8] {
+        let totalBytes = MemoryLayout<UInt16>.size
         var value = self
         return withUnsafePointer(to: &value) { valuePtr in
             return valuePtr.withMemoryRebound(to: UInt8.self, capacity: totalBytes) { reboundPtr in

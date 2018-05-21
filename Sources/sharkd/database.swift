@@ -21,14 +21,18 @@
 //    SOFTWARE.
 
 import Foundation
-import SQLiteStORM
+import SWSQLite
 import SharkCore
 
-SQLiteConnector.db = "./SessionDB"
+let blockchain_db = SWSQLite(path: "\(URL(fileURLWithPath: NSHomeDirectory())).\(Config.CurrencyName)", filename: "blockchain.db")
 
 class Database {
     
     class func Initialize() {
+        
+        _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS block (height INTEGER PRIMARY KEY, hash TEXT, oreSeed TEXT)", params: [])
+        _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS block_transaction (id TEXT PRIMARY KEY,height INTEGER, type INTEGER, key TEXT, signature TEXT, dest TEXT, ref TEXT, value INTEGER, date INTEGER, tokens TEXT)", params: [])
+        _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS ledger (id INTEGER PRIMARY KEY AUTOINCREMENT,op INTEGER, date INTEGER, transaction TEXT, owner TEXT, token TEXT, checksum TEXT)", params: [])
         
     }
     
@@ -37,9 +41,9 @@ class Database {
         return false
     }
     
-    class func BlockAtHeight(_ height: UInt64) -> Block {
+    class func BlockAtHeight(_ height: UInt64) -> Block? {
         
-        return false
+        return nil
     }
     
 }

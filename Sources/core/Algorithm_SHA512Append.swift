@@ -21,82 +21,46 @@
 //    SOFTWARE.
 
 import Foundation
-import SharkCore
 
-class BlockChain {
+class AlgorithmSHA512Append: AlgorithmProtocol {
     
-    private let lock: Mutex
-    private var blocks_cache: [UInt64:Block] = [:]
-    private var current_tidemark: Block?
     
-    init() {
+    func generate(ore: Ore, address: [UInt32]) -> Token {
         
-        lock = Mutex()
+        return Token(oreHeight: ore.height, address: address, algorithm: .SHA512_Append)
         
     }
     
-    func height() -> UInt64 {
+    func validate(token: Token) -> Bool {
         
-        var count: UInt64 = 0
-        
-        lock.mutex {
+        // well the token is always valid, but does it meet any of the conditions
+        let hash = try? self.hash(token: token)
+        if hash!.starts(with: [Economy.patternByte]) {
             
-            // query the database to find the highest block there is
+            //TODO: more validation here to ensure it is valid
+            return true
+            
+        } else {
+            
+            return false
             
         }
-        
-        return count
         
     }
     
-    func tidemark() -> UInt64 {
-        
-        var count: UInt64 = 0
-        
-        lock.mutex {
-            
-            // query the database to find the highest block there is, and return it's timestamp
-            if current_tidemark != nil {
-                count = current_tidemark!.LatestTimestamp()
-            }
-            
-        }
-        
-        return count
-        
+    func deprecated(height: UInt) -> Bool {
+        return false
     }
     
-    func blockAtHeight(_ height: UInt64) -> Block? {
+    func hash(token: Token) -> [UInt8] {
         
-        var block: Block? = nil
+        var byteArray: [UInt8] = []
         
-        lock.mutex {
-            
-            // check the cache first, then query the database
-            if blocks_cache[height] != nil {
-                block = blocks_cache[height]
-            } else {
-                
-                // query database
-                
-                
-            }
-            
+        for i in token.address {
+            try? byteArray.append(contentsOf: Array(Ore.atHeight(token.oreHeight).rawMaterial[Int(i)...Int(Int(i)+Config.TokenSegmentSize)]))
         }
         
-        return block
-        
-    }
-    
-    func addBlock(_ block:Block) {
-        
-        lock.mutex {
-            
-            blocks_cache[block.height] = block
-            
-            
-            
-        }
+        return byteArray.sha512()
         
     }
     

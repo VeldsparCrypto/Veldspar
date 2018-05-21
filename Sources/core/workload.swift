@@ -22,42 +22,10 @@
 
 import Foundation
 
-
-public class Token {
+public class Workload {
     
-    public var oreHeight: UInt32
-    public var address: [UInt32]
-    public var algorithm: AlgorithmType
-    public var value: UInt32
-    public var workload: Workload
-    
-    public init(oreHeight: UInt32, address: [UInt32], algorithm: AlgorithmType, workload: Workload) {
-        
-        self.oreHeight = oreHeight
-        self.address = address
-        self.algorithm = algorithm
-        self.value = 0
-        self.workload = workload
-        self.value = Economy.valueForToken(self)
-        
-    }
-    
-//    public init(_ id: String) {
-//
-//    }
-    
-    
-    // <height>-<workload>-<algorithm>-<value>-<add1>..-..<add n>
-    // FFFFFFFFFFFFFFFF-FFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF
-    public func tokenId() -> String {
-        var id = "\(self.oreHeight.toHex())-\(self.workload.matches.toHex())\(self.workload.patterns.toHex())\(self.workload.sequential.toHex())-\(self.algorithm.rawValue.toHex())-\(self.value.toHex())"
-        
-        for a in self.address {
-            id = id + "-\(a.toHex())"
-        }
-        
-        return id
-    }
-
+    public var matches: UInt8 = 0
+    public var patterns: UInt8 = 0
+    public var sequential: UInt8 = 0
     
 }
