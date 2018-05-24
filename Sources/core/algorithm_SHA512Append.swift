@@ -22,22 +22,22 @@
 
 import Foundation
 
-class AlgorithmSHA512Append: AlgorithmProtocol {
+public class AlgorithmSHA512Append: AlgorithmProtocol {
     
     
-    func generate(ore: Ore, address: [UInt32]) -> Token {
+    public func generate(ore: Ore, address: [UInt32]) -> Token {
         
         return Token(oreHeight: ore.height, address: address, algorithm: .SHA512_Append)
-        
+
     }
     
-    func validate(token: Token) -> Bool {
+    public func validate(token: Token) -> Bool {
         
         // well the token is always valid, but does it meet any of the conditions
-        let hash = try? self.hash(token: token)
-        if hash!.starts(with: [Economy.patternByte]) {
+        let hash = self.hash(token: token)
+        if hash.starts(with: [Economy.patternByte]) {
             
-            //TODO: more validation here to ensure it is valid
+            //TODO: more validation here to ensure it is valid, against the workload me thinks
             return true
             
         } else {
@@ -48,11 +48,11 @@ class AlgorithmSHA512Append: AlgorithmProtocol {
         
     }
     
-    func deprecated(height: UInt) -> Bool {
+    public func deprecated(height: UInt) -> Bool {
         return false
     }
     
-    func hash(token: Token) -> [UInt8] {
+    public func hash(token: Token) -> [UInt8] {
         
         var byteArray: [UInt8] = []
         
@@ -63,6 +63,48 @@ class AlgorithmSHA512Append: AlgorithmProtocol {
         return byteArray.sha512()
         
     }
+    
+    public func workload(token: Token) -> Workload {
+        
+        let workload = Workload()
+        var hash = self.hash(token: token)
+        
+        for i in 0...14 {
+            if (hash[i] == Economy.patternByte) {
+                workload.sequence+=1
+            } else {
+                break
+            }
+        }
+        
+        // work out how many matched start bytes there are itteratively
+        while hash.starts(with: [Economy.patternByte]) {
+            workload.iterations+=1
+            hash = hash.sha512()
+        }
+        
+        // work out how many times a repeating pattern occours within the first 16 bytes of a hash
+        hash = self.hash(token: token)
+        
+        for i in 0...14 {
+            if (hash[i] == Economy.patternByte && hash[i+1] == Economy.patternByte) {
+                workload.occurrences+=1
+            }
+        }
+    
+        return workload
+        
+    }
+    
+    public func value(token: Token) -> UInt32 {
+        
+        // generate the workload signature, and send it to the Economy class for valuation
+        let workload = self.workload(token: token)
+        return Economy.value(token: token, workload: workload)
+        
+    }
+    
+    
     
     
 }

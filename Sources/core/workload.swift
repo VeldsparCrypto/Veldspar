@@ -24,8 +24,15 @@ import Foundation
 
 public class Workload {
     
-    public var matches: UInt8 = 0
-    public var patterns: UInt8 = 0
-    public var sequential: UInt8 = 0
+    // number of times the chosen byte appears at the beginning of the hash
+    public var sequence = 0
+    
+    // number of times when sequentially hashed that the hash starts with the chosen byte
+    public var iterations = 0
+    
+    // number of times that the byte occours as a sequential pattern in the first 16 bytes of the hash (to make it fair for shorter hash algos)
+    // ****[XX]*****X********X*******[XX]**********[XX]******X********X*
+    // so the above would have a value of 3
+    public var occurrences = 0
     
 }

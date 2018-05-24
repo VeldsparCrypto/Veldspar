@@ -31,6 +31,8 @@ protocol AlgorithmProtocol {
     func validate(token: Token) -> Bool
     func deprecated(height: UInt) -> Bool
     func hash(token: Token) -> [UInt8]
+    func value(token: Token) -> UInt32
+    func workload(token: Token) -> Workload
 }
 
 class AlgorithmManager {
@@ -42,6 +44,10 @@ class AlgorithmManager {
     private var implementations: [AlgorithmProtocol] = []
     private var lock: Mutex = Mutex()
     
+    init() {
+        register(algorithm: AlgorithmSHA512Append())
+    }
+    
     public func register(algorithm: AlgorithmProtocol) {
         lock.mutex {
             implementations.append(algorithm)
@@ -49,6 +55,7 @@ class AlgorithmManager {
     }
     
     public class func sharedInstance() -> AlgorithmManager {
+        
         return AlgorithmManager.this
     }
     
@@ -110,6 +117,20 @@ class AlgorithmManager {
         
         return hash
 
+    }
+    
+    public func value(token: Token) -> UInt32 {
+        
+        var value: UInt32 = 0
+        
+        lock.mutex {
+            if token.algorithm.rawValue < implementations.count {
+                let imp = implementations[Int(token.algorithm.rawValue)]
+                value = imp.value(token: token)
+            }
+        }
+        
+        return value
         
     }
     

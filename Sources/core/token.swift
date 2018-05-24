@@ -22,23 +22,17 @@
 
 import Foundation
 
-
 public class Token {
     
     public var oreHeight: UInt32
     public var address: [UInt32]
     public var algorithm: AlgorithmType
-    public var value: UInt32
-    public var workload: Workload
     
-    public init(oreHeight: UInt32, address: [UInt32], algorithm: AlgorithmType, workload: Workload) {
+    public init(oreHeight: UInt32, address: [UInt32], algorithm: AlgorithmType) {
         
         self.oreHeight = oreHeight
         self.address = address
         self.algorithm = algorithm
-        self.value = 0
-        self.workload = workload
-        self.value = Economy.valueForToken(self)
         
     }
     
@@ -47,16 +41,24 @@ public class Token {
 //    }
     
     
-    // <height>-<workload>-<algorithm>-<value>-<add1>..-..<add n>
-    // FFFFFFFFFFFFFFFF-FFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF
+    // <height>-<algorithm>-<value>-<add1>..-..<add n>
+    // FFFFFFFF-FFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF
     public func tokenId() -> String {
-        var id = "\(self.oreHeight.toHex())-\(self.workload.matches.toHex())\(self.workload.patterns.toHex())\(self.workload.sequential.toHex())-\(self.algorithm.rawValue.toHex())-\(self.value.toHex())"
+        
+        var id = "\(self.oreHeight.toHex())-\(self.algorithm.rawValue.toHex())-\(self.value().toHex())"
         
         for a in self.address {
             id = id + "-\(a.toHex())"
         }
         
         return id
+        
+    }
+    
+    public func value() -> UInt32 {
+        
+        return AlgorithmManager.sharedInstance().value(token: self)
+        
     }
 
     

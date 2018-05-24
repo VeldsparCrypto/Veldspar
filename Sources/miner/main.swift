@@ -22,7 +22,7 @@
 
 import Foundation
 import SharkCore
-import CEd25519
+import Ed25519
 
 #if os(Linux)
     srandom(UInt32(time(nil)))
@@ -32,16 +32,7 @@ import CEd25519
 var nodeAddress: String = "127.0.0.1:14242"
 var oreBlocks: [Ore] = []
 var payoutAddress: String = ""
-var miningMethods: [TokenCombinationMethod] = [
-    TokenCombinationMethod.append,
-    TokenCombinationMethod.prepend
-]
-var miningAlgos: [TokenHashingAlgorithm] = [
-    TokenHashingAlgorithm.sha224,
-    TokenHashingAlgorithm.sha256,
-    TokenHashingAlgorithm.sha384,
-    TokenHashingAlgorithm.sha512
-]
+var miningMethods: [AlgorithmType] = [AlgorithmType.SHA512_Append]
 
 print("\(Config.CurrencyName) Miner v\(Config.Version)")
 
@@ -56,28 +47,26 @@ oreBlocks.append(Ore("balls", height: 3))
 
 print("Mining ore .........")
 
-for _ in 1...8 {
+for _ in 1...1 {
     
     Execute.background {
         while true {
             
             let height = oreBlocks[Random.Integer(oreBlocks.count)].height
             let oreSize = (((Config.OreSize * 1024) * 1024) - Config.TokenSegmentSize)
-            let algo = miningAlgos[Random.Integer(miningAlgos.count)]
             let method = miningMethods[Random.Integer(miningMethods.count)]
             
             var address: [UInt32] = []
-            for _ in 1...8 {
+            for _ in 1...Config.TokenAddressSize {
                 address.append(UInt32(Random.Integer(oreSize)))
             }
-            let t = Token(height: height, address: address, algo: algo, method: method)
-            if t.value > 0 {
-                print("Found token! Ore:\(height) algo:\(algo.rawValue) method:\(method.rawValue)")
+            let t = Token(oreHeight: height, address: address, algorithm: method)
+            if t.value() > 0 {
+                print("Found token! Ore:\(height) method:\(method.rawValue) value:\(t.value())")
                 print("Token Address: " + t.tokenId())
+                print("Registering token with network, keep up the good work.")
+                //TODO: call node and claim this token as owned by this miner
             }
-            
-            print("Registering token with network, keep up the good work.")
-            //TODO: call node and claim this token as owned by this miner
             
         }
     }
