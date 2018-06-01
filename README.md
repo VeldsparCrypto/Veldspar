@@ -5,7 +5,7 @@
 * To think about block chain currencies differently (in this case to try to solve the issues that currently affect coin systems in production).  
 * To use PoW & PoS to good affect.  The PoS actually being the amount in hash power you apply to the network.
 
-## The concept as spewing from my head (to be refined as thoughts gather):
+## The concept (still in development as problems are discovered and overcome):
 
 There are two parallel parts to the chain; 
 
@@ -42,7 +42,7 @@ And example would be:
 
 `<height><method><algorithm><value><add1>..<add n>`
 
-Which looks like for a 64bit token with 8 paths:
+Which looks, for a 64bit token with 8 paths, like:
 
 `00000001-00-00-00000001-00046411-00005839-0002C3CD-000B5BA9-00010B6F-00002AEA-0007E24D-000EC5F6`
   
