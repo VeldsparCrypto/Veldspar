@@ -1,6 +1,4 @@
-# SharkChain
-The project is called SharkChain because all my projects are SharkXXXXXXX.  When forked, you can call it what you like!
-
+# Veldspar - Cryptocurrency
 
 ## Purpose:
 
