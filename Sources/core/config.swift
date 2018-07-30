@@ -25,17 +25,18 @@ import Foundation
 public class Config {
     
     public static let Version = "0.0.1"
-    public static let CurrencyName = "SharkCoin"
-    public static let CurrencyNetworkAddress = "53524b"
-    public static let GenesisID = "af469d10bb7de931f856e5c89105b3b06837c5baeb51173758744e4644ea4ed9dee53b410b5a731a2a5d981e266719908a51c17e72f292583fd7e3417814b22b"
+    public static let CurrencyName = "Veldspar"
+    public static let CurrencyNetworkAddress = "SRK"
+    public static let GenesisID = "5538ae2b02d4ae0b7090dc908ca69cd11a2ffad43c7435f1dbad5e6a"
+    public static let BlockchainStartDate = 1532928026078
     
     // transaction maturity level - targets transactions for x number of blocks in the future to allow a consensus network to operate
-    public static let TransactionMaturityLevel = 2
+    public static let TransactionMaturityLevel = 5
     
     // number by which token value is divided to determine currency value
     public static let DenominationDivider = 100
     
-    // regularity of block creation
+    // regularity of block formation
     public static let BlockTime = 60
     
     // size of the ore segment in megabytes - 1mb gives posibilities of 1.169e^57 combinations @ address size of 8

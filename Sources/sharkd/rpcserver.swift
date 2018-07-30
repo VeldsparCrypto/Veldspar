@@ -49,7 +49,7 @@ func handleRequest() throws -> RequestHandler {
             }
             
             if request.path == "/timestamp" {
-                do { try response.setBody(json: ["timestamp" : UInt64(Date().timeIntervalSince1970)])} catch {}
+                do { try response.setBody(json: ["timestamp" : UInt64(Date().timeIntervalSince1970*1000)])} catch {}
             }
             
         } else if request.method == .post {

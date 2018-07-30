@@ -31,7 +31,7 @@ public class Block {
 
     // block contents
     public var oreSeed: String?
-    public var transactions: [Transaction] = []
+    public var transactions: [Ledger] = []
     
     // initializer
     public init(height: UInt64) {
@@ -43,12 +43,24 @@ public class Block {
         var latest: UInt64 = 0
         
         for t in transactions {
-            if t.date > latest {
-                latest = t.date
+            if t.date ?? 0 > latest {
+                latest = t.date ?? 0
             }
         }
         
         return 0
+        
+    }
+    
+    public func GenerateHashForBlock(previousHash: String) -> String {
+        
+        // the hash is based on, the previous hash or "" for the genesis and all of the transaction summary data
+        var data = "\(self.height)\(previousHash)\(self.height)"
+        for t in self.transactions {
+            data += "\(t.block ?? 0)\(t.checksum ?? "")\(t.date ?? 0)\(t.op ?? 0)\(t.owner ?? "")\(t.token ?? "")\(t.transaction ?? "")"
+        }
+        
+        return data.sha224()
         
     }
     

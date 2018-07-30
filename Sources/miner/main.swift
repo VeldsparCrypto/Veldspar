@@ -47,7 +47,7 @@ oreBlocks.append(Ore("balls", height: 3))
 
 print("Mining ore .........")
 
-for _ in 1...1 {
+for _ in 1...4 {
     
     Execute.background {
         while true {

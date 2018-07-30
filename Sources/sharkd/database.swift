@@ -31,12 +31,15 @@ class Database {
     class func Initialize() {
         
         _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS block (height INTEGER PRIMARY KEY, hash TEXT, oreSeed TEXT)", params: [])
-        _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS block_transaction (id TEXT PRIMARY KEY,height INTEGER, type INTEGER, key TEXT, signature TEXT, dest TEXT, ref TEXT, value INTEGER, date INTEGER, tokens TEXT)", params: [])
-        _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS ledger (id INTEGER PRIMARY KEY AUTOINCREMENT,op INTEGER, date INTEGER, transaction TEXT, owner TEXT, token TEXT, checksum TEXT)", params: [])
+        _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS ledger (id INTEGER PRIMARY KEY AUTOINCREMENT,op INTEGER, date INTEGER, transaction_id TEXT, owner TEXT, token TEXT, block INTEGER, checksum TEXT)", params: [])
         
     }
     
     class func WriteBlock(_ block: Block) -> Bool {
+        
+        if blockchain_db.execute(sql: "INSERT OR REPLACE INTO block (height, hash, oreSeed) VALUES (?,?,?)", params: [block.height, block.hash!, block.oreSeed ?? NSNull()]).error == nil {
+            return true
+        }
         
         return false
     }

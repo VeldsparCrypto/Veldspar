@@ -94,8 +94,6 @@ class BlockChain {
             
             blocks_cache[block.height] = block
             
-            
-            
         }
         
     }
