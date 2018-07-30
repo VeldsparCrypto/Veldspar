@@ -98,8 +98,8 @@ The node will then send this final hash around to other nodes to gain consensus,
 In the case where a node becomes outnumbered in it’s resolution of a block, it will not commit that block into the store, and will instead ask another node (likely a seed node) for all it’s transactions for a block, then re-process that block and check the hash now matches the consensus and if it passes then write the block into the datastore.
 
 # Roadmap:
-v0.1.x - Initial seed node created, mining active, wallets created, no replication to other nodes.
-v0.2.x - Live replication, p2p to other nodes, Seed nodes authoritive on token registration and spends
-v0.3.x - Quorum introduced, seed nodes no longer authoritive unless 50/50 decision requires adjudication.
-v0.4.x - Introduce ledger compaction, only allocation and previous allocation required to be kept past a certain point.
+* v0.1.x - Initial seed node created, mining active, wallets created, no replication to other nodes.
+* v0.2.x - Live replication, p2p to other nodes, Seed nodes authoritive on token registration and spends
+* v0.3.x - Quorum introduced, seed nodes no longer authoritive unless 50/50 decision requires adjudication.
+* v0.4.x - Introduce ledger compaction, only allocation and previous allocation required to be kept past a certain point.
 
