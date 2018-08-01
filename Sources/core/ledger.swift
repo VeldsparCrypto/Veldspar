@@ -7,16 +7,50 @@
 
 import Foundation
 
-public class Ledger {
-    // "CREATE TABLE IF NOT EXISTS ledger (id INTEGER PRIMARY KEY AUTOINCREMENT,op INTEGER, date INTEGER, transaction TEXT, owner TEXT, token TEXT, block INTEGER, checksum TEXT)"
+public enum LedgerOPType : Int {
     
-    public var id: UInt64?
-    public var op: Int?
-    public var date: UInt64?
-    public var transaction: String?
-    public var owner: String?
-    public var token: String?
-    public var block: UInt64?
-    public var checksum: String?
+    case Unset = 0
+    case RegisterToken = 1
+    case ChangeOwner = 2
+    case ReWriteToken = 3
+    
+}
+
+public class Ledger {
+
+    public var transaction_id: String
+    public var op: LedgerOPType
+    public var date: UInt64
+    public var transaction_group: String
+    public var destination: String
+    public var token: String
+    public var spend_auth: String
+    public var block: UInt64
+    
+    public init(op: LedgerOPType,token: String, ref: String, address: String, auth: String, block: UInt64) {
+        self.transaction_id = UUID().uuidString.CryptoHash()
+        self.op = op
+        self.transaction_group = ref
+        self.destination = address
+        self.date = UInt64(Date().timeIntervalSince1970 * 1000)
+        self.spend_auth = auth
+        self.block = block
+        self.token = token
+    }
+    
+    public init(id: String, op: LedgerOPType, token: String, ref: String, address: String, date: UInt64, auth: String, block: UInt64) {
+        self.transaction_id = id
+        self.op = op
+        self.transaction_group = ref
+        self.destination = address
+        self.date = date
+        self.spend_auth = auth
+        self.block = block
+        self.token = token
+    }
+    
+    public func checksum() -> String {
+        return "\(transaction_id)\(op.rawValue)\(date)\(transaction_group)\(destination)\(spend_auth)\(block)".md5()
+    }
     
 }

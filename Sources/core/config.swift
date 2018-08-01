@@ -26,9 +26,11 @@ public class Config {
     
     public static let Version = "0.0.1"
     public static let CurrencyName = "Veldspar"
-    public static let CurrencyNetworkAddress = "SRK"
+    public static let CurrencyNetworkAddress = "VE"
     public static let GenesisID = "5538ae2b02d4ae0b7090dc908ca69cd11a2ffad43c7435f1dbad5e6a"
     public static let BlockchainStartDate = 1532928026078
+    
+    public static let DefaultHashType: CryptoHashType = .sha224
     
     // transaction maturity level - targets transactions for x number of blocks in the future to allow a consensus network to operate
     public static let TransactionMaturityLevel = 5

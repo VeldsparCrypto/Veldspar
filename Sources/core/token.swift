@@ -36,11 +36,6 @@ public class Token {
         
     }
     
-//    public init(_ id: String) {
-//
-//    }
-    
-    
     // <height>-<algorithm>-<value>-<add1>..-..<add n>
     // FFFFFFFF-FFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF
     public func tokenId() -> String {

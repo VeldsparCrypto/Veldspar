@@ -25,28 +25,176 @@ import SWSQLite
 import SharkCore
 
 let blockchain_db = SWSQLite(path: "\(URL(fileURLWithPath: NSHomeDirectory())).\(Config.CurrencyName)", filename: "blockchain.db")
+let pending_db = SWSQLite(path: "\(URL(fileURLWithPath: NSHomeDirectory())).\(Config.CurrencyName)", filename: "pending.db")
 
 class Database {
     
     class func Initialize() {
         
         _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS block (height INTEGER PRIMARY KEY, hash TEXT, oreSeed TEXT)", params: [])
-        _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS ledger (id INTEGER PRIMARY KEY AUTOINCREMENT,op INTEGER, date INTEGER, transaction_id TEXT, owner TEXT, token TEXT, block INTEGER, checksum TEXT)", params: [])
+        _ = blockchain_db.execute(sql:
+            """
+CREATE TABLE IF NOT EXISTS ledger (
+    transaction_id TEXT PRIMARY KEY,
+    op INTEGER,
+    date INTEGER,
+    transaction_group TEXT,
+    owner TEXT,
+    token TEXT,
+    spend_auth TEXT,
+    block INTEGER,
+    checksum TEXT
+)
+""", params: [])
+        
+        _ = pending_db.execute(sql:
+            """
+CREATE TABLE IF NOT EXISTS ledger (
+    transaction_id TEXT PRIMARY KEY,
+    op INTEGER,
+    date INTEGER,
+    transaction_group TEXT,
+    owner TEXT,
+    token TEXT,
+    spend_auth TEXT,
+    block INTEGER,
+    checksum TEXT
+)
+""", params: [])
+        
+    }
+    
+    class func DeleteBlock(_ block: Block) -> Bool {
+        
+        if blockchain_db.execute(sql: "DELETE FROM block WHERE height = ?; DELETE FROM ledger WHERE block = ?;", params: [block.height, block.height]).error != nil {
+            return false
+        }
+        
+        return true
+    }
+    
+    class func WritePendingLedger(_ ledger: Ledger) -> Bool {
+        
+        if blockchain_db.execute(
+            sql: "INSERT OR REPLACE INTO ledger (transaction_id, op, date, transaction_group, owner, token, spend_token, block, checksum) VALUES (?,?,?,?,?,?,?,?,?)",
+            params: [
+                
+                ledger.transaction_id,
+                ledger.op.rawValue,
+                ledger.date,
+                ledger.transaction_group,
+                ledger.destination,
+                ledger.token,
+                ledger.spend_auth,
+                ledger.block,
+                ledger.checksum()
+                
+            ]).error != nil {
+            return false
+            
+        }
+        return true
         
     }
     
     class func WriteBlock(_ block: Block) -> Bool {
         
+        // TODO: transaction & rollback
+        
         if blockchain_db.execute(sql: "INSERT OR REPLACE INTO block (height, hash, oreSeed) VALUES (?,?,?)", params: [block.height, block.hash!, block.oreSeed ?? NSNull()]).error == nil {
+            
+            // now write in the transactions into the table as well
+            for t in block.transactions {
+                if blockchain_db.execute(
+                    sql: "INSERT OR REPLACE INTO ledger (transaction_id, op, date, transaction_group, owner, token, spend_token, block, checksum) VALUES (?,?,?,?,?,?,?,?,?)",
+                    params: [
+                        
+                        t.transaction_id,
+                        t.op.rawValue,
+                        t.date,
+                        t.transaction_group,
+                        t.destination,
+                        t.token,
+                        t.spend_auth,
+                        t.block,
+                        t.checksum()
+                        
+                    ]).error != nil {
+                    return false
+                }
+            }
+            
             return true
         }
         
         return false
     }
     
+    class func TokenOwnershipRecord(_ id: String) -> Ledger? {
+        
+        let result = blockchain_db.query(sql: "SELECT * FROM ledger WHERE token = ? ORDER BY block DESC LIMIT 1", params: [id])
+        if result.error != nil {
+            return nil
+        }
+        
+        if result.results.count > 0 {
+            let r = result.results[0]
+            let l = Ledger(id: r["transaction_id"]!.asString()!,
+                           op: LedgerOPType(rawValue: r["op"]!.asInt()!)!,
+                           token: r["token"]!.asString()!,
+                           ref: r["transaction_group"]!.asString()!,
+                           address: r["owner"]!.asString()!,
+                           date: r["date"]!.asUInt64()!,
+                           auth: r["spend_auth"]!.asString()!,
+                           block: r["block"]!.asUInt64()!)
+            return l
+        }
+        
+        return nil;
+    }
+    
     class func BlockAtHeight(_ height: UInt64) -> Block? {
         
-        return nil
+        let result = blockchain_db.query(sql: "SELECT * FROM block WHERE height = ? LIMIT 1", params: [height])
+        if result.error != nil {
+            return nil
+        }
+        
+        if result.results.count > 0 {
+            
+            let br = result.results[0]
+            let b = Block(height: height)
+            b.oreSeed = br["oreSeed"]?.asString()
+            
+            // now get the transactions for that block
+            let trans = blockchain_db.query(sql: "SELECT * FROM ledger WHERE block = ? ORDER BY token", params: [height])
+            if trans.error != nil {
+                return nil
+            }
+            
+            if trans.results.count > 0 {
+                
+                for r in trans.results {
+                    
+                    let l = Ledger(id: r["transaction_id"]!.asString()!,
+                                   op: LedgerOPType(rawValue: r["op"]!.asInt()!)!,
+                                   token: r["token"]!.asString()!,
+                                   ref: r["transaction_group"]!.asString()!,
+                                   address: r["owner"]!.asString()!,
+                                   date: r["date"]!.asUInt64()!,
+                                   auth: r["spend_auth"]!.asString()!,
+                                   block: r["block"]!.asUInt64()!)
+                    
+                    b.transactions.append(l)
+                    
+                }
+                
+            }
+            
+            return b
+        }
+        
+        return nil;
     }
     
 }

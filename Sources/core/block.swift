@@ -43,8 +43,8 @@ public class Block {
         var latest: UInt64 = 0
         
         for t in transactions {
-            if t.date ?? 0 > latest {
-                latest = t.date ?? 0
+            if t.date > latest {
+                latest = t.date
             }
         }
         
@@ -57,10 +57,10 @@ public class Block {
         // the hash is based on, the previous hash or "" for the genesis and all of the transaction summary data
         var data = "\(self.height)\(previousHash)\(self.height)"
         for t in self.transactions {
-            data += "\(t.block ?? 0)\(t.checksum ?? "")\(t.date ?? 0)\(t.op ?? 0)\(t.owner ?? "")\(t.token ?? "")\(t.transaction ?? "")"
+            data += "\(t.transaction_id)\(t.block)\(t.checksum())\(t.date)\(t.op.rawValue))\(t.destination)\(t.token)\(t.spend_auth)\(t.transaction_group)"
         }
         
-        return data.sha224()
+        return data.CryptoHash()
         
     }
     
