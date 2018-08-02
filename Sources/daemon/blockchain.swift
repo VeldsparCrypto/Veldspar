@@ -57,8 +57,8 @@ class BlockChain {
         lock.mutex {
             
             // check the cache first, then query the database
-            if blocks_cache[height] != nil {
-                block = blocks_cache[height]
+            if self.blocks_cache[height] != nil {
+                block = self.blocks_cache[height]
             } else {
                 
                 // query database
@@ -76,7 +76,7 @@ class BlockChain {
         
         lock.mutex {
             
-            blocks_cache[block.height] = block
+            self.blocks_cache[block.height] = block
             
         }
         

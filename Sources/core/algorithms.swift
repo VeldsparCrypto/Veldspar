@@ -50,7 +50,7 @@ class AlgorithmManager {
     
     public func register(algorithm: AlgorithmProtocol) {
         lock.mutex {
-            implementations.append(algorithm)
+            self.implementations.append(algorithm)
         }
     }
     
@@ -64,8 +64,8 @@ class AlgorithmManager {
         var token: Token? = nil
         
         lock.mutex {
-            if type.rawValue < implementations.count {
-                let imp = implementations[Int(type.rawValue)]
+            if type.rawValue < self.implementations.count {
+                let imp = self.implementations[Int(type.rawValue)]
                 token = imp.generate(ore: ore, address: address)
             }
         }
@@ -79,8 +79,8 @@ class AlgorithmManager {
         var isValid: Bool = false
         
         lock.mutex {
-            if token.algorithm.rawValue < implementations.count {
-                let imp = implementations[Int(token.algorithm.rawValue)]
+            if token.algorithm.rawValue < self.implementations.count {
+                let imp = self.implementations[Int(token.algorithm.rawValue)]
                 isValid = imp.validate(token: token)
             }
         }
@@ -94,8 +94,8 @@ class AlgorithmManager {
         var isDepricated: Bool = false
         
         lock.mutex {
-            if type.rawValue < implementations.count {
-                let imp = implementations[Int(type.rawValue)]
+            if type.rawValue < self.implementations.count {
+                let imp = self.implementations[Int(type.rawValue)]
                 isDepricated = imp.deprecated(height: height)
             }
         }
@@ -109,8 +109,8 @@ class AlgorithmManager {
         var hash: [UInt8] = []
         
         lock.mutex {
-            if token.algorithm.rawValue < implementations.count {
-                let imp = implementations[Int(token.algorithm.rawValue)]
+            if token.algorithm.rawValue < self.implementations.count {
+                let imp = self.implementations[Int(token.algorithm.rawValue)]
                 hash = imp.hash(token: token)
             }
         }
@@ -124,8 +124,8 @@ class AlgorithmManager {
         var value: UInt32 = 0
         
         lock.mutex {
-            if token.algorithm.rawValue < implementations.count {
-                let imp = implementations[Int(token.algorithm.rawValue)]
+            if token.algorithm.rawValue < self.implementations.count {
+                let imp = self.implementations[Int(token.algorithm.rawValue)]
                 value = imp.value(token: token)
             }
         }
