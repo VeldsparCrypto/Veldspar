@@ -1,6 +1,6 @@
 //    MIT License
 //
-//    Copyright (c) 2018 SharkChain Team
+//    Copyright (c) 2018 Veldspar Team
 //
 //    Permission is hereby granted, free of charge, to any person obtaining a copy
 //    of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,12 @@
 import Foundation
 import Foundation
 import PerfectHTTP
-import SharkCore
+import VeldsparCore
+
+enum RPCErrors : Error {
+    case InvalidRequest
+    case DuplicateRequest
+}
 
 func handleRequest() throws -> RequestHandler {
     return {
@@ -44,22 +49,71 @@ func handleRequest() throws -> RequestHandler {
         
         if request.method == .get {
             
-            if request.path == "/" {
-                do { try response.setBody(json: ["Server" : "\(Config.CurrencyName) Node", "version" : "\(Config.Version)"])} catch {}
+            do {
+                
+                if request.path == "/" {
+                    try response.setBody(json: ["Server" : "\(Config.CurrencyName) Node", "version" : "\(Config.Version)"])
+                }
+                
+                if request.path == "/info/timestamp" {
+                    try response.setBody(json: ["timestamp" : UInt64(Date().timeIntervalSince1970*1000)])
+                }
+                
+                if request.path == "/blockchain/currentheight" {
+                    try response.setBody(json: ["height" : blockchain.height()])
+                }
+                
+                if request.path == "/blockchain/seeds" {
+                    try response.setBody(json: RPCOreSeeds.action())
+                }
+                
+                if request.path == "/blockchain/ledger" {
+                    
+                    // query the ledger at a specific height, and return the transactions.  Used for wallet implementations
+                    
+                    
+                    
+                }
+                
+            } catch {
+                
+                
+                
             }
             
-            if request.path == "/timestamp" {
-                do { try response.setBody(json: ["timestamp" : UInt64(Date().timeIntervalSince1970*1000)])} catch {}
-            }
+            
             
         } else if request.method == .post {
             
-            if payload != nil {
+            do {
+                
+                if payload != nil {
+                    
+                    if request.path == "/token/register" {
+                        try response.setBody(json: RPCRegisterToken.action(payload!))
+                    }
+                    
+                    if request.path == "/token/transfer" {
+                        try response.setBody(json: RPCRegisterToken.action(payload!))
+                    }
+                    
+                } else {
+                    
+                    
+                }
+                
+            } catch RPCErrors.DuplicateRequest {
                 
                 
                 
-            } else {
-                do { try response.setBody(json: ["error": "JSON body was missing"])} catch {}
+            } catch RPCErrors.InvalidRequest {
+                
+                
+                
+            } catch {
+                
+                
+                
             }
             
         }

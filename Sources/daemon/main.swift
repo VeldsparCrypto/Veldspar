@@ -1,6 +1,6 @@
 //    MIT License
 //
-//    Copyright (c) 2018 SharkChain Team
+//    Copyright (c) 2018 Veldspar Team
 //
 //    Permission is hereby granted, free of charge, to any person obtaining a copy
 //    of this software and associated documentation files (the "Software"), to deal
@@ -20,7 +20,7 @@
 //    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //    SOFTWARE.
 
-import SharkCore
+import VeldsparCore
 import PerfectHTTP
 import PerfectHTTPServer
 
@@ -55,6 +55,9 @@ if args.count > 1 {
         }
     }
 }
+
+var blockchain = BlockChain()
+print("Blockchain created, currently at height \(blockchain.height())")
 
 do {
     

@@ -1,6 +1,6 @@
 //    MIT License
 //
-//    Copyright (c) 2018 SharkChain Team
+//    Copyright (c) 2018 Veldspar Team
 //
 //    Permission is hereby granted, free of charge, to any person obtaining a copy
 //    of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,13 @@
 
 import Foundation
 
+public enum TokenError : Error {
+    case InvalidToken
+    case InvalidTokenHeight
+    case InvalidTokenAlgorithm
+    case InvalidTokenAddress
+}
+
 public class Token {
     
     public var oreHeight: UInt32
@@ -33,6 +40,46 @@ public class Token {
         self.oreHeight = oreHeight
         self.address = address
         self.algorithm = algorithm
+        
+    }
+    
+    public init(_ tokenString: String) throws {
+        
+        self.oreHeight = 0
+        self.address = []
+        self.algorithm = .SHA512_Append
+        
+        var segments = tokenString.components(separatedBy: "-")
+        
+        if segments.count < (3 + Config.TokenAddressSize) {
+            throw TokenError.InvalidTokenAddress
+        }
+        
+        let height = UInt32(segments[0], radix: 16)
+        if height != nil {
+            self.oreHeight = height!
+        } else {
+            throw TokenError.InvalidTokenHeight
+        }
+        segments.remove(at: 0)
+        
+        let algorithm = UInt16(segments[0], radix: 16)
+        if algorithm != nil {
+            self.algorithm = AlgorithmType(rawValue: algorithm!)!
+        }else {
+            throw TokenError.InvalidTokenAlgorithm
+        }
+        segments.remove(at: 0)
+        segments.remove(at: 0) // remove the value segment as this is evaluated
+        
+        while segments.count > 0 {
+            let address = UInt32(segments[0], radix: 16)
+            if address != nil {
+                self.address.append(address!)
+            } else {
+                throw TokenError.InvalidTokenAddress
+            }
+        }
         
     }
     

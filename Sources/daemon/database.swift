@@ -1,6 +1,6 @@
 //    MIT License
 //
-//    Copyright (c) 2018 SharkChain Team
+//    Copyright (c) 2018 Veldspar Team
 //
 //    Permission is hereby granted, free of charge, to any person obtaining a copy
 //    of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +22,7 @@
 
 import Foundation
 import SWSQLite
-import SharkCore
+import VeldsparCore
 
 let blockchain_db = SWSQLite(path: "\(URL(fileURLWithPath: NSHomeDirectory())).\(Config.CurrencyName)", filename: "blockchain.db")
 let pending_db = SWSQLite(path: "\(URL(fileURLWithPath: NSHomeDirectory())).\(Config.CurrencyName)", filename: "pending.db")
@@ -32,6 +32,7 @@ class Database {
     class func Initialize() {
         
         _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS block (height INTEGER PRIMARY KEY, hash TEXT, oreSeed TEXT)", params: [])
+        _ = pending_db.execute(sql: "CREATE TABLE IF NOT EXISTS block (height INTEGER PRIMARY KEY, hash TEXT, oreSeed TEXT)", params: [])
         _ = blockchain_db.execute(sql:
             """
 CREATE TABLE IF NOT EXISTS ledger (
@@ -75,7 +76,7 @@ CREATE TABLE IF NOT EXISTS ledger (
     
     class func WritePendingLedger(_ ledger: Ledger) -> Bool {
         
-        if blockchain_db.execute(
+        if pending_db.execute(
             sql: "INSERT OR REPLACE INTO ledger (transaction_id, op, date, transaction_group, owner, token, spend_token, block, checksum) VALUES (?,?,?,?,?,?,?,?,?)",
             params: [
                 
@@ -130,6 +131,21 @@ CREATE TABLE IF NOT EXISTS ledger (
         return false
     }
     
+    class func CurrentHeight() -> UInt32? {
+        
+        let result = blockchain_db.query(sql: "SELECT height FROM block ORDER BY height DESC LIMIT 1", params: [])
+        if result.error != nil {
+            return nil
+        }
+        
+        if result.results.count > 0 {
+            let r = result.results[0]
+            return UInt32(r["height"]!.asUInt64()!)
+        }
+        
+        return nil;
+    }
+    
     class func TokenOwnershipRecord(_ id: String) -> Ledger? {
         
         let result = blockchain_db.query(sql: "SELECT * FROM ledger WHERE token = ? ORDER BY block DESC LIMIT 1", params: [id])
@@ -146,14 +162,37 @@ CREATE TABLE IF NOT EXISTS ledger (
                            address: r["owner"]!.asString()!,
                            date: r["date"]!.asUInt64()!,
                            auth: r["spend_auth"]!.asString()!,
-                           block: r["block"]!.asUInt64()!)
+                           block: UInt32(r["block"]!.asUInt64()!))
             return l
         }
         
         return nil;
     }
     
-    class func BlockAtHeight(_ height: UInt64) -> Block? {
+    class func TokenPendingRecord(_ id: String) -> Ledger? {
+        
+        let result = pending_db.query(sql: "SELECT * FROM ledger WHERE token = ? ORDER BY block DESC LIMIT 1", params: [id])
+        if result.error != nil {
+            return nil
+        }
+        
+        if result.results.count > 0 {
+            let r = result.results[0]
+            let l = Ledger(id: r["transaction_id"]!.asString()!,
+                           op: LedgerOPType(rawValue: r["op"]!.asInt()!)!,
+                           token: r["token"]!.asString()!,
+                           ref: r["transaction_group"]!.asString()!,
+                           address: r["owner"]!.asString()!,
+                           date: r["date"]!.asUInt64()!,
+                           auth: r["spend_auth"]!.asString()!,
+                           block: UInt32(r["block"]!.asUInt64()!))
+            return l
+        }
+        
+        return nil;
+    }
+    
+    class func BlockAtHeight(_ height: UInt32) -> Block? {
         
         let result = blockchain_db.query(sql: "SELECT * FROM block WHERE height = ? LIMIT 1", params: [height])
         if result.error != nil {
@@ -183,7 +222,7 @@ CREATE TABLE IF NOT EXISTS ledger (
                                    address: r["owner"]!.asString()!,
                                    date: r["date"]!.asUInt64()!,
                                    auth: r["spend_auth"]!.asString()!,
-                                   block: r["block"]!.asUInt64()!)
+                                   block: UInt32(r["block"]!.asUInt64()!))
                     
                     b.transactions.append(l)
                     
@@ -195,6 +234,28 @@ CREATE TABLE IF NOT EXISTS ledger (
         }
         
         return nil;
+    }
+    
+    class func OreBlocks() -> [Block] {
+        
+        var retValue: [Block] = []
+        
+        let result = blockchain_db.query(sql: "SELECT * FROM block WHERE oreSeed IS NOT NULL", params: [])
+        
+        if result.results.count > 0 {
+            
+            for br in result.results {
+                
+                let b = Block(height: UInt32(br["height"]!.asUInt64()!))
+                b.oreSeed = br["oreSeed"]?.asString()
+                retValue.append(b)
+                
+            }
+            
+        }
+        
+        return retValue
+        
     }
     
 }

@@ -1,6 +1,6 @@
 //    MIT License
 //
-//    Copyright (c) 2018 SharkChain Team
+//    Copyright (c) 2018 Veldspar Team
 //
 //    Permission is hereby granted, free of charge, to any person obtaining a copy
 //    of this software and associated documentation files (the "Software"), to deal
@@ -21,12 +21,12 @@
 //    SOFTWARE.
 
 import Foundation
-import SharkCore
+import VeldsparCore
 
 class BlockChain {
     
     private let lock: Mutex
-    private var blocks_cache: [UInt64:Block] = [:]
+    private var blocks_cache: [UInt32:Block] = [:]
     private var current_tidemark: Block?
     
     init() {
@@ -35,13 +35,14 @@ class BlockChain {
         
     }
     
-    func height() -> UInt64 {
+    func height() -> UInt32 {
         
-        var count: UInt64 = 0
+        var count: UInt32 = 0
         
         lock.mutex {
             
             // query the database to find the highest block there is
+            count = Database.CurrentHeight()!
             
         }
         
@@ -49,24 +50,7 @@ class BlockChain {
         
     }
     
-    func tidemark() -> UInt64 {
-        
-        var count: UInt64 = 0
-        
-        lock.mutex {
-            
-            // query the database to find the highest block there is, and return it's timestamp
-            if current_tidemark != nil {
-                count = current_tidemark!.LatestTimestamp()
-            }
-            
-        }
-        
-        return count
-        
-    }
-    
-    func blockAtHeight(_ height: UInt64) -> Block? {
+    func blockAtHeight(_ height: UInt32) -> Block? {
         
         var block: Block? = nil
         
@@ -78,7 +62,7 @@ class BlockChain {
             } else {
                 
                 // query database
-                
+                block = Database.BlockAtHeight(height)
                 
             }
             
@@ -95,6 +79,52 @@ class BlockChain {
             blocks_cache[block.height] = block
             
         }
+        
+    }
+    
+    func oreSeeds() -> [Block] {
+        
+        var retValue: [Block] = []
+        
+        lock.mutex {
+            retValue = Database.OreBlocks()
+            
+        }
+        
+        return retValue
+        
+    }
+    
+    // ledger functions
+    
+    func registerToken(token: String, address: String, block: UInt32) -> Bool {
+        
+        var returnValue = false
+        
+        // validate the token
+        do {
+            let t = try Token(address)
+            if t.value() == 0 {
+                return false
+            }
+        } catch {
+            return false
+        }
+        
+        lock.mutex {
+            
+            if Database.TokenOwnershipRecord(token) == nil && Database.TokenPendingRecord(token) == nil {
+                
+                let l = Ledger(op: .RegisterToken, token: token, ref: UUID().uuidString, address: address, auth: "", block: block)
+                if Database.WritePendingLedger(l) == true {
+                    returnValue = true
+                }
+                
+            }
+            
+        }
+        
+        return returnValue
         
     }
     

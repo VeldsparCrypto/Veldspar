@@ -21,32 +21,21 @@
 //    SOFTWARE.
 
 import Foundation
-import CryptoSwift
 
-public class Block {
+class RPCOreSeeds {
     
-    // block variables
-    public var height: UInt32
-    public var hash: String?
-
-    // block contents
-    public var oreSeed: String?
-    public var transactions: [Ledger] = []
-    
-    // initializer
-    public init(height: UInt32) {
-        self.height = height
-    }
+    class func action() throws -> [[String:Any?]] {
         
-    public func GenerateHashForBlock(previousHash: String) -> String {
+        // setup the variables
         
-        // the hash is based on, the previous hash or "" for the genesis and all of the transaction summary data
-        var data = "\(self.height)\(previousHash)\(self.height)"
-        for t in self.transactions {
-            data += "\(t.transaction_id)\(t.block)\(t.checksum())\(t.date)\(t.op.rawValue))\(t.destination)\(t.token)\(t.spend_auth)\(t.transaction_group)"
+        let oreSeeds = blockchain.oreSeeds()
+        var seeds: [[String:Any?]] = []
+        
+        for s in oreSeeds {
+            seeds.append(["height" : s.height, "seed" : s.oreSeed!])
         }
         
-        return data.CryptoHash()
+        return seeds
         
     }
     

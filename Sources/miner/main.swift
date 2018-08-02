@@ -1,6 +1,6 @@
 //    MIT License
 //
-//    Copyright (c) 2018 SharkChain Team
+//    Copyright (c) 2018 Veldspar Team
 //
 //    Permission is hereby granted, free of charge, to any person obtaining a copy
 //    of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,7 @@
 //    SOFTWARE.
 
 import Foundation
-import SharkCore
+import VeldsparCore
 import Ed25519
 
 #if os(Linux)
@@ -29,7 +29,7 @@ import Ed25519
 #endif
 
 // defaults
-var nodeAddress: String = "127.0.0.1:14242"
+var nodeAddress: String = Config.SeedNodes[0]
 var oreBlocks: [Ore] = []
 var payoutAddress: String = ""
 var miningMethods: [AlgorithmType] = [AlgorithmType.SHA512_Append]

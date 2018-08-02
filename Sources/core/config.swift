@@ -1,6 +1,6 @@
 //    MIT License
 //
-//    Copyright (c) 2018 SharkChain Team
+//    Copyright (c) 2018 Veldspar Team
 //
 //    Permission is hereby granted, free of charge, to any person obtaining a copy
 //    of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,7 @@ public class Config {
     public static let CurrencyName = "Veldspar"
     public static let CurrencyNetworkAddress = "VE"
     public static let GenesisID = "5538ae2b02d4ae0b7090dc908ca69cd11a2ffad43c7435f1dbad5e6a"
-    public static let BlockchainStartDate = 1532928026078
+    public static let BlockchainStartDate = 1535760000000
     
     public static let DefaultHashType: CryptoHashType = .sha224
     
@@ -53,6 +53,6 @@ public class Config {
     public static let TokenAddressSize = 8
     
     // seed nodes
-    public static let SeedNodes: [String] = []
+    public static let SeedNodes: [String] = ["138.68.116.96"]
     
 }

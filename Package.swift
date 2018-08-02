@@ -4,12 +4,12 @@
 import PackageDescription
 
 let package = Package(
-    name: "SharkChain",
+    name: "Veldspar",
     products: [
-        .library        (name: "SharkCore",     targets: ["SharkCore"]),
-        .executable     (name: "sharkd",        targets: ["sharkd"]),
-        .executable     (name: "miner",         targets: ["miner"]),
-        .executable     (name: "simplewallet",  targets: ["simplewallet"]),
+        .library        (name: "VeldsparCore",     targets: ["VeldsparCore"]),
+        .executable     (name: "veldspard",        targets: ["veldspard"]),
+        .executable     (name: "miner",            targets: ["miner"]),
+        .executable     (name: "simplewallet",     targets: ["simplewallet"]),
         ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
@@ -22,19 +22,19 @@ let package = Package(
         ],
     targets: [
         .target(
-            name: "sharkd",
-            dependencies: ["CryptoSwift","PerfectHTTPServer","PerfectSession","SWSQLite","SharkCore","Ed25519"],
-            path: "./Sources/sharkd"),
+            name: "veldspard",
+            dependencies: ["CryptoSwift","PerfectHTTPServer","PerfectSession","SWSQLite","VeldsparCore","Ed25519"],
+            path: "./Sources/daemon"),
         .target(
             name: "miner",
-            dependencies: ["CryptoSwift","PerfectHTTPServer","PerfectSession","SWSQLite","SharkCore","Ed25519"],
+            dependencies: ["CryptoSwift","PerfectHTTPServer","PerfectSession","SWSQLite","VeldsparCore","Ed25519"],
             path: "./Sources/miner"),
         .target(
             name: "simplewallet",
-            dependencies: ["CryptoSwift","PerfectHTTPServer","PerfectSession","SWSQLite","SharkCore","Ed25519"],
+            dependencies: ["CryptoSwift","PerfectHTTPServer","PerfectSession","SWSQLite","VeldsparCore","Ed25519"],
             path: "./Sources/simplewallet"),
         .target(
-            name: "SharkCore",
+            name: "VeldsparCore",
             dependencies: ["CryptoSwift","PerfectHTTPServer","PerfectSession","SWSQLite","Ed25519"],
             path: "./Sources/core"),
         ]

@@ -1,6 +1,6 @@
 //    MIT License
 //
-//    Copyright (c) 2018 SharkChain Team
+//    Copyright (c) 2018 Veldspar Team
 //
 //    Permission is hereby granted, free of charge, to any person obtaining a copy
 //    of this software and associated documentation files (the "Software"), to deal
@@ -21,12 +21,39 @@
 //    SOFTWARE.
 
 import Foundation
-import SharkCore
 
-class NewToken {
+class RPCRegisterToken {
     
-    var token: Token? = nil
-    var claimantPublicViewKey: String? = nil
-    var timestamp: UInt64 = 0
+    class func action(_ payload: [String:Any?]) throws -> [String:Any?] {
+        
+        if payload["token"] == nil {
+            throw RPCErrors.InvalidRequest
+        }
+        
+        if payload["address"] == nil {
+            throw RPCErrors.InvalidRequest
+        }
+        
+        if payload["block"] == nil {
+            throw RPCErrors.InvalidRequest
+        }
+        
+        // setup the variables
+        
+        let token = payload["token"] as! String
+        let address = payload["address"] as! String
+        let block = payload["block"] as! UInt32
+        
+        if blockchain.registerToken(token: token, address: address, block: block) {
+            
+            return ["success" : true, "token" : token, "block" : block]
+            
+        } else {
+            
+            throw RPCErrors.InvalidRequest
+            
+        }
+        
+    }
     
 }
