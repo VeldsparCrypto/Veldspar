@@ -1,6 +1,6 @@
 //    MIT License
 //
-//    Copyright (c) 2018 Veldspar Team
+//    Copyright (c) 2018 SharkChain Team
 //
 //    Permission is hereby granted, free of charge, to any person obtaining a copy
 //    of this software and associated documentation files (the "Software"), to deal
@@ -24,8 +24,13 @@ import Foundation
 import SWSQLite
 import VeldsparCore
 
+#if os(Linux)
 let blockchain_db = SWSQLite(path: "\(NSHomeDirectory())/.\(Config.CurrencyName)", filename: "blockchain.db")
 let pending_db = SWSQLite(path: "\(NSHomeDirectory())/.\(Config.CurrencyName)", filename: "pending.db")
+#else
+let blockchain_db = SWSQLite(path: "\(URL(fileURLWithPath: NSHomeDirectory())).\(Config.CurrencyName)", filename: "blockchain.db")
+let pending_db = SWSQLite(path: "\(URL(fileURLWithPath: NSHomeDirectory())).\(Config.CurrencyName)", filename: "pending.db")
+#endif
 
 class Database {
     

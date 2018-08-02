@@ -42,7 +42,7 @@ class BlockChain {
         lock.mutex {
             
             // query the database to find the highest block there is
-            count = Database.CurrentHeight()!
+            count = Database.CurrentHeight() ?? 0
             
         }
         
