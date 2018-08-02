@@ -24,8 +24,15 @@ import Foundation
 import SWSQLite
 import VeldsparCore
 
-let blockchain_db = SWSQLite(path: "\(URL(fileURLWithPath: NSHomeDirectory())).\(Config.CurrencyName)", filename: "blockchain.db")
-let pending_db = SWSQLite(path: "\(URL(fileURLWithPath: NSHomeDirectory())).\(Config.CurrencyName)", filename: "pending.db")
+#if os(Linux)
+    let blockchain_db = SWSQLite(path: "~/.\(Config.CurrencyName)", filename: "blockchain.db")
+    let pending_db = SWSQLite(path: "~/.\(Config.CurrencyName)", filename: "pending.db")
+#else
+    let blockchain_db = SWSQLite(path: "\(URL(fileURLWithPath: NSHomeDirectory())).\(Config.CurrencyName)", filename: "blockchain.db")
+    let pending_db = SWSQLite(path: "\(URL(fileURLWithPath: NSHomeDirectory())).\(Config.CurrencyName)", filename: "pending.db")
+#endif
+
+
 
 class Database {
     
