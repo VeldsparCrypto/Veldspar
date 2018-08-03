@@ -43,7 +43,7 @@ print("Connecting to server \(nodeAddress)")
 
 let seeds = try? CURLRequest("http://\(nodeAddress):14242/blockchain/seeds",.timeout(10)).perform()
 if seeds != nil && seeds!.bodyBytes.count > 0 {
-    let resObject = try? JSONDecoder().decode(SeedList.self, from: Data(bytes: seeds!.bodyBytes))
+    let resObject = try? JSONDecoder().decode(RPC_SeedList.self, from: Data(bytes: seeds!.bodyBytes))
     if resObject != nil {
         for s in resObject!.seeds {
             print("Generating ORE for seed \(s.seed)")
