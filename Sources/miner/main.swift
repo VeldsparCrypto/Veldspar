@@ -26,16 +26,19 @@ import Ed25519
 import PerfectCURL
 
 #if os(Linux)
-    srandom(UInt32(time(nil)))
+srandom(UInt32(time(nil)))
 #endif
 
 // defaults
-var nodeAddress: String = Config.SeedNodes[0]
+// var nodeAddress: String = Config.SeedNodes[0]
+var nodeAddress: String = "127.0.0.1"
 var oreBlocks: [Int:Ore] = [:]
 var payoutAddress: String = ""
 var miningMethods: [AlgorithmType] = [AlgorithmType.SHA512_Append]
 var walletAddress: String?
 var cacheLock = Mutex()
+var threads = 4
+var dont_burn = false;
 
 let args: [String] = CommandLine.arguments
 
@@ -48,10 +51,15 @@ if args.count > 1 {
             print("\(Config.CurrencyName) - Miner - v\(Config.Version)")
             print("-----   COMMANDS -------")
             print("--address          : specifies address to register found tokens, usage: --address VEAWzmytDMpqpDFJqwom9Wqmyp7UReZrC8B")
+            print("--threads          : number of threads to mine on")
+            print("--dontburncpu      : adds a small sleep to stop CPU from working too hard")
             exit(0)
         }
         if arg.lowercased() == "--debug" {
             debug_on = true
+        }
+        if arg.lowercased() == "--dontburncpu" {
+            dont_burn = true
         }
         if arg.lowercased() == "--address" {
             
@@ -59,6 +67,17 @@ if args.count > 1 {
                 
                 let add = args[i+1]
                 walletAddress = add
+                
+            }
+            
+        }
+        
+        if arg.lowercased() == "--threads" {
+            
+            if i+1 < args.count {
+                
+                let t = args[i+1]
+                threads = Int(t)!
                 
             }
             
@@ -129,7 +148,7 @@ if walletAddress == nil {
 
 print("Mining ore .........")
 
-for _ in 1...4 {
+for _ in 1...threads {
     
     Execute.background {
         while true {
@@ -199,9 +218,10 @@ for _ in 1...4 {
                             
                         }
                     }
-
                 }
-                
+            }
+            if dont_burn {
+                Thread.sleep(forTimeInterval: 0.005)
             }
         }
     }

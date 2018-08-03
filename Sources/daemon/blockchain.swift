@@ -127,11 +127,13 @@ class BlockChain {
         
         // validate the token
         do {
-            let t = try Token(address)
+            let t = try Token(token)
             if t.value() == 0 {
+                debug("(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' was invalid and has no value.")
                 return false
             }
         } catch {
+            debug("(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' caused an exception.")
             return false
         }
         
@@ -142,7 +144,13 @@ class BlockChain {
                 let l = Ledger(op: .RegisterToken, token: token, ref: UUID().uuidString, address: address, auth: "", block: block)
                 if Database.WritePendingLedger(l) == true {
                     returnValue = true
+                } else {
+                    debug("(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' call to 'Database.WritePendingLedger()' failed.")
                 }
+                
+            } else {
+                
+                debug("(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' this token exists already.")
                 
             }
             

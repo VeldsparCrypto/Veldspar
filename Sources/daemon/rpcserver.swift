@@ -109,7 +109,7 @@ func handleRequest() throws -> RequestHandler {
                 
             } catch {
                 
-                
+                debug("(handleRequest) call to RPCServer caused an exception.")
                 
             }
             

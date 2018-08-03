@@ -76,6 +76,7 @@ public class Token {
             let address = UInt32(segments[0], radix: 16)
             if address != nil {
                 self.address.append(address!)
+                segments.remove(at: 0)
             } else {
                 throw TokenError.InvalidTokenAddress
             }
