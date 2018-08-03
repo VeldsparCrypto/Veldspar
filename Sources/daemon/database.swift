@@ -213,6 +213,7 @@ CREATE TABLE IF NOT EXISTS ledger (
         
         let result = blockchain_db.query(sql: "SELECT * FROM block WHERE height = ? LIMIT 1", params: [height])
         if result.error != nil {
+            debug("(Database) 'BlockAtHeight(_ height: UInt32) -> Block?', received an Error from the SQLite database engine.  Error = '\(result.error!)'")
             return nil
         }
         
