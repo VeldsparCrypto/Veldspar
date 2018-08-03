@@ -32,7 +32,7 @@ public class Mutex {
         lock = DispatchQueue(label: UUID().uuidString.lowercased())
     }
     
-    public func mutex(_ closure:@escaping () -> Void) {
+    public func mutex(_ closure:() -> Void) {
         if thread != Thread.current {
             lock.sync {
                 thread = Thread.current

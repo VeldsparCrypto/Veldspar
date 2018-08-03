@@ -1,3 +1,12 @@
+//
+//  rpc_transfer_token.swift
+//  veldspard
+//
+//  Created by Adrian Herridge on 03/08/2018.
+//
+
+import Foundation
+
 //    MIT License
 //
 //    Copyright (c) 2018 Veldspar Team
@@ -24,7 +33,7 @@
 import Foundation
 import VeldsparCore
 
-class RPCRegisterToken {
+class RPCTransferToken {
     
     class func action(_ payload: [String:Any?]) throws -> [String:Any?] {
         
@@ -36,21 +45,54 @@ class RPCRegisterToken {
             throw RPCErrors.InvalidRequest
         }
         
+        if payload["auth"] == nil {
+            throw RPCErrors.InvalidRequest
+        }
+        
+        if payload["reference"] == nil {
+            throw RPCErrors.InvalidRequest
+        }
+        
         // setup the variables
         
         let token = payload["token"] as! String
         let address = payload["address"] as! String
+        let auth = payload["auth"] as! String
+        let reference = payload["reference"] as! String
         let block = blockchain.height() + UInt32(Config.TransactionMaturityLevel)
         
-        if blockchain.registerToken(token: token, address: address, block: block) {
+        // get the current ownership details of the token
+        let current = blockchain.tokenLedger(token: token)
+        if current == nil { // not a registered token, or maturity level not reached, it can't be transferred
+            throw RPCErrors.InvalidRequest
+        }
+        
+        // check that the token is not currently the subject of an existing transfer
+        let pending = blockchain.tokenLedger(token: token)
+        if pending != nil { // token is already a pending transaction
+            throw RPCErrors.InvalidRequest
+        }
+        
+        // check that the request has the authority to transfer the token by testing the public key signature
+        let transferSignature = Crypto.makeTransactionSignature(src: current!.destination, dest: address, token: token)
+        if Crypto.isSigned(transferSignature, signature: auth, address: current!.destination) {
+            // signatures match, time to add this to the pending chain
             
-            return ["success" : true, "token" : token, "block" : block]
+            if blockchain.transferToken(token: token, address: address, block: block, auth: auth, reference: reference) {
+                
+                return ["success" : true, "token" : token, "block" : block]
+                
+            } else {
+                
+                throw RPCErrors.InvalidRequest
+                
+            }
             
         } else {
-            
             throw RPCErrors.InvalidRequest
-            
         }
+        
+        
         
     }
     

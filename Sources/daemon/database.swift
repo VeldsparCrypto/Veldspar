@@ -49,7 +49,9 @@ CREATE TABLE IF NOT EXISTS ledger (
     token TEXT,
     spend_auth TEXT,
     block INTEGER,
-    checksum TEXT
+    checksum TEXT,
+    confirm INTEGER,
+    shenanigans INTEGER
 )
 """, params: [])
         
@@ -64,7 +66,9 @@ CREATE TABLE IF NOT EXISTS ledger (
     token TEXT,
     spend_auth TEXT,
     block INTEGER,
-    checksum TEXT
+    checksum TEXT,
+    confirm INTEGER,
+    shenanigans INTEGER
 )
 """, params: [])
         
@@ -82,7 +86,7 @@ CREATE TABLE IF NOT EXISTS ledger (
     class func WritePendingLedger(_ ledger: Ledger) -> Bool {
         
         if pending_db.execute(
-            sql: "INSERT OR REPLACE INTO ledger (transaction_id, op, date, transaction_group, owner, token, spend_token, block, checksum) VALUES (?,?,?,?,?,?,?,?,?)",
+            sql: "INSERT OR REPLACE INTO ledger (transaction_id, op, date, transaction_group, owner, token, spend_token, block, checksum, confirm, shenanigans) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
             params: [
                 
                 ledger.transaction_id,
@@ -93,7 +97,9 @@ CREATE TABLE IF NOT EXISTS ledger (
                 ledger.token,
                 ledger.spend_auth,
                 ledger.block,
-                ledger.checksum()
+                ledger.checksum(),
+                ledger.confirm,
+                ledger.shenanigans
                 
             ]).error != nil {
             return false
@@ -112,7 +118,7 @@ CREATE TABLE IF NOT EXISTS ledger (
             // now write in the transactions into the table as well
             for t in block.transactions {
                 if blockchain_db.execute(
-                    sql: "INSERT OR REPLACE INTO ledger (transaction_id, op, date, transaction_group, owner, token, spend_token, block, checksum) VALUES (?,?,?,?,?,?,?,?,?)",
+                    sql: "INSERT OR REPLACE INTO ledger (transaction_id, op, date, transaction_group, owner, token, spend_token, block, checksum, confirm, shenanigans) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                     params: [
                         
                         t.transaction_id,
@@ -123,7 +129,9 @@ CREATE TABLE IF NOT EXISTS ledger (
                         t.token,
                         t.spend_auth,
                         t.block,
-                        t.checksum()
+                        t.checksum(),
+                        t.confirm,
+                        t.shenanigans
                         
                     ]).error != nil {
                     return false
@@ -167,7 +175,9 @@ CREATE TABLE IF NOT EXISTS ledger (
                            address: r["owner"]!.asString()!,
                            date: r["date"]!.asUInt64()!,
                            auth: r["spend_auth"]!.asString()!,
-                           block: UInt32(r["block"]!.asUInt64()!))
+                           block: UInt32(r["block"]!.asUInt64()!),
+                           confirm: UInt32(r["confirm"]!.asUInt64()!),
+                           shenanigans: UInt32(r["shenanigans"]!.asUInt64()!))
             return l
         }
         
@@ -190,7 +200,9 @@ CREATE TABLE IF NOT EXISTS ledger (
                            address: r["owner"]!.asString()!,
                            date: r["date"]!.asUInt64()!,
                            auth: r["spend_auth"]!.asString()!,
-                           block: UInt32(r["block"]!.asUInt64()!))
+                           block: UInt32(r["block"]!.asUInt64()!),
+                           confirm: UInt32(r["confirm"]!.asUInt64()!),
+                           shenanigans: UInt32(r["shenanigans"]!.asUInt64()!))
             return l
         }
         
@@ -227,7 +239,9 @@ CREATE TABLE IF NOT EXISTS ledger (
                                    address: r["owner"]!.asString()!,
                                    date: r["date"]!.asUInt64()!,
                                    auth: r["spend_auth"]!.asString()!,
-                                   block: UInt32(r["block"]!.asUInt64()!))
+                                   block: UInt32(r["block"]!.asUInt64()!),
+                                   confirm: UInt32(r["confirm"]!.asUInt64()!),
+                                   shenanigans: UInt32(r["shenanigans"]!.asUInt64()!))
                     
                     b.transactions.append(l)
                     

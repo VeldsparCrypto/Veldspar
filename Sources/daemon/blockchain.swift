@@ -97,6 +97,30 @@ class BlockChain {
     
     // ledger functions
     
+    func tokenLedger(token: String) -> Ledger? {
+        
+        var l: Ledger?
+        
+        lock.mutex {
+            l = Database.TokenOwnershipRecord(token)
+        }
+        
+        return l;
+        
+    }
+    
+    func tokenLedgerPending(token: String) -> Ledger? {
+        
+        var l: Ledger?
+        
+        lock.mutex {
+            l = Database.TokenPendingRecord(token)
+        }
+        
+        return l;
+        
+    }
+    
     func registerToken(token: String, address: String, block: UInt32) -> Bool {
         
         var returnValue = false
@@ -116,6 +140,37 @@ class BlockChain {
             if Database.TokenOwnershipRecord(token) == nil && Database.TokenPendingRecord(token) == nil {
                 
                 let l = Ledger(op: .RegisterToken, token: token, ref: UUID().uuidString, address: address, auth: "", block: block)
+                if Database.WritePendingLedger(l) == true {
+                    returnValue = true
+                }
+                
+            }
+            
+        }
+        
+        return returnValue
+        
+    }
+    
+    func transferToken(token: String, address: String, block: UInt32, auth: String, reference: String) -> Bool {
+        
+        var returnValue = false
+        
+        // validate the token
+        do {
+            let t = try Token(address)
+            if t.value() == 0 {
+                return false
+            }
+        } catch {
+            return false
+        }
+        
+        lock.mutex {
+            
+            if Database.TokenOwnershipRecord(token) == nil && Database.TokenPendingRecord(token) == nil {
+                
+                let l = Ledger(op: .ChangeOwner, token: token, ref: reference, address: address, auth: auth, block: block)
                 if Database.WritePendingLedger(l) == true {
                     returnValue = true
                 }

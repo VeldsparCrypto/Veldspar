@@ -64,13 +64,22 @@ func handleRequest() throws -> RequestHandler {
                 }
                 
                 if request.path == "/blockchain/seeds" {
-                    try response.setBody(json: RPCOreSeeds.action())
+                    let encodedData = try String(bytes: JSONEncoder().encode(RPCOreSeeds.action()), encoding: .ascii)
+                    response.setBody(string: encodedData!)
                 }
                 
-                if request.path == "/blockchain/ledger" {
+                if request.path == "/blockchain/block" {
                     
                     // query the ledger at a specific height, and return the transactions.  Used for wallet implementations
+                    var height = 0
+                    for p in request.queryParams {
+                        if p.0 == "height" {
+                            height = Int(p.1) ?? 0
+                        }
+                    }
                     
+                    let encodedData = try String(bytes: JSONEncoder().encode(RPCGetBlock.action(height)), encoding: .ascii)
+                    response.setBody(string: encodedData!)
                     
                     
                 }
@@ -94,7 +103,7 @@ func handleRequest() throws -> RequestHandler {
                     }
                     
                     if request.path == "/token/transfer" {
-                        try response.setBody(json: RPCRegisterToken.action(payload!))
+                        try response.setBody(json: RPCTransferToken.action(payload!))
                     }
                     
                 } else {

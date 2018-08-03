@@ -21,27 +21,9 @@
 //    SOFTWARE.
 
 import Foundation
-import VeldsparCore
 
-public class RPCOreSeeds {
-    
-    public class func action() throws -> RPC_SeedList {
-        
-        // setup the variables
-        
-        let seedResponse = RPC_SeedList()
-        
-        let oreSeeds = blockchain.oreSeeds()
+// this class is a background thread which constantly monitors the time, and creates new blocks when required.
 
-        for s in oreSeeds {
-            let seed = RPC_Seed()
-            seed.height = Int(s.height)
-            seed.seed = s.oreSeed!
-            seedResponse.seeds.append(seed)
-        }
-        
-        return seedResponse
-        
-    }
+class Processor {
     
 }

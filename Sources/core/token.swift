@@ -99,7 +99,7 @@ public class Token {
     
     public func value() -> UInt32 {
         
-        return AlgorithmManager.sharedInstance().value(token: self)
+        return AlgorithmManager().value(token: self)
         
     }
 
