@@ -271,6 +271,10 @@ CREATE TABLE IF NOT EXISTS ledger (
                 
             }
             
+        } else {
+            
+            debug("(Database) call to 'OreBlocks() -> [Block]' returned no results.")
+            
         }
         
         return retValue

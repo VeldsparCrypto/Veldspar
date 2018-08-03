@@ -39,10 +39,10 @@ public class Economy {
     static let sequenceValue = [0,0,1,10,100,10000,100000,1000000]
     
     // sequential match value - additional value for all the subsequent sequential hashes which start with the patternByte
-    static let iterationMatch = [0,0,10,100,1000,10000,100000,1000000]
+    static let iterationMatch = [0,0,100,1000,10000,100000,1000000,10000000]
     
     // match reward bytes - number of bytes (minus pattern matched) to attribute value for
-    static let occurrencesRewardBytes = 16
+    static let occurrencesRewardBytes = 24
     
     // match reward matrix - value awarded for number of additional bytes up to `matchRewardBytes`
     static let occurrencesRewardMatrix = [0,0,1,10,20,40,80,160,320,640,1280,2560,5120,10240]

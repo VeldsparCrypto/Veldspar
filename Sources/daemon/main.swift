@@ -20,6 +20,7 @@
 //    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //    SOFTWARE.
 
+import Foundation
 import VeldsparCore
 import PerfectHTTP
 import PerfectHTTPServer
@@ -36,12 +37,17 @@ Database.Initialize()
 print("Database connection opened")
 
 let args: [String] = CommandLine.arguments
-var debug = false;
 
 if args.count > 1 {
     for arg in args {
+        if arg.lowercased() == "--help" {
+            print("\(Config.CurrencyName) - v\(Config.Version)")
+            print("-----   COMMANDS -------")
+            print("--debug          : enables debug output to console")
+            exit(0)
+        }
         if arg.lowercased() == "--debug" {
-            debug = true
+            debug_on = true
         }
         if arg.lowercased() == "--genesis" {
             // setup the blockchain with an empty block starting the generation of Ore

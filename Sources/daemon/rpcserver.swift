@@ -42,6 +42,13 @@ func handleRequest() throws -> RequestHandler {
         }
         let payload = json.dictionaryObject
         
+        debug("RPC request '\(request.path)' received")
+        if request.queryParams.count > 0 {
+            for p in request.queryParams {
+                debug("RPC request query parameters '\(p.0)' = '\(p.1)'")
+            }
+        }
+        
         response.setHeader(.contentType, value: "application/json")
         response.setHeader(.accessControlAllowOrigin, value: "*")
         response.setHeader(.accessControlAllowMethods, value: "GET, POST, PATCH, PUT, DELETE, OPTIONS")

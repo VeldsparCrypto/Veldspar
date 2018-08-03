@@ -32,6 +32,14 @@ public enum CryptoHashType {
     case md5
 }
 
+public var debug_on = false
+
+public func debug(_ output: String) {
+    if debug_on {
+        print("[DEBUG] \(Date()) : \(output)")
+    }
+}
+
 extension String {
     public func CryptoHash() -> String {
         switch Config.DefaultHashType {

@@ -22,7 +22,7 @@
 
 import Foundation
 
-public class AlgorithmSHA512Append: AlgorithmProtocol {
+public class AlgorithmSHA512AppendV1: AlgorithmProtocol {
     
     
     public func generate(ore: Ore, address: [UInt32]) -> Token {
@@ -86,7 +86,7 @@ public class AlgorithmSHA512Append: AlgorithmProtocol {
         // work out how many times a repeating pattern occours within the first 16 bytes of a hash
         hash = self.hash(token: token)
         
-        for i in 0...14 {
+        for i in 2...Economy.occurrencesRewardBytes-2 {
             if (hash[i] == Economy.patternByte && hash[i+1] == Economy.patternByte) {
                 workload.occurrences+=1
             }

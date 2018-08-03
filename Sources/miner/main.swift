@@ -30,8 +30,7 @@ import PerfectCURL
 #endif
 
 // defaults
-// var nodeAddress: String = Config.SeedNodes[0]
-var nodeAddress: String = "127.0.0.1"
+var nodeAddress: String = Config.SeedNodes[0]
 var oreBlocks: [Ore] = []
 var payoutAddress: String = ""
 var miningMethods: [AlgorithmType] = [AlgorithmType.SHA512_Append]
@@ -49,8 +48,19 @@ if seeds != nil && seeds!.bodyBytes.count > 0 {
             print("Generating ORE for seed \(s.seed)")
             oreBlocks.append(Ore(s.seed, height: UInt32(s.height)))
         }
+    } else {
+        // no comms from server, can't mine nothing.
+        print("Unable to download ORE from the server located at '\(nodeAddress)', can't continue.  Please try again later.")
+        exit(0)
     }
+} else {
+    
+    // no comms from server, can't mine nothing.
+    print("Unable to download ORE from the server located at '\(nodeAddress)', can't continue.  Please try again later.")
+    exit(0)
 }
+
+// trap no communication with server
 
 print("Mining ore .........")
 
@@ -69,7 +79,7 @@ for _ in 1...4 {
             }
             let t = Token(oreHeight: height, address: address, algorithm: method)
             if t.value() > 0 {
-                print("Found token! Ore:\(height) method:\(method.rawValue) value:\(t.value())")
+                print("Found token! Ore:\(height) method:\(method.rawValue) value:\(Float(t.value()) / Float(Config.DenominationDivider))")
                 print("Token Address: " + t.tokenId())
                 print("Registering token with network, keep up the good work.")
                 //TODO: call node and claim this token as owned by this miner

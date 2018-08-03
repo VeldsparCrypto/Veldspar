@@ -45,7 +45,7 @@ class AlgorithmManager {
     private var lock: Mutex = Mutex()
     
     init() {
-        register(algorithm: AlgorithmSHA512Append())
+        register(algorithm: AlgorithmSHA512AppendV1())
     }
     
     public func register(algorithm: AlgorithmProtocol) {
