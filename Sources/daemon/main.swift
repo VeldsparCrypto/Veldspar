@@ -35,6 +35,7 @@ print("---------------------------")
 // open the database connection
 Database.Initialize()
 print("Database connection opened")
+var blockchain = BlockChain()
 
 let args: [String] = CommandLine.arguments
 
@@ -51,18 +52,24 @@ if args.count > 1 {
         }
         if arg.lowercased() == "--genesis" {
             // setup the blockchain with an empty block starting the generation of Ore
+            
+            if blockchain.blockAtHeight(0) != nil {
+                print("Genesis block has already been created, exiting.")
+                exit(0)
+            }
+            
             let firstBlock = Block(height: 0)
             firstBlock.oreSeed = Config.GenesisID
             firstBlock.transactions = []
             firstBlock.hash = firstBlock.GenerateHashForBlock(previousHash: "")
             if(!Database.WriteBlock(firstBlock)) {
-                assertionFailure("Unable to write initial genesis block into the blockchain.")
+                print("Unable to write initial genesis block into the blockchain.")
+                exit(0)
             }
         }
     }
 }
 
-var blockchain = BlockChain()
 print("Blockchain created, currently at height \(blockchain.height())")
 
 do {

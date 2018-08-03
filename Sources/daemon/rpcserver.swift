@@ -91,6 +91,22 @@ func handleRequest() throws -> RequestHandler {
                     
                 }
                 
+                if request.path == "/token/register" {
+                    
+                    var token = ""
+                    var address = ""
+                    for p in request.queryParams {
+                        if p.0 == "token" {
+                            token = p.1
+                        }
+                        if p.0 == "address" {
+                            address = p.1
+                        }
+                    }
+                    
+                    try response.setBody(json: RPCRegisterToken.action(["token" : token, "address" : address]))
+                }
+                
             } catch {
                 
                 

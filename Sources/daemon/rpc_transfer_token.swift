@@ -1,12 +1,3 @@
-//
-//  rpc_transfer_token.swift
-//  veldspard
-//
-//  Created by Adrian Herridge on 03/08/2018.
-//
-
-import Foundation
-
 //    MIT License
 //
 //    Copyright (c) 2018 Veldspar Team
@@ -28,7 +19,6 @@ import Foundation
 //    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 //    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //    SOFTWARE.
-
 
 import Foundation
 import VeldsparCore

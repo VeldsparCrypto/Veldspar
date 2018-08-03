@@ -48,7 +48,7 @@ class RPCRegisterToken {
             
         } else {
             
-            throw RPCErrors.InvalidRequest
+            return ["success" : false, "token" : token]
             
         }
         

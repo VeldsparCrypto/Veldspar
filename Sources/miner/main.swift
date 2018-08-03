@@ -31,11 +31,54 @@ import PerfectCURL
 
 // defaults
 var nodeAddress: String = Config.SeedNodes[0]
-var oreBlocks: [Ore] = []
+var oreBlocks: [Int:Ore] = [:]
 var payoutAddress: String = ""
 var miningMethods: [AlgorithmType] = [AlgorithmType.SHA512_Append]
+var walletAddress: String?
+var cacheLock = Mutex()
 
+let args: [String] = CommandLine.arguments
+
+if args.count > 1 {
+    for i in 1...args.count-1 {
+        
+        let arg = args[i]
+        
+        if arg.lowercased() == "--help" {
+            print("\(Config.CurrencyName) - Miner - v\(Config.Version)")
+            print("-----   COMMANDS -------")
+            print("--address          : specifies address to register found tokens, usage: --address VEAWzmytDMpqpDFJqwom9Wqmyp7UReZrC8B")
+            exit(0)
+        }
+        if arg.lowercased() == "--debug" {
+            debug_on = true
+        }
+        if arg.lowercased() == "--address" {
+            
+            if i+1 < args.count {
+                
+                let add = args[i+1]
+                walletAddress = add
+                
+            }
+            
+        }
+        
+    }
+}
+
+print("---------------------------")
 print("\(Config.CurrencyName) Miner v\(Config.Version)")
+print("---------------------------")
+
+// check for a cache file
+var cache = MinerCacheObject()
+if FileManager.default.fileExists(atPath: "miner.cache") {
+    let cacheObject = try? JSONDecoder().decode(MinerCacheObject.self, from: Data(contentsOf: URL(fileURLWithPath: "miner.cache")))
+    if cacheObject != nil {
+        cache = cacheObject!
+    }
+}
 
 print("Connecting to server \(nodeAddress)")
 // connect to the server, download the ore seeds and the allowed methods & algos
@@ -46,17 +89,39 @@ if seeds != nil && seeds!.bodyBytes.count > 0 {
     if resObject != nil {
         for s in resObject!.seeds {
             print("Generating ORE for seed \(s.seed)")
-            oreBlocks.append(Ore(s.seed, height: UInt32(s.height)))
+            oreBlocks[s.height] = Ore(s.seed, height: UInt32(s.height))
+            cache.ore_cache[s.height] = s.seed
         }
-    } else {
+        cache.write()
+    } else if (cache.ore_cache.keys.count == 0) {
         // no comms from server, can't mine nothing.
-        print("Unable to download ORE from the server located at '\(nodeAddress)', can't continue.  Please try again later.")
+        print("Unable to download ORE from the server located at '\(nodeAddress)', can't continue as cache is also empty.  Please try again later.")
         exit(0)
     }
-} else {
+} else if (cache.ore_cache.keys.count == 0) {
     
     // no comms from server, can't mine nothing.
-    print("Unable to download ORE from the server located at '\(nodeAddress)', can't continue.  Please try again later.")
+    print("Unable to download ORE from the server located at '\(nodeAddress)', can't continue as cache is also empty.  Please try again later.")
+    exit(0)
+    
+}
+
+if oreBlocks.keys.count == 0 {
+    // restore and generate from the cache
+    for k in cache.ore_cache.keys {
+        print("Generating ORE for seed (cached) '\(cache.ore_cache[k]!)'")
+        oreBlocks[k] = Ore(cache.ore_cache[k]!, height: UInt32(k))
+    }
+}
+
+if oreBlocks.keys.count == 0 {
+    // no ore :(
+    print("Unable to download ORE from the server located at '\(nodeAddress)', can't continue as cache is also empty.  Please try again later.")
+    exit(0)
+}
+
+if walletAddress == nil {
+    print("No target wallet address specified, please run the miner with '--address <your wallet id>'")
     exit(0)
 }
 
@@ -69,7 +134,7 @@ for _ in 1...4 {
     Execute.background {
         while true {
             
-            let height = oreBlocks[Random.Integer(oreBlocks.count)].height
+            let height = oreBlocks[Int(oreBlocks.keys.sorted()[Random.Integer(oreBlocks.keys.count-1)])]!.height
             let oreSize = (((Config.OreSize * 1024) * 1024) - Config.TokenSegmentSize)
             let method = miningMethods[Random.Integer(miningMethods.count)]
             
@@ -81,13 +146,65 @@ for _ in 1...4 {
             if t.value() > 0 {
                 print("Found token! Ore:\(height) method:\(method.rawValue) value:\(Float(t.value()) / Float(Config.DenominationDivider))")
                 print("Token Address: " + t.tokenId())
-                print("Registering token with network, keep up the good work.")
-                //TODO: call node and claim this token as owned by this miner
+                
+                let h = TokenRegistration.Register(token: t.tokenId(), address: walletAddress!, nodeAddress: nodeAddress)
+                
+                if h == nil {
+                    
+                    print("Unable to register token with \(Config.CurrencyName) network, caching locally until available.")
+                    
+                    cacheLock.mutex {
+                        // cache this bad boy for later
+                        cache.found_tokens[t.tokenId()] = Date()
+                        
+                        // write out the cache
+                        cache.write()
+                    }
+                    
+                } else if (h! > 0) {
+                    print("Token successfully registered with \(Config.CurrencyName) node.")
+                } else if (h! == -1) {
+                    print("Token registration unsuccessful, token already registered :(")
+                }
+                
+                if h != nil && (h! == -1 || h! > 0) {
+                    
+                    // we had communication just a moment ago so try and flush the cache to the network
+                    
+                    cacheLock.mutex {
+                        if cache.found_tokens.keys.count > 0 {
+                            
+                            for token in cache.found_tokens.keys.sorted() {
+                                
+                                let registration = TokenRegistration.Register(token: token, address: walletAddress!, nodeAddress: nodeAddress)
+                                
+                                if registration != nil {
+                                    
+                                    if registration! > 0 {
+                                        print("Cached token successfully registered with \(Config.CurrencyName) node.")
+                                    }
+                                    if registration! == -1 {
+                                        print("Cached token registration unsuccessful, token already registered :(")
+                                    }
+                                    
+                                    // now remove from the cache
+                                    
+                                    cache.found_tokens.removeValue(forKey: token)
+                                    
+                                    cache.write()
+                                    
+                                }
+                                
+                            }
+                            
+                        }
+                    }
+
+                }
+                
             }
-            
         }
     }
-    
 }
 
 while true {

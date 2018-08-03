@@ -23,41 +23,23 @@
 import Foundation
 import VeldsparCore
 
-class RPCGetBlock {
+class MinerCacheObject : Codable {
     
-    class func action(_ height: Int) -> RPC_Block {
+    var found_tokens: [String:Date] = [:] // token_id : date
+    var ore_cache: [Int:String] = [:] // index : seed
+    
+    func write() {
         
-        let rpcBlock = RPC_Block()
-        
-        let b = blockchain.blockAtHeight(UInt32(height))
-        if b != nil {
-            
-            rpcBlock.hash = b?.hash
-            rpcBlock.height = b?.height
-            rpcBlock.seed = b?.oreSeed
-            
-            for l in b?.transactions ?? [] {
-                
-                let ledger = RPC_Ledger()
-                ledger.block = l.block
-                ledger.date = l.date
-                ledger.destination = l.destination
-                ledger.op = l.op.rawValue
-                ledger.spend_auth = l.spend_auth
-                ledger.token = l.token
-                ledger.transaction_group = l.transaction_group
-                ledger.transaction_id = l.transaction_id
-
-                rpcBlock.transactions.append(ledger)
-                
+        do {
+            let encodedData = try String(bytes: JSONEncoder().encode(self), encoding: .ascii)
+            if encodedData != nil {
+                try encodedData!.write(toFile: "miner.cache", atomically: true, encoding: .ascii)
             }
-            
-        } else {
-            debug("(RPCGetBlock) call to 'blockchain.blockAtHeight(UInt32(height))' returned no results.")
+        } catch  {
+            debug("(MinerCacheObject) failed to write cache to disk")
         }
-        
-        return rpcBlock
         
     }
     
 }
+

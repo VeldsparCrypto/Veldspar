@@ -33,13 +33,13 @@ public class Config {
     public static let DefaultHashType: CryptoHashType = .sha224
     
     // transaction maturity level - targets transactions for x number of blocks in the future to allow a consensus network to operate
-    public static let TransactionMaturityLevel = 5
+    public static let TransactionMaturityLevel = 2
     
     // number by which token value is divided to determine currency value
     public static let DenominationDivider = 100
     
     // regularity of block formation
-    public static let BlockTime = 60
+    public static let BlockTime = 60*5 // 5 minutes, because it is not a traditional coin and there is no real downside to slower and more durable blocks.
     
     // size of the ore segment in megabytes - 1mb gives posibilities of 1.169e^57 combinations @ address size of 8
     public static let OreSize = 1
