@@ -40,6 +40,10 @@ public func debug(_ output: String) {
     }
 }
 
+public func consensusTime() -> UInt64 {
+    return UInt64(Date().timeIntervalSince1970 * 1000)
+}
+
 extension String {
     public func CryptoHash() -> String {
         switch Config.DefaultHashType {

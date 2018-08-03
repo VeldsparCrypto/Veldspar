@@ -71,6 +71,18 @@ if args.count > 1 {
 }
 
 print("Blockchain created, currently at height \(blockchain.height())")
+print("Generating Ore")
+
+for o in blockchain.oreSeeds() {
+    let _ = Ore(o.oreSeed!, height: o.height)
+}
+
+Execute.background {
+    
+    // endlessly run the main process loop
+    BlockMaker.Loop()
+    
+}
 
 do {
     

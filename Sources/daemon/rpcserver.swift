@@ -63,7 +63,7 @@ func handleRequest() throws -> RequestHandler {
                 }
                 
                 if request.path == "/info/timestamp" {
-                    try response.setBody(json: ["timestamp" : UInt64(Date().timeIntervalSince1970*1000)])
+                    try response.setBody(json: ["timestamp" : consensusTime()])
                 }
                 
                 if request.path == "/blockchain/currentheight" {

@@ -36,8 +36,7 @@ class Database {
     
     class func Initialize() {
         
-        _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS block (height INTEGER PRIMARY KEY, hash TEXT, oreSeed TEXT)", params: [])
-        _ = pending_db.execute(sql: "CREATE TABLE IF NOT EXISTS block (height INTEGER PRIMARY KEY, hash TEXT, oreSeed TEXT)", params: [])
+        _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS block (height INTEGER PRIMARY KEY, hash TEXT, oreSeed TEXT, confirms INTEGER, shenanigans INTEGER)", params: [])
         _ = blockchain_db.execute(sql:
             """
 CREATE TABLE IF NOT EXISTS ledger (
@@ -49,9 +48,7 @@ CREATE TABLE IF NOT EXISTS ledger (
     token TEXT,
     spend_auth TEXT,
     block INTEGER,
-    checksum TEXT,
-    confirm INTEGER,
-    shenanigans INTEGER
+    checksum TEXT
 )
 """, params: [])
         
@@ -66,9 +63,7 @@ CREATE TABLE IF NOT EXISTS ledger (
     token TEXT,
     spend_auth TEXT,
     block INTEGER,
-    checksum TEXT,
-    confirm INTEGER,
-    shenanigans INTEGER
+    checksum TEXT
 )
 """, params: [])
         
@@ -86,7 +81,7 @@ CREATE TABLE IF NOT EXISTS ledger (
     class func WritePendingLedger(_ ledger: Ledger) -> Bool {
         
         if pending_db.execute(
-            sql: "INSERT OR REPLACE INTO ledger (transaction_id, op, date, transaction_group, owner, token, spend_token, block, checksum, confirm, shenanigans) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            sql: "INSERT OR REPLACE INTO ledger (transaction_id, op, date, transaction_group, owner, token, spend_auth, block, checksum) VALUES (?,?,?,?,?,?,?,?,?)",
             params: [
                 
                 ledger.transaction_id,
@@ -97,9 +92,7 @@ CREATE TABLE IF NOT EXISTS ledger (
                 ledger.token,
                 ledger.spend_auth,
                 ledger.block,
-                ledger.checksum(),
-                ledger.confirm,
-                ledger.shenanigans
+                ledger.checksum()
                 
             ]).error != nil {
             return false
@@ -113,12 +106,12 @@ CREATE TABLE IF NOT EXISTS ledger (
         
         // TODO: transaction & rollback
         
-        if blockchain_db.execute(sql: "INSERT OR REPLACE INTO block (height, hash, oreSeed) VALUES (?,?,?)", params: [UInt64(block.height), block.hash!, block.oreSeed ?? NSNull()]).error == nil {
+        if blockchain_db.execute(sql: "INSERT OR REPLACE INTO block (height, hash, oreSeed, confirms, shenanigans) VALUES (?,?,?,?,?)", params: [UInt64(block.height), block.hash!, block.oreSeed ?? NSNull(), block.confirms, block.shenanigans]).error == nil {
             
             // now write in the transactions into the table as well
             for t in block.transactions {
                 if blockchain_db.execute(
-                    sql: "INSERT OR REPLACE INTO ledger (transaction_id, op, date, transaction_group, owner, token, spend_token, block, checksum, confirm, shenanigans) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                    sql: "INSERT OR REPLACE INTO ledger (transaction_id, op, date, transaction_group, owner, token, spend_auth, block, checksum) VALUES (?,?,?,?,?,?,?,?,?)",
                     params: [
                         
                         t.transaction_id,
@@ -129,9 +122,7 @@ CREATE TABLE IF NOT EXISTS ledger (
                         t.token,
                         t.spend_auth,
                         UInt64(t.block),
-                        t.checksum(),
-                        UInt64(t.confirm),
-                        UInt64(t.shenanigans)
+                        t.checksum()
                         
                     ]).error != nil {
                     return false
@@ -175,9 +166,7 @@ CREATE TABLE IF NOT EXISTS ledger (
                            address: r["owner"]!.asString()!,
                            date: r["date"]!.asUInt64()!,
                            auth: r["spend_auth"]!.asString()!,
-                           block: UInt32(r["block"]!.asUInt64()!),
-                           confirm: UInt32(r["confirm"]!.asUInt64()!),
-                           shenanigans: UInt32(r["shenanigans"]!.asUInt64()!))
+                           block: UInt32(r["block"]!.asUInt64()!))
             return l
         }
         
@@ -200,9 +189,7 @@ CREATE TABLE IF NOT EXISTS ledger (
                            address: r["owner"]!.asString()!,
                            date: r["date"]!.asUInt64()!,
                            auth: r["spend_auth"]!.asString()!,
-                           block: UInt32(r["block"]!.asUInt64()!),
-                           confirm: UInt32(r["confirm"]!.asUInt64()!),
-                           shenanigans: UInt32(r["shenanigans"]!.asUInt64()!))
+                           block: UInt32(r["block"]!.asUInt64()!))
             return l
         }
         
@@ -222,6 +209,9 @@ CREATE TABLE IF NOT EXISTS ledger (
             let br = result.results[0]
             let b = Block(height: height)
             b.oreSeed = br["oreSeed"]?.asString()
+            b.hash = br["hash"]?.asString()
+            b.confirms = br["confirms"]?.asUInt64() ?? 0
+            b.shenanigans = br["shenanigans"]?.asUInt64() ?? 0
             
             // now get the transactions for that block
             let trans = blockchain_db.query(sql: "SELECT * FROM ledger WHERE block = ? ORDER BY token", params: [UInt64(height)])
@@ -240,9 +230,7 @@ CREATE TABLE IF NOT EXISTS ledger (
                                    address: r["owner"]!.asString()!,
                                    date: r["date"]!.asUInt64()!,
                                    auth: r["spend_auth"]!.asString()!,
-                                   block: UInt32(r["block"]!.asUInt64()!),
-                                   confirm: UInt32(r["confirm"]!.asUInt64()!),
-                                   shenanigans: UInt32(r["shenanigans"]!.asUInt64()!))
+                                   block: UInt32(r["block"]!.asUInt64()!))
                     
                     b.transactions.append(l)
                     
@@ -254,6 +242,35 @@ CREATE TABLE IF NOT EXISTS ledger (
         }
         
         return nil;
+    }
+    
+    class func PendingLedgersForHeight(_ height: UInt32) -> [Ledger] {
+        
+        var retValue: [Ledger] = []
+        
+        // now get the transactions for that block
+        let trans = pending_db.query(sql: "SELECT * FROM ledger WHERE block = ? ORDER BY token", params: [UInt64(height)])
+        
+        if trans.error == nil && trans.results.count > 0 {
+            
+            for r in trans.results {
+                
+                let l = Ledger(id: r["transaction_id"]!.asString()!,
+                               op: LedgerOPType(rawValue: r["op"]!.asInt()!)!,
+                               token: r["token"]!.asString()!,
+                               ref: r["transaction_group"]!.asString()!,
+                               address: r["owner"]!.asString()!,
+                               date: r["date"]!.asUInt64()!,
+                               auth: r["spend_auth"]!.asString()!,
+                               block: UInt32(r["block"]!.asUInt64()!))
+                
+                retValue.append(l)
+                
+            }
+            
+        }
+        
+        return retValue;
     }
     
     class func OreBlocks() -> [Block] {

@@ -41,23 +41,19 @@ public class Ledger {
     public var token: String
     public var spend_auth: String
     public var block: UInt32
-    public var confirm: UInt32
-    public var shenanigans: UInt32
     
     public init(op: LedgerOPType,token: String, ref: String, address: String, auth: String, block: UInt32) {
         self.transaction_id = UUID().uuidString.CryptoHash()
         self.op = op
         self.transaction_group = ref
         self.destination = address
-        self.date = UInt64(Date().timeIntervalSince1970 * 1000)
+        self.date = consensusTime()
         self.spend_auth = auth
         self.block = block
         self.token = token
-        self.confirm = 0
-        self.shenanigans = 0
     }
     
-    public init(id: String, op: LedgerOPType, token: String, ref: String, address: String, date: UInt64, auth: String, block: UInt32, confirm: UInt32, shenanigans: UInt32) {
+    public init(id: String, op: LedgerOPType, token: String, ref: String, address: String, date: UInt64, auth: String, block: UInt32) {
         self.transaction_id = id
         self.op = op
         self.transaction_group = ref
@@ -66,8 +62,6 @@ public class Ledger {
         self.spend_auth = auth
         self.block = block
         self.token = token
-        self.confirm = confirm
-        self.shenanigans = shenanigans
     }
     
     public func checksum() -> String {

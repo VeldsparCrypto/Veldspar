@@ -28,6 +28,8 @@ public class Block {
     // block variables
     public var height: UInt32
     public var hash: String?
+    public var confirms: UInt64 = 0
+    public var shenanigans: UInt64 = 0
 
     // block contents
     public var oreSeed: String?

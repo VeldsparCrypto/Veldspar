@@ -28,7 +28,7 @@ public class Config {
     public static let CurrencyName = "Veldspar"
     public static let CurrencyNetworkAddress = "VE"
     public static let GenesisID = "5538ae2b02d4ae0b7090dc908ca69cd11a2ffad43c7435f1dbad5e6a"
-    public static let BlockchainStartDate = 1535760000000
+    public static let BlockchainStartDate = 1533332080517
     
     public static let DefaultHashType: CryptoHashType = .sha224
     
@@ -39,7 +39,7 @@ public class Config {
     public static let DenominationDivider = 100
     
     // regularity of block formation
-    public static let BlockTime = 60*5 // 5 minutes, because it is not a traditional coin and there is no real downside to slower and more durable blocks.
+    public static let BlockTime = 60*1 // 5 minutes, because it is not a traditional coin and there is no real downside to slower and more durable blocks.
     
     // size of the ore segment in megabytes - 1mb gives posibilities of 1.169e^57 combinations @ address size of 8
     public static let OreSize = 1

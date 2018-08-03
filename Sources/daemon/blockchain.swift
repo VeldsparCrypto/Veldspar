@@ -72,13 +72,35 @@ class BlockChain {
         
     }
     
-    func addBlock(_ block:Block) {
+    func pendingLedgersForBlock(_ height: UInt32) -> [Ledger] {
+        
+        var ledgers: [Ledger] = []
+        
+        lock.mutex {
+            
+            ledgers = Database.PendingLedgersForHeight(height)
+            
+        }
+        
+        return ledgers
+        
+    }
+    
+    func addBlock(_ block:Block) -> Bool {
+        
+        var retValue = false
         
         lock.mutex {
             
             self.blocks_cache[block.height] = block
             
+            if block.height > Database.CurrentHeight()! {
+                retValue = Database.WriteBlock(block)
+            }
+            
         }
+        
+        return retValue
         
     }
     
