@@ -17,7 +17,7 @@ let package = Package(
         .package(url: "https://github.com/krzyzanowskim/CryptoSwift.git", .exact("0.8.3")),
         .package(url: "https://github.com/PerfectlySoft/Perfect-HTTPServer.git", .exact("3.0.17")),
         .package(url: "https://gitlab.com/katalysis/Ed25519.git", .exact("0.2.1")),
-        .package(url: "https://github.com/sharksync/SWSQLite.git", .exact("1.0.11")),
+        .package(url: "https://github.com/sharksync/SWSQLite.git", .exact("1.0.13")),
         .package(url: "https://github.com/PerfectlySoft/Perfect-CURL.git", .exact("3.0.7")),
         ],
     targets: [
