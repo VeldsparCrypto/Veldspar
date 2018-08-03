@@ -51,7 +51,7 @@ if args.count > 1 {
         }
         if arg.lowercased() == "--genesis" {
             // setup the blockchain with an empty block starting the generation of Ore
-            let firstBlock = Block(height: 1)
+            let firstBlock = Block(height: 0)
             firstBlock.oreSeed = Config.GenesisID
             firstBlock.transactions = []
             firstBlock.hash = firstBlock.GenerateHashForBlock(previousHash: "")
