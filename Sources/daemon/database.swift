@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS ledger (
         
         // TODO: transaction & rollback
         
-        if blockchain_db.execute(sql: "INSERT OR REPLACE INTO block (height, hash, oreSeed) VALUES (?,?,?)", params: [block.height, block.hash!, block.oreSeed ?? NSNull()]).error == nil {
+        if blockchain_db.execute(sql: "INSERT OR REPLACE INTO block (height, hash, oreSeed) VALUES (?,?,?)", params: [UInt64(block.height), block.hash!, block.oreSeed ?? NSNull()]).error == nil {
             
             // now write in the transactions into the table as well
             for t in block.transactions {
@@ -122,16 +122,16 @@ CREATE TABLE IF NOT EXISTS ledger (
                     params: [
                         
                         t.transaction_id,
-                        t.op.rawValue,
-                        t.date,
+                        UInt64(t.op.rawValue),
+                        UInt64(t.date),
                         t.transaction_group,
                         t.destination,
                         t.token,
                         t.spend_auth,
-                        t.block,
+                        UInt64(t.block),
                         t.checksum(),
-                        t.confirm,
-                        t.shenanigans
+                        UInt64(t.confirm),
+                        UInt64(t.shenanigans)
                         
                     ]).error != nil {
                     return false
@@ -211,7 +211,7 @@ CREATE TABLE IF NOT EXISTS ledger (
     
     class func BlockAtHeight(_ height: UInt32) -> Block? {
         
-        let result = blockchain_db.query(sql: "SELECT * FROM block WHERE height = ? LIMIT 1", params: [height])
+        let result = blockchain_db.query(sql: "SELECT * FROM block WHERE height = ? LIMIT 1", params: [UInt64(height)])
         if result.error != nil {
             debug("(Database) 'BlockAtHeight(_ height: UInt32) -> Block?', received an Error from the SQLite database engine.  Error = '\(result.error!)'")
             return nil
@@ -224,7 +224,7 @@ CREATE TABLE IF NOT EXISTS ledger (
             b.oreSeed = br["oreSeed"]?.asString()
             
             // now get the transactions for that block
-            let trans = blockchain_db.query(sql: "SELECT * FROM ledger WHERE block = ? ORDER BY token", params: [height])
+            let trans = blockchain_db.query(sql: "SELECT * FROM ledger WHERE block = ? ORDER BY token", params: [UInt64(height)])
             if trans.error != nil {
                 return nil
             }
