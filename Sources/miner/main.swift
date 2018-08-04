@@ -23,17 +23,14 @@
 import Foundation
 import VeldsparCore
 import Ed25519
-import PerfectCURL
 
 #if os(Linux)
 srandom(UInt32(time(nil)))
 #endif
 
 // defaults
-// var nodeAddress: String = Config.SeedNodes[0]
-var nodeAddress: String = "127.0.0.1"
+var nodeAddress: String = Config.SeedNodes[0]
 var oreBlocks: [Int:Ore] = [:]
-var payoutAddress: String = ""
 var miningMethods: [AlgorithmType] = [AlgorithmType.SHA512_Append]
 var walletAddress: String?
 var cacheLock = Mutex()
@@ -102,9 +99,9 @@ if FileManager.default.fileExists(atPath: "miner.cache") {
 print("Connecting to server \(nodeAddress)")
 // connect to the server, download the ore seeds and the allowed methods & algos
 
-let seeds = try? CURLRequest("http://\(nodeAddress):14242/blockchain/seeds",.timeout(10)).perform()
-if seeds != nil && seeds!.bodyBytes.count > 0 {
-    let resObject = try? JSONDecoder().decode(RPC_SeedList.self, from: Data(bytes: seeds!.bodyBytes))
+let seeds = Comms.request(method: "blockchain/seeds", parameters: nil)
+if seeds != nil {
+    let resObject = try? JSONDecoder().decode(RPC_SeedList.self, from: seeds!)
     if resObject != nil {
         for s in resObject!.seeds {
             print("Generating ORE for seed \(s.seed)")

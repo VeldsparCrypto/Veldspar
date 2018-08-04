@@ -6,15 +6,15 @@
 //
 
 import Foundation
-import PerfectCURL
 
 public class TokenRegistration {
     
     public class func Register(token: String, address: String, nodeAddress: String) -> Int? {
         
-        let registration = try? CURLRequest("http://\(nodeAddress):14242/token/register?token=\(token)&address=\(address)",.timeout(30)).perform()
-        if registration != nil && registration!.bodyBytes.count > 0 {
-            let resObject: RPC_Register_Repsonse? = try? JSONDecoder().decode(RPC_Register_Repsonse.self, from: Data(bytes: registration!.bodyBytes))
+        let response = Comms.request(method: "token/register", parameters: ["token":token, "address":address])
+        if response != nil {
+            // we have a valid response
+            let resObject: RPC_Register_Repsonse? = try? JSONDecoder().decode(RPC_Register_Repsonse.self, from: response!)
             if resObject != nil {
                 
                 // check for failure
@@ -25,14 +25,11 @@ public class TokenRegistration {
                 // successfully written, return the height at which it was placed
                 return resObject?.block
                 
-            } else {
-                // no comms, cache result
-                return nil
             }
-        } else {
-            // no comms, cache result
-            return nil
+            
         }
+        
+        return nil
         
     }
     

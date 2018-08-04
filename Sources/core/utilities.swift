@@ -44,6 +44,21 @@ public func consensusTime() -> UInt64 {
     return UInt64(Date().timeIntervalSince1970 * 1000)
 }
 
+public extension Array where Element == UInt8 {
+    
+    public func toHexSegmentString() -> String {
+        
+        var values: [String] = []
+        
+        for b in self as! [UInt8] {
+            values.append(b.toHex())
+        }
+        
+        return values.joined(separator: "-")
+        
+    }
+}
+
 extension String {
     public func CryptoHash() -> String {
         switch Config.DefaultHashType {

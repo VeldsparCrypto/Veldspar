@@ -155,7 +155,7 @@ class BlockChain {
                 return false
             }
         } catch {
-            debug("(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' caused an exception.")
+            debug("(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' caused an exception. '\(error)'")
             return false
         }
         

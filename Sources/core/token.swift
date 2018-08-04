@@ -104,5 +104,11 @@ public class Token {
         
     }
 
+    public class func valueFromId(_ token: String) -> Int {
+        
+        var segments = token.components(separatedBy: "-")
+        return Int(segments[2], radix: 16)!
+        
+    }
     
 }
