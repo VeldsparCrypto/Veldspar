@@ -145,6 +145,8 @@ if walletAddress == nil {
 
 print("Mining ore .........")
 
+debug("count of oreBlocks \(oreBlocks.keys.sorted().count)")
+
 for _ in 1...threads {
     
     Execute.background {

@@ -26,17 +26,23 @@ public class Random {
     
     public class func Integer(_ max:Int) -> Int {
         #if os(Linux)
-            return random() % max
+        if max == 0 {
+            return 0
+        }
+        return random() % max
         #else
-            return Int(arc4random_uniform(UInt32(max)))
+        return Int(arc4random_uniform(UInt32(max)))
         #endif
     }
     
     public class func Integer(_ min: Int, _ max: Int) -> Int {
         #if os(Linux)
-            return ((random() % max) + min)
+        if min >= max {
+            return max
+        }
+        return ((random() % max) + min)
         #else
-            return Int(arc4random_uniform(UInt32(max)) + UInt32(min))
+        return Int(arc4random_uniform(UInt32(max)) + UInt32(min))
         #endif
     }
     
