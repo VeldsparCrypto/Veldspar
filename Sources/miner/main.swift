@@ -162,7 +162,7 @@ for _ in 1...threads {
             }
             let t = Token(oreHeight: height, address: address, algorithm: method)
             if t.value() > 0 {
-                print("Found token! Ore:\(height) method:\(method.rawValue) value:\(Float(t.value()) / Float(Config.DenominationDivider))")
+                print("Found token! @\(Date()) Ore:\(height) method:\(method.rawValue) value:\(Float(t.value()) / Float(Config.DenominationDivider))")
                 print("Token Address: " + t.tokenId())
                 
                 let h = TokenRegistration.Register(token: t.tokenId(), address: walletAddress!, nodeAddress: nodeAddress)

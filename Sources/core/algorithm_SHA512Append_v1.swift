@@ -69,8 +69,9 @@ public class AlgorithmSHA512AppendV1: AlgorithmProtocol {
         let workload = Workload()
         var hash = self.hash(token: token)
         
-        if hash[0] == Config.MagicByte && hash.sha512()[0] == Config.MagicByte {
-            // we are through the gate, so lets see if we can find some magic beans in the first hash
+        if hash[0] == Config.MagicByte {
+            
+            // we are through the gate, so lets see if we can find some magic beans in the hash
             
             // find the beans table appropriate to the ore height
             let algoTable: [Int /* active block height */ : [String:Int]] = Economy.magicBeans[AlgorithmType.SHA512_Append]!
