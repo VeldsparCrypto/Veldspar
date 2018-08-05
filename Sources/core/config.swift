@@ -30,6 +30,8 @@ public class Config {
     public static let GenesisID = "0fcbb8951fd052764f71a634b02361448386c5b0f70eadb716cc0f3f"
     public static let BlockchainStartDate = 1533427199000
     
+    public static let MagicByte = UInt8(255)
+    
     public static let DefaultHashType: CryptoHashType = .sha224
     
     // transaction maturity level - targets transactions for x number of blocks in the future to allow a consensus network to operate

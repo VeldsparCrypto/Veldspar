@@ -35,7 +35,7 @@ public class AlgorithmSHA512AppendV1: AlgorithmProtocol {
         
         // well the token is always valid, but does it meet any of the conditions
         let hash = self.hash(token: token)
-        if hash.starts(with: [Economy.patternByte]) {
+        if hash[0] == Config.MagicByte && hash.sha512()[0] == Config.MagicByte {
             
             //TODO: more validation here to ensure it is valid, against the workload me thinks
             return true
@@ -69,26 +69,25 @@ public class AlgorithmSHA512AppendV1: AlgorithmProtocol {
         let workload = Workload()
         var hash = self.hash(token: token)
         
-        // work out how many matched start bytes there are itteratively
-        while hash.starts(with: [Economy.patternByte]) {
+        if hash[0] == Config.MagicByte && hash.sha512()[0] == Config.MagicByte {
+            // we are through the gate, so lets see if we can find some magic beans in the first hash
             
-            workload.iterations+=1
+            // find the beans table appropriate to the ore height
+            let algoTable: [Int /* active block height */ : [String:Int]] = Economy.magicBeans[AlgorithmType.SHA512_Append]!
             
-            // work out how many times a repeating pattern occours within the first 16 bytes of a hash
-            for i in 1...Economy.occurrencesRewardBytes-1 {
-                if (hash[i] == Economy.patternByte) {
-                    workload.occurrences+=1
+            let rewards = algoTable[Int(token.oreHeight)]!
+            
+            // do it string based, because weirdly swift is pretty damn fast finding strings in strings
+            let strHash = hash.toHexString()
+            
+            for k in rewards {
+                
+                if strHash.contains(string: k.key) {
+                    workload.beans.append(k.key)
                 }
+                
             }
             
-            // work out how many times a repeating pattern occours within the first 16 bytes of a hash
-            for i in 0...Economy.occurrencesRewardBytes-1 {
-                if (hash[i] == hash[i+1]) {
-                    workload.pairs+=1
-                }
-            }
-            
-            hash = hash.sha512()
         }
     
         return workload
