@@ -32,6 +32,7 @@ rm swift-4.1.3-RELEASE-ubuntu16.04.tar.gz
 
 Clone Veldspar, build it, and stuff it into the ~/.Veldspar directory.
 ```
+cd ~/
 git clone https://github.com/editfmah/veldspar.git
 cd veldspar
 
