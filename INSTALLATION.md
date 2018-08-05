@@ -53,3 +53,9 @@ Download a virtualbox image with swift and Veldspar already built and ready to g
 
 https://www.dropbox.com/s/7rqn4kg3qhsxwx3/VeldsparHost-Swift.zip?dl=0
 
+Username: veldspar
+Password: Veldspar1 
+
+* please change the password if exposing to the internet
+
+
