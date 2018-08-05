@@ -69,7 +69,7 @@ public class AlgorithmSHA512AppendV1: AlgorithmProtocol {
         let workload = Workload()
         var hash = self.hash(token: token)
         
-        if hash[0] == Config.MagicByte {
+        if hash[0] == Config.MagicByte && hash[1] >= (Config.MagicByte - 64) {
             
             // we are through the gate, so lets see if we can find some magic beans in the hash
             
@@ -78,7 +78,7 @@ public class AlgorithmSHA512AppendV1: AlgorithmProtocol {
             
             let rewards = algoTable[Int(token.oreHeight)]!
             
-            // do it string based, because weirdly swift is pretty damn fast finding strings in strings
+            // do it string based, because weirdly swift is pretty damn fast finding strings in strings plus I do it with 5 chars, or 2.5 bytes to fuck up dedicated hardware!
             let strHash = hash.toHexString()
             
             for k in rewards {
