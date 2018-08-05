@@ -69,27 +69,26 @@ public class AlgorithmSHA512AppendV1: AlgorithmProtocol {
         let workload = Workload()
         var hash = self.hash(token: token)
         
-        for i in 0...14 {
-            if (hash[i] == Economy.patternByte) {
-                workload.sequence+=1
-            } else {
-                break
-            }
-        }
-        
         // work out how many matched start bytes there are itteratively
         while hash.starts(with: [Economy.patternByte]) {
+            
             workload.iterations+=1
-            hash = hash.sha512()
-        }
-        
-        // work out how many times a repeating pattern occours within the first 16 bytes of a hash
-        hash = self.hash(token: token)
-        
-        for i in 2...Economy.occurrencesRewardBytes-2 {
-            if (hash[i] == Economy.patternByte && hash[i+1] == Economy.patternByte) {
-                workload.occurrences+=1
+            
+            // work out how many times a repeating pattern occours within the first 16 bytes of a hash
+            for i in 1...Economy.occurrencesRewardBytes-1 {
+                if (hash[i] == Economy.patternByte) {
+                    workload.occurrences+=1
+                }
             }
+            
+            // work out how many times a repeating pattern occours within the first 16 bytes of a hash
+            for i in 0...Economy.occurrencesRewardBytes-1 {
+                if (hash[i] == hash[i+1]) {
+                    workload.pairs+=1
+                }
+            }
+            
+            hash = hash.sha512()
         }
     
         return workload

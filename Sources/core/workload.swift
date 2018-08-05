@@ -24,11 +24,11 @@ import Foundation
 
 public class Workload {
     
-    // number of times the chosen byte appears at the beginning of the hash
-    public var sequence = 0
-    
     // number of times when sequentially hashed that the hash starts with the chosen byte
     public var iterations = 0
+    
+    // number of times when sequentially matched bytes of any value occour witihn the first X number of bytes
+    public var pairs = 0
     
     // number of times that the byte occours as a sequential pattern in the first 16 bytes of the hash (to make it fair for shorter hash algos)
     // ****[XX]*****X********X*******[XX]**********[XX]******X********X*
