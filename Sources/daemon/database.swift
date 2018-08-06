@@ -52,6 +52,8 @@ CREATE TABLE IF NOT EXISTS ledger (
 )
 """, params: [])
         
+        _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_token ON ledger (token);", params: [])
+        _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_block ON ledger (block);", params: [])
         _ = pending_db.execute(sql:
             """
 CREATE TABLE IF NOT EXISTS ledger (
@@ -66,6 +68,9 @@ CREATE TABLE IF NOT EXISTS ledger (
     checksum TEXT
 )
 """, params: [])
+        
+        _ = pending_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_token ON ledger (token);", params: [])
+        _ = pending_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_block ON ledger (block);", params: [])
         
     }
     
@@ -85,13 +90,13 @@ CREATE TABLE IF NOT EXISTS ledger (
             params: [
                 
                 ledger.transaction_id,
-                ledger.op.rawValue,
-                ledger.date,
+                UInt64(ledger.op.rawValue),
+                UInt64(ledger.date),
                 ledger.transaction_group,
                 ledger.destination,
                 ledger.token,
                 ledger.spend_auth,
-                ledger.block,
+                UInt64(ledger.block),
                 ledger.checksum()
                 
             ]).error != nil {
