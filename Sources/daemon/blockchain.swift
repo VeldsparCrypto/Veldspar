@@ -149,7 +149,14 @@ class BlockChain {
         
         // validate the token
         do {
+            
             let t = try Token(token)
+            
+            if AlgorithmManager.sharedInstance().depricated(type: t.algorithm, height: UInt(t.oreHeight)) {
+                debug("(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' was of deprecated method.")
+                return false
+            }
+            
             if t.value() == 0 {
                 debug("(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' was invalid and has no value.")
                 return false

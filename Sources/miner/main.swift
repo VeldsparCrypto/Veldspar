@@ -31,13 +31,16 @@ srandom(UInt32(time(nil)))
 // defaults
 var nodeAddress: String = Config.SeedNodes[0]
 var oreBlocks: [Int:Ore] = [:]
-var miningMethods: [AlgorithmType] = [AlgorithmType.SHA512_Append]
+var miningMethods: [AlgorithmType] = [AlgorithmType.SHA512_AppendV2]
 var walletAddress: String?
 var cacheLock = Mutex()
 var threads = 4
-var dont_burn = false;
 
 let args: [String] = CommandLine.arguments
+
+let statsLock: Mutex = Mutex()
+var hashes: Int = 0
+var matches: Int = 0
 
 if args.count > 1 {
     for i in 1...args.count-1 {
@@ -54,9 +57,6 @@ if args.count > 1 {
         }
         if arg.lowercased() == "--debug" {
             debug_on = true
-        }
-        if arg.lowercased() == "--dontburncpu" {
-            dont_burn = true
         }
         if arg.lowercased() == "--address" {
             
@@ -141,9 +141,13 @@ if walletAddress == nil {
     exit(0)
 }
 
-// trap no communication with server
+if !walletAddress!.starts(with: Config.CurrencyNetworkAddress) || walletAddress!.count != 46 {
+    print("Invalid wallet address, they will look something like: 'VE3w4fX2DSa4jdDVVfKsCCGW5CGmSb1mAVQVbkt26v6F1p'")
+    exit(0)
+}
 
-print("Mining ore .........")
+print("\nMining ore .........\n")
+print("Using \(threads) threads.")
 
 debug("count of oreBlocks \(oreBlocks.keys.sorted().count)")
 
@@ -161,6 +165,9 @@ for _ in 1...threads {
                 address.append(UInt32(Random.Integer(oreSize)))
             }
             let t = Token(oreHeight: height, address: address, algorithm: method)
+            statsLock.mutex {
+                hashes += 1
+            }
             if t.value() > 0 {
                 print("Found token! @\(Date()) Ore:\(height) method:\(method.rawValue) value:\(Float(t.value()) / Float(Config.DenominationDivider))")
                 print("Token Address: " + t.tokenId())
@@ -219,15 +226,16 @@ for _ in 1...threads {
                     }
                 }
             }
-            if dont_burn {
-                Thread.sleep(forTimeInterval: 0.005)
-            }
         }
     }
 }
 
 while true {
     sleep(1)
+    statsLock.mutex {
+        print("Mining rate: \(hashes) h/s")
+        hashes = 0
+    }
 }
 
 

@@ -24,9 +24,10 @@ import Foundation
 
 public enum AlgorithmType : UInt16 {
     case SHA512_Append = 0
+    case SHA512_AppendV2 = 1
 }
 
-protocol AlgorithmProtocol {
+public protocol AlgorithmProtocol {
     func generate(ore: Ore, address: [UInt32]) -> Token
     func validate(token: Token) -> Bool
     func deprecated(height: UInt) -> Bool
@@ -35,7 +36,7 @@ protocol AlgorithmProtocol {
     func workload(token: Token) -> Workload
 }
 
-class AlgorithmManager {
+public class AlgorithmManager {
     
     // the singleton
     static private var this = AlgorithmManager()
@@ -46,6 +47,7 @@ class AlgorithmManager {
     
     init() {
         register(algorithm: AlgorithmSHA512AppendV1())
+        register(algorithm: AlgorithmSHA512AppendV2())
     }
     
     public func register(algorithm: AlgorithmProtocol) {
@@ -89,7 +91,7 @@ class AlgorithmManager {
         
     }
     
-    public func depricated(type: AlgorithmType, height: UInt) -> Bool? {
+    public func depricated(type: AlgorithmType, height: UInt) -> Bool {
         
         var isDepricated: Bool = false
         

@@ -22,13 +22,17 @@
 
 import Foundation
 
-public class AlgorithmSHA512AppendV1: AlgorithmProtocol {
+public class AlgorithmSHA512AppendV2: AlgorithmProtocol {
+    
+    /*
+     *      Same as v1, but smaller window for entry but bigger rewards
+     */
     
     
     public func generate(ore: Ore, address: [UInt32]) -> Token {
         
-        return Token(oreHeight: ore.height, address: address, algorithm: .SHA512_Append)
-
+        return Token(oreHeight: ore.height, address: address, algorithm: .SHA512_AppendV2)
+        
     }
     
     public func validate(token: Token) -> Bool {
@@ -49,7 +53,7 @@ public class AlgorithmSHA512AppendV1: AlgorithmProtocol {
     }
     
     public func deprecated(height: UInt) -> Bool {
-        return true
+        return false
     }
     
     public func hash(token: Token) -> [UInt8] {
@@ -69,12 +73,12 @@ public class AlgorithmSHA512AppendV1: AlgorithmProtocol {
         let workload = Workload()
         var hash = self.hash(token: token)
         
-        if hash[0] == Config.MagicByte && hash[1] >= (Config.MagicByte - 64) {
+        if hash[0] == Config.MagicByte && hash[1] >= (Config.MagicByte - 13) {
             
             // we are through the gate, so lets see if we can find some magic beans in the hash
             
             // find the beans table appropriate to the ore height
-            let algoTable: [Int /* active block height */ : [String:Int]] = Economy.magicBeans[AlgorithmType.SHA512_Append]!
+            let algoTable: [Int /* active block height */ : [String:Int]] = Economy.magicBeans[AlgorithmType.SHA512_AppendV2]!
             
             let rewards = algoTable[Int(token.oreHeight)]!
             
@@ -90,7 +94,7 @@ public class AlgorithmSHA512AppendV1: AlgorithmProtocol {
             }
             
         }
-    
+        
         return workload
         
     }

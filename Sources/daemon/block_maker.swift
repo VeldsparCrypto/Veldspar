@@ -77,10 +77,8 @@ class BlockMaker {
                 
             }
             
-            
             Thread.sleep(forTimeInterval: 5)
-            
-            
+
             
         }
         

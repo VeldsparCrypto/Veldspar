@@ -26,7 +26,7 @@ import Dispatch
 public class Execute {
     
     public class func background(_ closure:@escaping (()->())) {
-        DispatchQueue.global(qos: .userInitiated).async {
+        DispatchQueue.global(qos: .default).async {
             closure()
         }
     }
