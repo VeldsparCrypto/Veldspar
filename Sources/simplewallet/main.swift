@@ -393,7 +393,7 @@ while true {
         } else {
             
             // wallet open
-            SimpleMenu(["P" : "Show pending transactions", "L" : "List transfers","B" : "Balance", "X" : "Exit", "T" : "Transfer \(Config.CurrencyName) to another address.","S" : "Show seed"])
+            SimpleMenu(["P" : "Show pending transactions", "L" : "List transfers","B" : "Balance", "X" : "Exit", "T" : "Transfer \(Config.CurrencyName) to another address.","S" : "Show seed", "R" : "Rebuild wallet"])
             
             let answer = readLine()
             switch answer?.lowercased() ?? "" {
@@ -406,6 +406,19 @@ while true {
                 print("feature not implemented yet")
             case "t":
                 print("feature not implemented yet")
+            case "r":
+                
+                print("Rebuilding wallet, a full re-sync wil now take place.")
+                
+                walletLock.mutex {
+                    
+                    currentWallet!.height = 0
+                    currentWallet!.tokens = [:]
+                    currentWallet!.transactions = []
+                    currentWallet?.write(filename: currentFilename!, password: currentPassword!)
+                    
+                }
+                
             case "x":
                 print("saving wallet")
                 walletLock.mutex {

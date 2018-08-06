@@ -24,7 +24,7 @@ import Foundation
 
 public class Config {
     
-    public static let Version = "0.0.2"
+    public static let Version = "0.0.3"
     public static let CurrencyName = "Veldspar"
     public static let CurrencyNetworkAddress = "VE"
     public static let GenesisID = "0fcbb8951fd052764f71a634b02361448386c5b0f70eadb716cc0f3f"
@@ -41,7 +41,7 @@ public class Config {
     public static let DenominationDivider = 100
     
     // regularity of block formation
-    public static let BlockTime = 60*2 // 5 minutes, because it is not a traditional coin and there is no real downside to slower and more durable blocks.
+    public static let BlockTime = 60*2 // 2 minutes, because it is not a traditional coin and there is no real downside to slower and more durable blocks.
     
     // size of the ore segment in megabytes - 1mb gives posibilities of 1.169e^57 combinations @ address size of 8
     public static let OreSize = 1

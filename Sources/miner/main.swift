@@ -182,7 +182,7 @@ for _ in 1...threads {
                 } else if (h! > 0) {
                     print("Token successfully registered with \(Config.CurrencyName) node.")
                 } else if (h! == -1) {
-                    print("Token registration unsuccessful, token already registered :(")
+                    print("Token registration unsuccessful, token already registered :(, or invalid token.")
                 }
                 
                 if h != nil && (h! == -1 || h! > 0) {
@@ -202,7 +202,7 @@ for _ in 1...threads {
                                         print("Cached token successfully registered with \(Config.CurrencyName) node.")
                                     }
                                     if registration! == -1 {
-                                        print("Cached token registration unsuccessful, token already registered :(")
+                                        print("Cached token registration unsuccessful, token already registered :( or invalid.")
                                     }
                                     
                                     // now remove from the cache
