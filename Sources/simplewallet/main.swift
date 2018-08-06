@@ -70,6 +70,27 @@ if args.count > 1 {
         if arg.lowercased() == "--debug" {
             debug_on = true
         }
+        if arg.lowercased() == "--walletfile" {
+            
+            if i+1 < args.count {
+                
+                let add = args[i+1]
+                currentFilename = add
+                
+            }
+            
+        }
+        
+        if arg.lowercased() == "--password" {
+            
+            if i+1 < args.count {
+                
+                let t = args[i+1]
+                currentPassword = t
+                
+            }
+            
+        }
         
     }
 }
@@ -77,6 +98,29 @@ if args.count > 1 {
 print("---------------------------")
 print("\(Config.CurrencyName) Wallet v\(Config.Version)")
 print("---------------------------")
+
+if currentPassword != nil && currentFilename != nil {
+    
+    // now try and open/decrypt the wallet object
+    walletLock.mutex {
+        let w = Wallet.read(filename: currentFilename!, password: currentPassword!)
+        if w != nil {
+            currentWallet = w
+            if currentWallet!.height == nil {
+                currentWallet!.height = 0
+            }
+            currentSeed = w?.seed
+            walletOpen = true
+            print("")
+            print("Wallet opened:")
+            print("address: \(currentWallet!.address!)")
+        } else {
+            print("incorrect password")
+            exit(0)
+        }
+    }
+    
+}
 
 func WalletLoop() {
     
