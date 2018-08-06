@@ -21,10 +21,11 @@ https://swift.org/builds/swift-4.1.3-release/ubuntu1604/swift-4.1.3-RELEASE/swif
 
 The following script downloads Swift and jams it into /usr.  Best done on a sandbox VM.  
 ```
+cd ~/
 wget https://swift.org/builds/swift-4.1.3-release/ubuntu1604/swift-4.1.3-RELEASE/swift-4.1.3-RELEASE-ubuntu16.04.tar.gz
 tar -xvf swift-4.1.3-RELEASE-ubuntu16.04.tar.gz
 cd swift-4.1.3-RELEASE-ubuntu16.04
-cp -R usr/* /usr
+sudo cp -R usr/* /usr
 cd ~/
 rm -rf swift-4.1.3-RELEASE-ubuntu16.04
 rm swift-4.1.3-RELEASE-ubuntu16.04.tar.gz
@@ -36,7 +37,6 @@ cd ~/
 git clone https://github.com/editfmah/veldspar.git
 cd veldspar
 
-#swift build -c release -Xswiftc -static-stdlib
 swift build -c release
 mkdir ~/.Veldspar
 
