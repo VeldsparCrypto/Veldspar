@@ -49,7 +49,7 @@ public class AlgorithmSHA512AppendV1: AlgorithmProtocol {
     }
     
     public func deprecated(height: UInt) -> Bool {
-        return false
+        return true
     }
     
     public func hash(token: Token) -> [UInt8] {

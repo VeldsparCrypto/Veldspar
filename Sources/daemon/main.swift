@@ -37,6 +37,17 @@ Database.Initialize()
 print("Database connection opened")
 var blockchain = BlockChain()
 
+print("Generating stats")
+for height in 0...blockchain.height() {
+    let b = blockchain.blockAtHeight(height)
+    if b != nil {
+        for l in b!.transactions {
+            blockchain.aggregateStatsForLedger(l)
+        }
+    }
+}
+blockchain.setAddressCount(addressCount: blockchain.countOfAddresses(), blockCount: Int(blockchain.height()))
+
 let args: [String] = CommandLine.arguments
 
 if args.count > 1 {

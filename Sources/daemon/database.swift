@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS ledger (
         
         _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_token ON ledger (token);", params: [])
         _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_block ON ledger (block);", params: [])
+        _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_op ON ledger (op);", params: [])
         _ = pending_db.execute(sql:
             """
 CREATE TABLE IF NOT EXISTS ledger (
@@ -153,6 +154,21 @@ CREATE TABLE IF NOT EXISTS ledger (
         }
         
         return nil;
+    }
+    
+    class func CountAddresses() -> Int {
+        
+        let result = blockchain_db.query(sql: "SELECT COUNT(DISTINCT owner) as count_owner FROM ledger;", params: [])
+        if result.error != nil {
+            return 0
+        }
+        
+        if result.results.count > 0 {
+            let r = result.results[0]
+            return Int(r["count_owner"]!.asUInt64()!)
+        }
+        
+        return 0;
     }
     
     class func TokenOwnershipRecord(_ id: String) -> Ledger? {

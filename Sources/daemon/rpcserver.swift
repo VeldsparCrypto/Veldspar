@@ -75,6 +75,10 @@ func handleRequest() throws -> RequestHandler {
                     response.setBody(string: encodedData!)
                 }
                 
+                if request.path == "/blockchain/stats" {
+                    response.setBody(string: RPCStats.action())
+                }
+                
                 if request.path == "/blockchain/block" {
                     
                     // query the ledger at a specific height, and return the transactions.  Used for wallet implementations
