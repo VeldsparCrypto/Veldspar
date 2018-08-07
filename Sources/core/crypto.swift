@@ -71,7 +71,7 @@ public class Crypto {
         return isSigned(value ,signature: signature, public_key: String(address.suffix(address.count-Config.CurrencyNetworkAddress.count)))
     }
     
-    public class func makeTransactionSignature(src: String, dest: String, token: String) -> String {
+    public class func makeTransactionIdentifier(src: String, dest: String, token: String) -> String {
         return "\(src)\(dest)\(token)".base58EncodedString
     }
     

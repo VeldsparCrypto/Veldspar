@@ -310,5 +310,17 @@ class BlockChain {
         
     }
     
+    func ledgersConcerningAddress(_ address: String, lastRowHeight: Int) -> [(Int,Ledger)] {
+        
+        var l: [(Int,Ledger)] = []
+        
+        lock.mutex {
+            l = Database.LedgersConcerningAddress(address, lastRowHeight: lastRowHeight)
+        }
+        
+        return l;
+        
+    }
+    
     
 }

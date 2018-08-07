@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS ledger (
         _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_token ON ledger (token);", params: [])
         _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_block ON ledger (block);", params: [])
         _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_op ON ledger (op);", params: [])
+        _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_owner ON ledger (owner);", params: [])
         _ = pending_db.execute(sql:
             """
 CREATE TABLE IF NOT EXISTS ledger (
@@ -169,6 +170,32 @@ CREATE TABLE IF NOT EXISTS ledger (
         }
         
         return 0;
+    }
+    
+    class func LedgersConcerningAddress(_ address: String, lastRowHeight: Int) -> [(Int,Ledger)] {
+        
+        let result = blockchain_db.query(sql: "SELECT ROWID,* FROM ledger WHERE token IN (SELECT DISTINCT token FROM ledger WHERE owner = ?) AND ROWID > ? ORDER BY block ASC LIMIT 10000", params: [address, lastRowHeight])
+        if result.error != nil {
+            return []
+        }
+        
+        if result.results.count > 0 {
+            var ledgers: [(Int,Ledger)] = []
+            for r in result.results {
+                let l = Ledger(id: r["transaction_id"]!.asString()!,
+                               op: LedgerOPType(rawValue: r["op"]!.asInt()!)!,
+                               token: r["token"]!.asString()!,
+                               ref: r["transaction_group"]!.asString()!,
+                               address: r["owner"]!.asString()!,
+                               date: r["date"]!.asUInt64()!,
+                               auth: r["spend_auth"]!.asString()!,
+                               block: UInt32(r["block"]!.asUInt64()!))
+                ledgers.append((Int(r["rowid"]!.asUInt64()!),l))
+            }
+            return ledgers
+        }
+        
+        return [];
     }
     
     class func TokenOwnershipRecord(_ id: String) -> Ledger? {

@@ -95,6 +95,26 @@ func handleRequest() throws -> RequestHandler {
                     
                 }
                 
+                if request.path == "/wallet/sync" {
+                    
+                    // query the ledger at a specific height, and return the transactions.  Used for wallet implementations
+                    var height = 0
+                    var address = ""
+                    for p in request.queryParams {
+                        if p.0 == "height" {
+                            height = Int(p.1) ?? 0
+                        }
+                        if p.0 == "address" {
+                            address = p.1
+                        }
+                    }
+                    
+                    let encodedData = try String(bytes: JSONEncoder().encode(RPCSyncWallet.action(address: address, height: height)), encoding: .ascii)
+                    response.setBody(string: encodedData!)
+                    
+                    
+                }
+                
                 if request.path == "/token/register" {
                     
                     var token = ""

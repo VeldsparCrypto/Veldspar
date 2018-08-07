@@ -126,14 +126,9 @@ func WalletLoop() {
     
     while true {
         
-        var found = false
-        
         // fetch the current height
         if walletOpen {
             
-            let currentHeight = Comms.requestHeight()
-            if currentHeight != nil {
-                
                 var walletHeight: UInt32 = 0
                 var address: String?
                 
@@ -142,93 +137,94 @@ func WalletLoop() {
                     address = currentWallet!.address!
                 }
                 
-                if currentHeight! > walletHeight {
+            // there are blocks to process so get the next one
+            let nextBlockData = Comms.request(method: "wallet/sync", parameters: ["height" : "\(walletHeight)", "address" : address!])
+            if nextBlockData != nil {
+                
+                var grouped: [String:[RPC_Ledger]] = [:]
+                
+                let b = try? JSONDecoder().decode(RPC_Wallet_Sync_Object.self, from: nextBlockData!)
+                if b != nil {
                     
-                    // there are blocks to process so get the next one
-                    let nextBlockData = Comms.request(method: "blockchain/block", parameters: ["height" : "\(walletHeight+1)"])
-                    if nextBlockData != nil {
+                    if b!.transactions.count > 0 {
                         
-                        found = true
+                        var totalAdded: Int = 0
+                        var totalSpent: Int = 0
                         
-                        var grouped: [String:[RPC_Ledger]] = [:]
-                        
-                        let b = try? JSONDecoder().decode(RPC_Block.self, from: nextBlockData!)
-                        if b != nil {
+                        walletLock.mutex {
                             
-                            print("Processing block \(b!.height!) of \(currentHeight!)")
-                            
-                            walletLock.mutex {
+                            // we actually don't care about the block, just the transactions
+                            for l in b!.transactions {
                                 
-                                // we actually don't care about the block, just the transactions
-                                for l in b!.transactions {
+                                if l.destination! == address! {
                                     
-                                    if l.destination! == address! {
+                                    // this is for us so we can add it into the wallet
+                                    let wt = WalletToken()
+                                    wt.token = l.token
+                                    wt.value = UInt32(Token.valueFromId(wt.token!))
+                                    currentWallet!.tokens[l.token!] = wt
+                                    
+                                    totalAdded += Int(wt.value!)
+                                    
+                                } else {
+                                    
+                                    // is this a transfer out of a token which was owned by this wallet?
+                                    if currentWallet!.tokens[l.token!] != nil {
                                         
-                                        // this is for us so we can add it into the wallet
-                                        let wt = WalletToken()
-                                        wt.token = l.token
-                                        wt.value = UInt32(Token.valueFromId(wt.token!))
-                                        currentWallet!.tokens[l.token!] = wt
+                                        let wt = currentWallet!.tokens.removeValue(forKey: l.token!)
                                         
-                                        print("Incoming token added to your wallet with a value of \(Float(wt.value!) / Float(Config.DenominationDivider))")
-                                        
-                                    } else {
-                                        
-                                        // is this a transfer out of a token which was owned by this wallet?
-                                        if currentWallet!.tokens[l.token!] != nil {
-                                            
-                                            currentWallet!.tokens.removeValue(forKey: l.token!)
-                                            
-                                            // create a transaction record, for the wallet
-                                            if grouped[l.transaction_group!] == nil {
-                                                grouped[l.transaction_group!] = []
-                                            }
-                                            
-                                            grouped[l.transaction_group!]!.append(l)
-                                            
+                                        // create a transaction record, for the wallet
+                                        if grouped[l.transaction_group!] == nil {
+                                            grouped[l.transaction_group!] = []
                                         }
                                         
+                                        grouped[l.transaction_group!]!.append(l)
+                                        
+                                        totalSpent += Int(wt!.value!)
                                         
                                     }
                                     
-                                }
-                                
-                                // now write in any grouped ledgers as WalletTransaction objects
-                                for t in grouped {
-                                    
-                                    let trans = WalletTransaction()
-                                    trans.ref = t.key
-                                    trans.date = t.value[0].date
-                                    trans.destination = t.value[0].destination
-                                    
-                                    for l in t.value {
-                                        trans.value += UInt32(Token.valueFromId(l.token!))
-                                    }
-                                    
-                                    currentWallet!.transactions.append(trans)
                                     
                                 }
-                                
-                                currentWallet!.height = b?.height
-                                currentWallet!.write(filename: currentFilename!, password: currentPassword!)
                                 
                             }
                             
+                            // now write in any grouped ledgers as WalletTransaction objects
+                            for t in grouped {
+                                
+                                let trans = WalletTransaction()
+                                trans.ref = t.key
+                                trans.date = t.value[0].date
+                                trans.destination = t.value[0].destination
+                                
+                                for l in t.value {
+                                    trans.value += UInt32(Token.valueFromId(l.token!))
+                                }
+                                
+                                currentWallet!.transactions.append(trans)
+                                
+                            }
+                            
+                            currentWallet!.height = UInt32(b!.rowid)
+                            
                         }
                         
+                        currentWallet!.write(filename: currentFilename!, password: currentPassword!)
+                        
+                        print("Value of new tokens added to wallet: \((Float(totalAdded) / Float(Config.DenominationDivider)))")
+                        print("Value of spent tokens: \((Float(totalSpent) / Float(Config.DenominationDivider)))")
+                        print("--------------------------")
+                        print("Current balance: \(currentWallet!.balance())")
+                        
+                    } else {
+                        
+                        Thread.sleep(forTimeInterval: 10)
                         
                     }
                     
                 }
-                
             }
-            
         }
-        
-        if !found {
-            Thread.sleep(forTimeInterval: 10)
-        }
-        found = false
         
     }
     

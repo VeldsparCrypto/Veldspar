@@ -64,7 +64,7 @@ class RPCTransferToken {
         }
         
         // check that the request has the authority to transfer the token by testing the public key signature
-        let transferSignature = Crypto.makeTransactionSignature(src: current!.destination, dest: address, token: token)
+        let transferSignature = Crypto.makeTransactionIdentifier(src: current!.destination, dest: address, token: token)
         if Crypto.isSigned(transferSignature, signature: auth, address: current!.destination) {
             // signatures match, time to add this to the pending chain
             
@@ -77,6 +77,7 @@ class RPCTransferToken {
                 throw RPCErrors.InvalidRequest
                 
             }
+            
             
         } else {
             throw RPCErrors.InvalidRequest
