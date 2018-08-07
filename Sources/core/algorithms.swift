@@ -50,6 +50,18 @@ public class AlgorithmManager {
         register(algorithm: AlgorithmSHA512AppendV2())
     }
     
+    public func countOfAlgos() -> Int {
+        
+        var count = 0
+        
+        lock.mutex {
+            count = self.implementations.count
+        }
+        
+        return count
+        
+    }
+    
     public func register(algorithm: AlgorithmProtocol) {
         lock.mutex {
             self.implementations.append(algorithm)

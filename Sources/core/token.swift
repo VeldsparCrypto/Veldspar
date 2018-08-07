@@ -65,7 +65,12 @@ public class Token {
         
         let algorithm = UInt16(segments[0], radix: 16)
         if algorithm != nil {
-            self.algorithm = AlgorithmType(rawValue: algorithm!)!
+            if algorithm! < AlgorithmManager.sharedInstance().countOfAlgos() {
+                self.algorithm = AlgorithmType(rawValue: algorithm!)!
+            } else {
+                // request for an unsupported algorithum .... hummmm
+                throw TokenError.InvalidTokenAlgorithm
+            }
         }else {
             throw TokenError.InvalidTokenAlgorithm
         }

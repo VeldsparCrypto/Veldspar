@@ -25,9 +25,13 @@ import Foundation
 import PerfectHTTP
 import VeldsparCore
 
+let banLock: Mutex = Mutex()
+var bans: [String:Int] = [:]
+
 enum RPCErrors : Error {
     case InvalidRequest
     case DuplicateRequest
+    case Banned
 }
 
 func handleRequest() throws -> RequestHandler {
@@ -128,8 +132,12 @@ func handleRequest() throws -> RequestHandler {
                         }
                     }
                     
-                    try response.setBody(json: RPCRegisterToken.action(["token" : token, "address" : address]))
+                    try response.setBody(json: RPCRegisterToken.action(["token" : token, "address" : address], host: request.remoteAddress.host))
                 }
+                
+            } catch RPCErrors.Banned {
+                
+                response.status = .forbidden
                 
             } catch {
                 
@@ -146,7 +154,7 @@ func handleRequest() throws -> RequestHandler {
                 if payload != nil {
                     
                     if request.path == "/token/register" {
-                        try response.setBody(json: RPCRegisterToken.action(payload!))
+                        try response.setBody(json: RPCRegisterToken.action(payload!, host: request.remoteAddress.host))
                     }
                     
                     if request.path == "/token/transfer" {

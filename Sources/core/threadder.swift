@@ -25,6 +25,12 @@ import Dispatch
 
 public class Execute {
     
+    public class func backgroundAfter(after: Double, _ closure:@escaping (()->())) {
+        DispatchQueue.global(qos: .default).asyncAfter(deadline: .now() + after, execute: {
+           closure()
+        }) 
+    }
+    
     public class func background(_ closure:@escaping (()->())) {
         DispatchQueue.global(qos: .default).async {
             closure()

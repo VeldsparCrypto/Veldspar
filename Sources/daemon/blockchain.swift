@@ -23,6 +23,12 @@
 import Foundation
 import VeldsparCore
 
+enum BlockchainErrors : Error {
+    case TokenHasNoValue
+    case InvalidAddress
+    case InvalidAlgo
+}
+
 class BlockChain {
     
     private let lock: Mutex
@@ -233,7 +239,7 @@ class BlockChain {
         
     }
     
-    func registerToken(token: String, address: String, block: UInt32) -> Bool {
+    func registerToken(token: String, address: String, block: UInt32) throws -> Bool {
         
         var returnValue = false
         
@@ -249,8 +255,10 @@ class BlockChain {
             
             if t.value() == 0 {
                 debug("(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' was invalid and has no value.")
-                return false
+                throw BlockchainErrors.TokenHasNoValue
             }
+        } catch BlockchainErrors.TokenHasNoValue {
+            throw BlockchainErrors.TokenHasNoValue
         } catch {
             debug("(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' caused an exception. '\(error)'")
             return false

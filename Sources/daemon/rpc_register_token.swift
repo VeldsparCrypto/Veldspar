@@ -26,7 +26,22 @@ import VeldsparCore
 
 class RPCRegisterToken {
     
-    class func action(_ payload: [String:Any?]) throws -> [String:Any?] {
+    class func action(_ payload: [String:Any?], host: String?) throws -> [String:Any?] {
+        
+        if host != nil {
+            var banned = false
+            banLock.mutex {
+                if bans[host!] != nil {
+                    if bans[host!]! == 10 {
+                        banned = true
+                    }
+                }
+            }
+            if banned {
+                throw RPCErrors.Banned
+            }
+        }
+        
         
         if payload["token"] == nil {
             throw RPCErrors.InvalidRequest
@@ -42,16 +57,45 @@ class RPCRegisterToken {
         let address = payload["address"] as! String
         let block = blockchain.height() + UInt32(Config.TransactionMaturityLevel)
         
-        if blockchain.registerToken(token: token, address: address, block: block) {
+        do {
+            if try blockchain.registerToken(token: token, address: address, block: block) {
+                
+                return ["success" : true, "token" : token, "block" : block]
+                
+            } else {
+                
+                return ["success" : false, "token" : token]
+                
+            }
+        } catch BlockchainErrors.TokenHasNoValue {
             
-            return ["success" : true, "token" : token, "block" : block]
+            if host != nil {
+                banLock.mutex {
+                    if bans[host!] == nil {
+                        bans[host!] = 1
+                    }
+                    else {
+                        bans[host!] = bans[host!]! + 1
+                        if bans[host!]! == 10 {
+                            // clear this ban in 1 minute
+                            Execute.backgroundAfter(after: 60.0, {
+                                banLock.mutex {
+                                    bans.removeValue(forKey: host!)
+                                }
+                            })
+                        }
+                    }
+                }
+            }
             
-        } else {
+            return ["nice" : "try"]
+            
+        } catch {
             
             return ["success" : false, "token" : token]
             
         }
-        
+    
     }
     
 }
