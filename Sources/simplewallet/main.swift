@@ -33,7 +33,7 @@ srandom(UInt32(time(nil)))
 var currentPassword: String?
 var currentFilename: String?
 var walletOpen = false
-var currentWallet: WalletContainer?
+var currentWallet: WalletContainer? = nil
 let walletLock = Mutex()
 
 // the choice switch
@@ -130,34 +130,34 @@ func WalletLoop() {
     
     while true {
         
-        // fetch the current height
-        if walletOpen {
+        walletLock.mutex {
             
-            for wallet in currentWallet!.wallets {
+            // fetch the current height
+            if walletOpen && currentWallet != nil && (currentWallet?.wallets.count)! > 0 {
                 
-                var walletHeight: UInt32 = 0
-                var address: String?
-                
-                walletLock.mutex {
-                    walletHeight = wallet.height!
-                    address = wallet.address!
-                }
-                
-                // there are blocks to process so get the next one
-                let nextBlockData = Comms.request(method: "wallet/sync", parameters: ["height" : "\(walletHeight)", "address" : address!])
-                if nextBlockData != nil {
+                for wallet in currentWallet!.wallets {
                     
-                    var grouped: [String:[RPC_Ledger]] = [:]
+                    var walletHeight: UInt32 = 0
+                    var address: String?
                     
-                    let b = try? JSONDecoder().decode(RPC_Wallet_Sync_Object.self, from: nextBlockData!)
-                    if b != nil {
+                    walletLock.mutex {
+                        walletHeight = wallet.height!
+                        address = wallet.address!
+                    }
+                    
+                    // there are blocks to process so get the next one
+                    let nextBlockData = Comms.request(method: "wallet/sync", parameters: ["height" : "\(walletHeight)", "address" : address!])
+                    if nextBlockData != nil {
                         
-                        if b!.transactions.count > 0 {
+                        var grouped: [String:[RPC_Ledger]] = [:]
+                        
+                        let b = try? JSONDecoder().decode(RPC_Wallet_Sync_Object.self, from: nextBlockData!)
+                        if b != nil {
                             
-                            var totalAdded: Int = 0
-                            var totalSpent: Int = 0
-                            
-                            walletLock.mutex {
+                            if b!.transactions.count > 0 {
+                                
+                                var totalAdded: Int = 0
+                                var totalSpent: Int = 0
                                 
                                 // we actually don't care about the block, just the transactions
                                 for l in b!.transactions {
@@ -213,30 +213,22 @@ func WalletLoop() {
                                 
                                 wallet.height = UInt32(b!.rowid)
                                 
+                                
+                                currentWallet!.write(filename: currentFilename!, password: currentPassword!)
+                                
+                                print("\((Float(totalAdded) / Float(Config.DenominationDivider))) \(Config.CurrencyName) added to wallet.")
+                                print("Value of spent tokens: \((Float(totalSpent) / Float(Config.DenominationDivider)))")
+                                print("--------------------------")
+                                print("Current balance: \(wallet.balance())")
+                                
                             }
-                            
-                            currentWallet!.write(filename: currentFilename!, password: currentPassword!)
-                            
-                            print("\((Float(totalAdded) / Float(Config.DenominationDivider))) \(Config.CurrencyName) added to wallet.")
-                            print("Value of spent tokens: \((Float(totalSpent) / Float(Config.DenominationDivider)))")
-                            print("--------------------------")
-                            print("Current balance: \(wallet.balance())")
-                            
-                        } else {
-                            
-                            Thread.sleep(forTimeInterval: 10)
-                            
                         }
-                        
                     }
                 }
-                
             }
-            
         }
-        
+        Thread.sleep(forTimeInterval: 10)
     }
-    
 }
 
 Execute.background {
