@@ -18,7 +18,7 @@ public class Comms {
             encodedParams.append(value!)
         }
         
-        let result = try? CURLRequest("http://\(Config.SeedNodes[0]):14242/\(method)?\(encodedParams.joined(separator: "&"))",.timeout(30)).perform()
+        let result = try? CURLRequest("http://\(Config.SeedNodes[0])/\(method)?\(encodedParams.joined(separator: "&"))",.timeout(30)).perform()
         
         if result == nil {
             return nil
@@ -44,7 +44,7 @@ public class Comms {
             encodedParams.append(value!)
         }
         
-        let result = try? CURLRequest("http://\(Config.SeedNodes[0]):14242/\(method)?\(encodedParams.joined(separator: "&"))",.timeout(30)).perform()
+        let result = try? CURLRequest("http://\(Config.SeedNodes[0])/\(method)?\(encodedParams.joined(separator: "&"))",.timeout(30)).perform()
         
         if result == nil {
             return nil

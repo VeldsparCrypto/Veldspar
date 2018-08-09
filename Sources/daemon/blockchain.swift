@@ -104,7 +104,7 @@ class BlockChain {
                 stats.number_of_tokens_by_algorithum["UNKNOWN"]! += 1
             }
             
-            let value = Float(Int(parts[2], radix: 16)!) / Float(Config.DenominationDivider)
+            let value = Float(Int(parts[2], radix: 16)!) / Float(Config.DenominationDivider).
             if stats.number_of_tokens_by_denomination[value] == nil {
                 stats.number_of_tokens_by_denomination[value] = 0
             }
