@@ -23,8 +23,9 @@
 import Foundation
 
 public enum AlgorithmType : UInt16 {
-    case SHA512_Append = 0
+    case SHA512_AppendV1 = 0
     case SHA512_AppendV2 = 1
+    case SHA512_AppendV3 = 2
 }
 
 public protocol AlgorithmProtocol {
@@ -48,6 +49,7 @@ public class AlgorithmManager {
     init() {
         register(algorithm: AlgorithmSHA512AppendV1())
         register(algorithm: AlgorithmSHA512AppendV2())
+        register(algorithm: AlgorithmSHA512AppendV3())
     }
     
     public func countOfAlgos() -> Int {

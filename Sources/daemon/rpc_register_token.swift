@@ -58,7 +58,7 @@ class RPCRegisterToken {
         let block = blockchain.height() + UInt32(Config.TransactionMaturityLevel)
         
         do {
-            if try blockchain.registerToken(token: token, address: address, block: block) {
+            if try blockchain.registerToken(tokenString: token, address: address, block: block) {
                 
                 return ["success" : true, "token" : token, "block" : block]
                 

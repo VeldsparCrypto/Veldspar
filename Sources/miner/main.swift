@@ -31,7 +31,7 @@ srandom(UInt32(time(nil)))
 // defaults
 var nodeAddress: String = Config.SeedNodes[0]
 var oreBlocks: [Int:Ore] = [:]
-var miningMethods: [AlgorithmType] = [AlgorithmType.SHA512_AppendV2]
+var miningMethods: [AlgorithmType] = [AlgorithmType.SHA512_AppendV3]
 var walletAddress: String?
 var cacheLock = Mutex()
 var threads = 4
