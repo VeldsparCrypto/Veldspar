@@ -47,7 +47,7 @@ public class Token {
         
         self.oreHeight = 0
         self.address = []
-        self.algorithm = .SHA512_Append
+        self.algorithm = .SHA512_AppendV1
         
         var segments = tokenString.components(separatedBy: "-")
         
@@ -113,6 +113,41 @@ public class Token {
         
         var segments = token.components(separatedBy: "-")
         return Int(segments[2], radix: 16)!
+        
+    }
+    
+    public class func compactToken(_ token: String) -> String {
+        
+        return token
+        
+        let components = token.components(separatedBy: "-")
+        var newComponents: [String] = []
+        for component in components {
+            let v = UInt64(component, radix:16)!
+            newComponents.append(v.toHex())
+        }
+        
+        return newComponents.joined(separator: "-")
+        
+    }
+    
+    public class func expandToken(_ token: String) -> String {
+        
+        // 00000000-0000-00000064-00078C65-00001DFC-00079155-000EB87D-00079193-000FE1C7-000C909A-000BD9C7
+        return token
+        
+        let components = token.components(separatedBy: "-")
+        var newComponents: [String] = []
+
+        newComponents.append(("000000000000000000" + UInt64(components[0], radix:16)!.toHex()).suffix(8).uppercased())
+        newComponents.append(("000000000000000000" + UInt64(components[1], radix:16)!.toHex()).suffix(4).uppercased())
+        newComponents.append(("000000000000000000" + UInt64(components[2], radix:16)!.toHex()).suffix(8).uppercased())
+        
+        for i in 3...2+Config.TokenAddressSize {
+            newComponents.append(("000000000000000000" + UInt64(components[i], radix:16)!.toHex()).suffix(8).uppercased())
+        }
+        
+        return newComponents.joined(separator: "-")
         
     }
     

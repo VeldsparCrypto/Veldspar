@@ -39,7 +39,7 @@ class BlockMaker {
                 
                 let blockHeightForTime = ((currentTime - UInt64(Config.BlockchainStartDate)) / UInt64(Config.BlockTime * 1000))
                 
-                if (blockHeightForTime - UInt64(currentHeight)) > 1 {
+                if (Int64(blockHeightForTime) - Int64(currentHeight)) > 1 {
                     
                     // we are significantly behind
                     

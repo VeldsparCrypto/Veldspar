@@ -29,7 +29,7 @@ public class RPC_Stats : Codable {
     public var blockchain_height = 0
     public var number_of_tokens_found = 0
     public var number_of_tokens_by_algorithum: [String:Int] = [:]
-    public var number_of_tokens_by_denomination: [Float:Int] = [:]
+    public var number_of_tokens_by_denomination: [String:Int] = [:]
     public var total_value_of_found_tokens: Float = 0.0
     public var total_unique_payment_addresses: Int = 0
     

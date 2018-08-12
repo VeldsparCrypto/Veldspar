@@ -33,7 +33,6 @@ class BlockChain {
     
     private let lock: Mutex
     public let lockStats: Mutex
-    private var blocks_cache: [UInt32:Block] = [:]
     private var current_tidemark: Block?
     private var stats = RPC_Stats()
         
@@ -86,17 +85,22 @@ class BlockChain {
             
             let parts = ledger.token.components(separatedBy: "-")
             
-            switch parts[1] {
-            case "0000":
+            switch Int(parts[1])! {
+            case 0:
                 if stats.number_of_tokens_by_algorithum["SHA512_Append_V1"] == nil {
                     stats.number_of_tokens_by_algorithum["SHA512_Append_V1"] = 0
                 }
                 stats.number_of_tokens_by_algorithum["SHA512_Append_V1"]! += 1
-            case "0001":
+            case 1:
                 if stats.number_of_tokens_by_algorithum["SHA512_Append_V2"] == nil {
                     stats.number_of_tokens_by_algorithum["SHA512_Append_V2"] = 0
                 }
                 stats.number_of_tokens_by_algorithum["SHA512_Append_V2"]! += 1
+            case 3:
+                if stats.number_of_tokens_by_algorithum["SHA512_Append_V3"] == nil {
+                    stats.number_of_tokens_by_algorithum["SHA512_Append_V3"] = 0
+                }
+                stats.number_of_tokens_by_algorithum["SHA512_Append_V3"]! += 1
             default:
                 if stats.number_of_tokens_by_algorithum["UNKNOWN"] == nil {
                     stats.number_of_tokens_by_algorithum["UNKNOWN"] = 0
@@ -104,13 +108,14 @@ class BlockChain {
                 stats.number_of_tokens_by_algorithum["UNKNOWN"]! += 1
             }
             
-            let value = Float(Int(parts[2], radix: 16)!) / Float(Config.DenominationDivider)
+            let fValue = Float(Int(parts[2], radix: 16)!) / Float(Config.DenominationDivider)
+            let value = String(format: "%.2f", fValue)
             if stats.number_of_tokens_by_denomination[value] == nil {
                 stats.number_of_tokens_by_denomination[value] = 0
             }
             stats.number_of_tokens_by_denomination[value]! += 1
             
-            stats.total_value_of_found_tokens += value
+            stats.total_value_of_found_tokens += fValue
             
         }
         
@@ -152,15 +157,8 @@ class BlockChain {
         
         lock.mutex {
             
-            // check the cache first, then query the database
-            if self.blocks_cache[height] != nil {
-                block = self.blocks_cache[height]
-            } else {
-                
-                // query database
-                block = Database.BlockAtHeight(height)
-                
-            }
+            // query database
+            block = Database.BlockAtHeight(height)
             
         }
         
@@ -187,8 +185,6 @@ class BlockChain {
         var retValue = false
         
         lock.mutex {
-            
-            self.blocks_cache[block.height] = block
             
             if block.height > Database.CurrentHeight()! {
                 retValue = Database.WriteBlock(block)
@@ -239,9 +235,10 @@ class BlockChain {
         
     }
     
-    func registerToken(token: String, address: String, block: UInt32) throws -> Bool {
+    func registerToken(tokenString: String, address: String, block: UInt32) throws -> Bool {
         
         var returnValue = false
+        var token = tokenString
         
         // validate the token
         do {
@@ -257,6 +254,10 @@ class BlockChain {
                 debug("(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' was invalid and has no value.")
                 throw BlockchainErrors.TokenHasNoValue
             }
+            
+            // update the token's id
+            token = t.tokenId()
+            
         } catch BlockchainErrors.TokenHasNoValue {
             throw BlockchainErrors.TokenHasNoValue
         } catch {

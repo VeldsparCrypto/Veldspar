@@ -35,6 +35,10 @@ public class AlgorithmSHA512AppendV2: AlgorithmProtocol {
         
     }
     
+    public class func beans() -> [(String,Int)] {
+        return v2_beans;
+    }
+    
     public func validate(token: Token) -> Bool {
         
         // well the token is always valid, but does it meet any of the conditions
@@ -53,7 +57,7 @@ public class AlgorithmSHA512AppendV2: AlgorithmProtocol {
     }
     
     public func deprecated(height: UInt) -> Bool {
-        return false
+        return true
     }
     
     public func hash(token: Token) -> [UInt8] {
@@ -76,19 +80,14 @@ public class AlgorithmSHA512AppendV2: AlgorithmProtocol {
         if hash[0] == Config.MagicByte && hash[1] >= (Config.MagicByte - 13) {
             
             // we are through the gate, so lets see if we can find some magic beans in the hash
-            
-            // find the beans table appropriate to the ore height
-            let algoTable: [Int /* active block height */ : [String:Int]] = Economy.magicBeans[AlgorithmType.SHA512_AppendV2]!
-            
-            let rewards = algoTable[Int(token.oreHeight)]!
-            
+
             // do it string based, because weirdly swift is pretty damn fast finding strings in strings plus I do it with 5 chars, or 2.5 bytes to fuck up dedicated hardware!
             let strHash = hash.toHexString()
             
-            for k in rewards {
+            for k in AlgorithmSHA512AppendV2.beans() {
                 
-                if strHash.contains(string: k.key) {
-                    workload.beans.append(k.key)
+                if strHash.contains(string: k.0) {
+                    workload.beans.append(k.0)
                 }
                 
             }

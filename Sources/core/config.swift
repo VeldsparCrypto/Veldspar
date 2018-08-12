@@ -24,11 +24,11 @@ import Foundation
 
 public class Config {
     
-    public static let Version = "0.0.5"
+    public static let Version = "0.0.6"
     public static let CurrencyName = "Veldspar"
     public static let CurrencyNetworkAddress = "VE"
     public static let GenesisID = "0fcbb8951fd052764f71a634b02361448386c5b0f70eadb716cc0f3f"
-    public static let BlockchainStartDate = 1533513599000
+    public static let BlockchainStartDate = 1534044628000
     
     public static let MagicByte = UInt8(255)
     
@@ -55,6 +55,6 @@ public class Config {
     public static let TokenAddressSize = 8
     
     // seed nodes
-    public static let SeedNodes: [String] = ["138.68.116.96"]
+    public static let SeedNodes: [String] = ["seed1.veldspar.co:14242"]
     
 }

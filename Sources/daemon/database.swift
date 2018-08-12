@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS ledger (
                 UInt64(ledger.date),
                 ledger.transaction_group,
                 ledger.destination,
-                ledger.token,
+                Token.compactToken(ledger.token),
                 ledger.spend_auth,
                 UInt64(ledger.block),
                 ledger.checksum()
@@ -126,7 +126,7 @@ CREATE TABLE IF NOT EXISTS ledger (
                         UInt64(t.date),
                         t.transaction_group,
                         t.destination,
-                        t.token,
+                        Token.compactToken(t.token),
                         t.spend_auth,
                         UInt64(t.block),
                         t.checksum()
@@ -184,7 +184,7 @@ CREATE TABLE IF NOT EXISTS ledger (
             for r in result.results {
                 let l = Ledger(id: r["transaction_id"]!.asString()!,
                                op: LedgerOPType(rawValue: r["op"]!.asInt()!)!,
-                               token: r["token"]!.asString()!,
+                               token: Token.expandToken(r["token"]!.asString()!),
                                ref: r["transaction_group"]!.asString()!,
                                address: r["owner"]!.asString()!,
                                date: r["date"]!.asUInt64()!,
@@ -200,7 +200,7 @@ CREATE TABLE IF NOT EXISTS ledger (
     
     class func TokenOwnershipRecord(_ id: String) -> Ledger? {
         
-        let result = blockchain_db.query(sql: "SELECT * FROM ledger WHERE token = ? ORDER BY block DESC LIMIT 1", params: [id])
+        let result = blockchain_db.query(sql: "SELECT * FROM ledger WHERE token = ? ORDER BY block DESC LIMIT 1", params: [Token.compactToken(id)])
         if result.error != nil {
             return nil
         }
@@ -209,7 +209,7 @@ CREATE TABLE IF NOT EXISTS ledger (
             let r = result.results[0]
             let l = Ledger(id: r["transaction_id"]!.asString()!,
                            op: LedgerOPType(rawValue: r["op"]!.asInt()!)!,
-                           token: r["token"]!.asString()!,
+                           token: Token.expandToken(r["token"]!.asString()!),
                            ref: r["transaction_group"]!.asString()!,
                            address: r["owner"]!.asString()!,
                            date: r["date"]!.asUInt64()!,
@@ -223,7 +223,7 @@ CREATE TABLE IF NOT EXISTS ledger (
     
     class func TokenPendingRecord(_ id: String) -> Ledger? {
         
-        let result = pending_db.query(sql: "SELECT * FROM ledger WHERE token = ? ORDER BY block DESC LIMIT 1", params: [id])
+        let result = pending_db.query(sql: "SELECT * FROM ledger WHERE token = ? ORDER BY block DESC LIMIT 1", params: [Token.compactToken(id)])
         if result.error != nil {
             return nil
         }
@@ -232,7 +232,7 @@ CREATE TABLE IF NOT EXISTS ledger (
             let r = result.results[0]
             let l = Ledger(id: r["transaction_id"]!.asString()!,
                            op: LedgerOPType(rawValue: r["op"]!.asInt()!)!,
-                           token: r["token"]!.asString()!,
+                           token: Token.expandToken(r["token"]!.asString()!),
                            ref: r["transaction_group"]!.asString()!,
                            address: r["owner"]!.asString()!,
                            date: r["date"]!.asUInt64()!,
@@ -273,7 +273,7 @@ CREATE TABLE IF NOT EXISTS ledger (
                     
                     let l = Ledger(id: r["transaction_id"]!.asString()!,
                                    op: LedgerOPType(rawValue: r["op"]!.asInt()!)!,
-                                   token: r["token"]!.asString()!,
+                                   token: Token.expandToken(r["token"]!.asString()!),
                                    ref: r["transaction_group"]!.asString()!,
                                    address: r["owner"]!.asString()!,
                                    date: r["date"]!.asUInt64()!,
@@ -305,7 +305,7 @@ CREATE TABLE IF NOT EXISTS ledger (
                 
                 let l = Ledger(id: r["transaction_id"]!.asString()!,
                                op: LedgerOPType(rawValue: r["op"]!.asInt()!)!,
-                               token: r["token"]!.asString()!,
+                               token: Token.expandToken(r["token"]!.asString()!),
                                ref: r["transaction_group"]!.asString()!,
                                address: r["owner"]!.asString()!,
                                date: r["date"]!.asUInt64()!,
