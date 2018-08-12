@@ -53,11 +53,6 @@ public class Ledger {
         self.block = block
         self.token = token
         
-        do {
-            let t = try Token(token)
-            self.token = t.tokenId()
-        } catch {}
-        
     }
     
     public init(id: String, op: LedgerOPType, token: String, ref: String, address: String, date: UInt64, auth: String, block: UInt32) {
@@ -70,11 +65,6 @@ public class Ledger {
         self.spend_auth = auth
         self.block = block
         self.token = token
-        
-        do {
-            let t = try Token(token)
-            self.token = t.tokenId()
-        } catch {}
         
     }
     
