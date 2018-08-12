@@ -64,6 +64,28 @@ class BlockChain {
         
     }
     
+    func getStats() -> RPC_Stats {
+        
+        var retStats: RPC_Stats?
+        
+        lockStats.mutex {
+            
+            retStats = stats
+            
+        }
+        
+        return retStats!
+        
+    }
+    
+    func setTokenRate(tokenCount: Int) {
+        
+        lockStats.mutex {
+            stats.token_rate = Int((tokenCount / 5) / 2)
+        }
+        
+    }
+    
     func setAddressCount(addressCount: Int, blockCount: Int) {
         
         lockStats.mutex {

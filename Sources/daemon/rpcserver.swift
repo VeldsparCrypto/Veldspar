@@ -63,7 +63,8 @@ func handleRequest() throws -> RequestHandler {
             do {
                 
                 if request.path == "/" {
-                    try response.setBody(json: ["Server" : "\(Config.CurrencyName) Node", "version" : "\(Config.Version)"])
+                    response.setHeader(.contentType, value: "text/html")
+                    response.setBody(string: RPCStatsPage.createPage(blockchain.getStats()))
                 }
                 
                 if request.path == "/info/timestamp" {

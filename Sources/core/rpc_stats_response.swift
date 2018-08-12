@@ -27,6 +27,7 @@ import Foundation
 public class RPC_Stats : Codable {
     
     public var blockchain_height = 0
+    public var token_rate = 0
     public var number_of_tokens_found = 0
     public var number_of_tokens_by_algorithum: [String:Int] = [:]
     public var number_of_tokens_by_denomination: [String:Int] = [:]

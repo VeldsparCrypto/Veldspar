@@ -157,6 +157,22 @@ CREATE TABLE IF NOT EXISTS ledger (
         return nil;
     }
     
+    class func CurrentTokenRate() -> Int {
+        
+        let result = blockchain_db.query(sql: "SELECT SUM(*) as total FROM ledger WHERE op = 1 AND block IN (SELECT DISTINCT block FROM ledger ORDER BY block DESC LIMIT 5)", params: [])
+        if result.error != nil {
+            return 0
+        }
+        
+        if result.results.count > 0 {
+            let r = result.results[0]
+            return Int(r["total"]!.asUInt64()!)
+        }
+        
+        return 0;
+    }
+    
+    
     class func CountAddresses() -> Int {
         
         let result = blockchain_db.query(sql: "SELECT COUNT(DISTINCT owner) as count_owner FROM ledger;", params: [])

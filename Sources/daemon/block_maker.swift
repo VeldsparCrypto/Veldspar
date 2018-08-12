@@ -76,7 +76,7 @@ class BlockMaker {
                     
                     // update the global stats
                     blockchain.setAddressCount(addressCount: blockchain.countOfAddresses(), blockCount: Int(blockchain.height()))
-                    
+                    blockchain.setTokenRate(tokenCount: Database.CurrentTokenRate())
                     print("produced block \(Int(blockchain.height()))")
                     
                 }

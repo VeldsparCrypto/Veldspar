@@ -47,6 +47,7 @@ for height in 0...blockchain.height() {
     }
 }
 blockchain.setAddressCount(addressCount: blockchain.countOfAddresses(), blockCount: Int(blockchain.height()))
+blockchain.setTokenRate(tokenCount: Database.CurrentTokenRate())
 
 let args: [String] = CommandLine.arguments
 
