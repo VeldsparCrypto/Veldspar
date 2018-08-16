@@ -249,6 +249,8 @@ ${EMISSION_CHART}
 
 ${VALUE_CHART}
 
+${RATE_CHART}
+
 ${DEPLETION_CHART}
 
 ${USERS_CHART}
@@ -299,6 +301,7 @@ class RPCStatsPage {
         statistics += rowWithDictionary(["Number of unique payment addresses" : "\(stats.addresses)"])
         statistics += rowWithDictionary(["Blockchain Height" : "\(stats.height)"])
         statistics += rowWithDictionary(["Network token rate t/m" : "\(stats.rate)"])
+        statistics += rowWithDictionary(["Estimated depletion rate" : "\(stats.depletion) %"])
         
         var supply = rowWithDictionary(["Total value of found tokens" : "\(Int(stats.value))"])
         supply += rowWithDictionary(["Ave token value" : "\(Int(stats.value) / stats.tokens)"])
@@ -334,10 +337,21 @@ class RPCStatsPage {
         
         page = page.replacingOccurrences(of: "${VALUE_CHART}", with: Chart(title: "Value Emission", bottomAxis: "Block No", sideAxis: "Value of Tokens", data: valueData))
         
+        // rate data
+        var rateData: [(String, Double)] = []
+        for b in stats.blocks {
+            if b.height > 10 {
+                rateData.append(("\(b.height)",Double(Double(b.newTokens) / Double(2))))
+            }
+        }
+        
+        page = page.replacingOccurrences(of: "${RATE_CHART}", with: Chart(title: "Network Rate", bottomAxis: "Block No", sideAxis: "Tokens / min", data: rateData))
+        
+        
         // depletion data
         var depletionData: [(String, Double)] = []
         for b in stats.blocks {
-            if b.height > 3400 {
+            if b.height > 3450 {
                 depletionData.append(("\(b.height)", b.depletion))
             }
         }
