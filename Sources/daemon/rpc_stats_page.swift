@@ -301,7 +301,7 @@ class RPCStatsPage {
         statistics += rowWithDictionary(["Network token rate t/m" : "\(stats.rate)"])
         
         var supply = rowWithDictionary(["Total value of found tokens" : "\(Int(stats.value))"])
-        supply += rowWithDictionary(["Ave token value" : "\(stats.value / stats.tokens)"])
+        supply += rowWithDictionary(["Ave token value" : "\(Int(stats.value) / stats.tokens)"])
         
         var denominations = ""
         for o in stats.denominations {

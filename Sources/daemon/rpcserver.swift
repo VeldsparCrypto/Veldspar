@@ -173,6 +173,11 @@ func handleRequest() throws -> RequestHandler {
                         }
                         
                         let encodedData = try String(bytes: JSONEncoder().encode(RPCSyncWallet.action(address: address, height: height)), encoding: .ascii)
+                        if encodedData != nil {
+                            cacheLock.mutex {
+                                cache[cacheIndex] = encodedData!
+                            }
+                        }
                         response.setBody(string: encodedData!)
                         
                         

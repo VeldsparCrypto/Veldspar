@@ -42,7 +42,7 @@ public class RPC_StatsBlock : Codable {
 public class RPC_Stats : Codable {
     
     public var height = 0
-    public var value = 0
+    public var value: Double = 0.0
     public var tokens = 0
     public var blocks: [RPC_StatsBlock] = []
     public var denominations: [String:Int] = [:]

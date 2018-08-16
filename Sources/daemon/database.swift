@@ -279,10 +279,12 @@ CREATE TABLE IF NOT EXISTS ledger (
                 rpcstats.depletion = summary_stats.results[0]["depletion"]!.asDouble() ?? 0
                 rpcstats.height = summary_stats.results[0]["blocks"]!.asInt() ?? 0
                 rpcstats.tokens = summary_stats.results[0]["tokens"]!.asInt() ?? 0
-                rpcstats.value = summary_stats.results[0]["value"]!.asInt() ?? 0
+                rpcstats.value = Double(summary_stats.results[0]["value"]!.asInt() ?? 0)
                 rpcstats.rate = summary_stats.results[0]["rate"]!.asDouble() ?? 0
                 rpcstats.transactions = summary_stats.results[0]["transactions"]!.asInt() ?? 0
                 rpcstats.addresses = summary_stats.results[0]["addresses"]!.asInt() ?? 0
+                
+                rpcstats.value = Double(rpcstats.value) / Double(Config.DenominationDivider)
                 
                 rpcstats.denominations["0.01"] = summary_stats.results[0]["d1"]!.asInt() ?? 0
                 rpcstats.denominations["0.02"] = summary_stats.results[0]["d2"]!.asInt() ?? 0
