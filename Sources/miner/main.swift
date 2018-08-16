@@ -153,12 +153,13 @@ debug("count of oreBlocks \(oreBlocks.keys.sorted().count)")
 
 for _ in 1...threads {
     
+    let oreSize = (((Config.OreSize * 1024) * 1024) - Config.TokenSegmentSize)
+    let method = miningMethods[Random.Integer(miningMethods.count)]
+    
     Execute.background {
         while true {
             
             let height = oreBlocks[Int(oreBlocks.keys.sorted()[Random.Integer(oreBlocks.keys.count-1)])]!.height
-            let oreSize = (((Config.OreSize * 1024) * 1024) - Config.TokenSegmentSize)
-            let method = miningMethods[Random.Integer(miningMethods.count)]
             
             var address: [UInt32] = []
             for _ in 1...Config.TokenAddressSize {

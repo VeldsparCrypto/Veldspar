@@ -60,7 +60,6 @@ class BlockMaker {
                         
                         for l in ledgers {
                             newBlock.transactions.append(l)
-                            blockchain.aggregateStatsForLedger(l)
                         }
                         
                         newBlock.hash = newBlock.GenerateHashForBlock(previousHash: previousBlock?.hash ?? "")
@@ -71,12 +70,11 @@ class BlockMaker {
                             break;
                         }
                         
+                        blockchain.GenerateStatsFor(block: index)
+                        
                         
                     }
                     
-                    // update the global stats
-                    blockchain.setAddressCount(addressCount: blockchain.countOfAddresses(), blockCount: Int(blockchain.height()))
-                    blockchain.setTokenRate(tokenCount: Database.CurrentTokenRate())
                     print("produced block \(Int(blockchain.height()))")
                     
                 }

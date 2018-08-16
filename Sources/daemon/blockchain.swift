@@ -35,7 +35,9 @@ class BlockChain {
     public let lockStats: Mutex
     private var current_tidemark: Block?
     private var stats = RPC_Stats()
-        
+    private var depletion: Double = 0.0
+    private var creation: Double = 0.0
+    
     init() {
         
         lock = Mutex()
@@ -78,85 +80,7 @@ class BlockChain {
         
     }
     
-    func setTokenRate(tokenCount: Int) {
-        
-        lockStats.mutex {
-            stats.token_rate = Int((tokenCount / 5) / 2)
-        }
-        
-    }
-    
-    func setAddressCount(addressCount: Int, blockCount: Int) {
-        
-        lockStats.mutex {
-            stats.blockchain_height = blockCount
-            stats.total_unique_payment_addresses = addressCount
-        }
-        
-    }
-    
-    func aggregateStatsForLedger(_ ledger: Ledger) {
-        
-        lockStats.mutex {
-            
-            if Int(ledger.block) > stats.blockchain_height {
-                stats.blockchain_height = Int(ledger.block)
-            }
-            
-            stats.number_of_tokens_found += 1
-            
-            let parts = ledger.token.components(separatedBy: "-")
-            
-            switch Int(parts[1])! {
-            case 0:
-                if stats.number_of_tokens_by_algorithum["SHA512_Append_V1"] == nil {
-                    stats.number_of_tokens_by_algorithum["SHA512_Append_V1"] = 0
-                }
-                stats.number_of_tokens_by_algorithum["SHA512_Append_V1"]! += 1
-            case 1:
-                if stats.number_of_tokens_by_algorithum["SHA512_Append_V2"] == nil {
-                    stats.number_of_tokens_by_algorithum["SHA512_Append_V2"] = 0
-                }
-                stats.number_of_tokens_by_algorithum["SHA512_Append_V2"]! += 1
-            case 3:
-                if stats.number_of_tokens_by_algorithum["SHA512_Append_V3"] == nil {
-                    stats.number_of_tokens_by_algorithum["SHA512_Append_V3"] = 0
-                }
-                stats.number_of_tokens_by_algorithum["SHA512_Append_V3"]! += 1
-            default:
-                if stats.number_of_tokens_by_algorithum["UNKNOWN"] == nil {
-                    stats.number_of_tokens_by_algorithum["UNKNOWN"] = 0
-                }
-                stats.number_of_tokens_by_algorithum["UNKNOWN"]! += 1
-            }
-            
-            let fValue = Float(Int(parts[2], radix: 16)!) / Float(Config.DenominationDivider)
-            let value = String(format: "%.2f", fValue)
-            if stats.number_of_tokens_by_denomination[value] == nil {
-                stats.number_of_tokens_by_denomination[value] = 0
-            }
-            stats.number_of_tokens_by_denomination[value]! += 1
-            
-            stats.total_value_of_found_tokens += fValue
-            
-        }
-        
-    }
-    
-    func countOfAddresses() -> Int {
-        
-        var count: Int = 0
-        
-        lock.mutex {
-            
-            // query the database to find the highest block there is
-            count = Database.CountAddresses()
-            
-        }
-        
-        return count
-        
-    }
+
     
     func height() -> UInt32 {
         
@@ -166,6 +90,53 @@ class BlockChain {
             
             // query the database to find the highest block there is
             count = Database.CurrentHeight() ?? 0
+            
+        }
+        
+        return count
+        
+    }
+    
+    func IncrementCreation() {
+        
+        lock.mutex {
+            creation += 1.0;
+        }
+        
+    }
+    
+    func IncrementDepletion() {
+        
+        lock.mutex {
+            depletion += 1.0;
+        }
+        
+    }
+    
+    func GenerateStatsFor(block: Int) {
+        
+        lock.mutex {
+            
+            // query the database to find the highest block there is
+            if creation == 0.0 {
+                creation = 1.0
+            }
+            Database.WriteStatsRecord(block: block, depletionRate: ((depletion / creation) * 100.0))
+            depletion = 0;
+            creation = 0;
+            
+        }
+        
+    }
+    
+    func StatsHeight() -> Int {
+        
+        var count: Int = 0
+        
+        lock.mutex {
+            
+            // query the database to find the highest block there is
+            count = Database.StatsHeight()
             
         }
         

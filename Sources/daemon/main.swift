@@ -37,18 +37,6 @@ Database.Initialize()
 print("Database connection opened")
 var blockchain = BlockChain()
 
-print("Generating stats")
-for height in 0...blockchain.height() {
-    let b = blockchain.blockAtHeight(height)
-    if b != nil {
-        for l in b!.transactions {
-            blockchain.aggregateStatsForLedger(l)
-        }
-    }
-}
-blockchain.setAddressCount(addressCount: blockchain.countOfAddresses(), blockCount: Int(blockchain.height()))
-blockchain.setTokenRate(tokenCount: Database.CurrentTokenRate())
-
 let args: [String] = CommandLine.arguments
 
 if args.count > 1 {
@@ -89,6 +77,13 @@ for o in blockchain.oreSeeds() {
     let _ = Ore(o.oreSeed!, height: o.height)
 }
 
+print("Generating missing stats")
+while blockchain.StatsHeight() < blockchain.height() {
+    let height = blockchain.StatsHeight() + 1
+    print("generating stats for block \(height)")
+    blockchain.GenerateStatsFor(block: height)
+}
+    
 Execute.background {
     
     // endlessly run the main process loop

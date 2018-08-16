@@ -60,10 +60,12 @@ class RPCRegisterToken {
         do {
             if try blockchain.registerToken(tokenString: token, address: address, block: block) {
                 
+                blockchain.IncrementCreation()
                 return ["success" : true, "token" : token, "block" : block]
                 
             } else {
                 
+                blockchain.IncrementDepletion()
                 return ["success" : false, "token" : token]
                 
             }

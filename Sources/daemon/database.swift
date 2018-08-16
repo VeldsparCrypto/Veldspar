@@ -37,6 +37,53 @@ class Database {
     class func Initialize() {
         
         _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS block (height INTEGER PRIMARY KEY, hash TEXT, oreSeed TEXT, confirms INTEGER, shenanigans INTEGER)", params: [])
+        _ = blockchain_db.execute(sql: """
+CREATE TABLE IF NOT EXISTS stats (
+    block INTEGER PRIMARY KEY,
+    newTokens INTEGER,
+    newValue INTEGER,
+    depletion REAL,
+    addressCount INTEGER,
+    activeAddressCount INTEGER,
+    transCount INTEGER,
+    reallocTokens INTEGER,
+    reallocValue INTEGER,
+    d1 INTEGER,
+    d2 INTEGER,
+    d5 INTEGER,
+    d10 INTEGER,
+    d20 INTEGER,
+    d50 INTEGER,
+    d100 INTEGER,
+    d200 INTEGER,
+    d500 INTEGER,
+    d1000 INTEGER,
+    d2000 INTEGER,
+    d5000 INTEGER)
+""", params: [])
+        _ = blockchain_db.execute(sql: """
+CREATE VIEW IF NOT EXISTS stats_summary
+AS
+SELECT MAX(block) as blocks,
+SUM(newTokens) as tokens,
+SUM(newValue) as value,
+(SELECT AVG(depletion) FROM stats WHERE block > (SELECT MAX(block) from stats)-3) as depletion,
+(SELECT (AVG(newTokens) / 2) FROM stats WHERE block > (SELECT MAX(block) from stats)-3) as rate,
+MAX(addressCount) as addresses,
+SUM(transCount) as transactions,
+SUM(d1) as d1,
+SUM(d2) as d2,
+SUM(d5) as d5,
+SUM(d10) as d10,
+SUM(d20) as d20,
+SUM(d50) as d50,
+SUM(d100) as d100,
+SUM(d200) as d200,
+SUM(d500) as d500,
+SUM(d1000) as d1000,
+SUM(d2000) as d2000,
+SUM(d5000) as d5000  FROM stats;
+""", params: [])
         _ = blockchain_db.execute(sql:
             """
 CREATE TABLE IF NOT EXISTS ledger (
@@ -141,6 +188,44 @@ CREATE TABLE IF NOT EXISTS ledger (
         
         return false
     }
+
+    class func WriteStatsRecord(block: Int, depletionRate: Double) {
+        
+        _ = blockchain_db.execute(sql: "BEGIN TRANSACTION", params: [])
+        _ = blockchain_db.execute(sql: "DROP TABLE IF EXISTS temp_stats;", params: [])
+        _ = blockchain_db.execute(sql: "DROP TABLE IF EXISTS temp_block;", params: [])
+        _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS temp_block (block INTEGER PRIMARY KEY);", params: [])
+        _ = blockchain_db.execute(sql: "INSERT INTO temp_block VALUES (?);", params: [block])
+        _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS temp_stats (denom TEXT PRIMARY KEY, denom_count INTEGER);", params: [])
+        _ = blockchain_db.execute(sql: "INSERT OR REPLACE INTO stats (block) VALUES ((SELECT block FROM temp_block LIMIT 1));", params: [])
+        _ = blockchain_db.execute(sql: "INSERT INTO temp_stats SELECT substr(token,19,4) as denom, COUNT(*) as denom_count FROM ledger WHERE block = (SELECT block FROM temp_block LIMIT 1) AND op = 1 GROUP BY substr(token,19,4);", params: [])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET newTokens = (SELECT SUM(denom_count) FROM temp_stats) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET d1 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 1))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET d2 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 2))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET d5 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 5))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET d10 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 10))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET d20 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 20))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET d50 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 50))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET d100 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 100))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET d200 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 200))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET d500 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 500))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET d1000 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 1000))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET d2000 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 2000))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET d5000 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 5000))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET newValue = (SELECT SUM((CAST(denom as INT) * denom_count)) FROM temp_stats) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET addressCount = (SELECT COUNT(DISTINCT owner) FROM ledger WHERE block <= (SELECT block FROM temp_block LIMIT 1)) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET activeAddressCount = (SELECT COUNT(DISTINCT owner) FROM ledger WHERE block = (SELECT block FROM temp_block LIMIT 1)) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET transCount = (SELECT COUNT(*) FROM ledger WHERE block = (SELECT block FROM temp_block LIMIT 1)) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET reallocTokens = (SELECT COUNT(*) FROM ledger WHERE block = (SELECT block FROM temp_block LIMIT 1) AND op = 2) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
+        _ = blockchain_db.execute(sql: "DELETE FROM temp_stats;", params: [])
+        _ = blockchain_db.execute(sql: "INSERT INTO temp_stats SELECT substr(token,19,4) as denom, COUNT(*) as denom_count FROM ledger WHERE block = (SELECT block FROM temp_block LIMIT 1) AND op = 2 GROUP BY substr(token,19,4);", params: [])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET reallocValue = (SELECT SUM((CAST(denom as INT) * denom_count)) FROM temp_stats) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET depletion = ? WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [depletionRate])
+        _ = blockchain_db.execute(sql: "DROP TABLE IF EXISTS temp_stats;", params: [])
+        _ = blockchain_db.execute(sql: "DROP TABLE IF EXISTS temp_block;", params: [])
+        _ = blockchain_db.execute(sql: "COMMIT TRANSACTION;", params: [])
+        
+    }
     
     class func CurrentHeight() -> UInt32? {
         
@@ -157,21 +242,21 @@ CREATE TABLE IF NOT EXISTS ledger (
         return nil;
     }
     
-    class func CurrentTokenRate() -> Int {
+    class func StatsHeight() -> Int {
         
-        let result = blockchain_db.query(sql: "SELECT SUM(*) as total FROM ledger WHERE op = 1 AND block IN (SELECT DISTINCT block FROM ledger ORDER BY block DESC LIMIT 5)", params: [])
+        let result = blockchain_db.query(sql: "SELECT blocks FROM stats_summary ORDER BY blocks DESC LIMIT 1", params: [])
         if result.error != nil {
             return 0
         }
         
         if result.results.count > 0 {
             let r = result.results[0]
-            return Int(r["total"]!.asUInt64()!)
+            return Int(r["blocks"]!.asInt() ?? 0)
         }
         
         return 0;
+        
     }
-    
     
     class func CountAddresses() -> Int {
         
