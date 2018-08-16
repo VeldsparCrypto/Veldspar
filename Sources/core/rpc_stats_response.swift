@@ -22,17 +22,31 @@
 
 import Foundation
 
-
+public class RPC_StatsBlock : Codable {
+    
+    public var newTokens = 0
+    public var newValue = 0
+    public var depletion = 0
+    public var addressHeight = 0
+    public var activeAddresses = 0
+    public var reallocTokens = 0
+    public var reallocValue = 0
+    
+    public var denominations: [String:Int] = [:]
+    
+}
 
 public class RPC_Stats : Codable {
     
-    public var blockchain_height = 0
-    public var token_rate = 0
-    public var number_of_tokens_found = 0
-    public var number_of_tokens_by_algorithum: [String:Int] = [:]
-    public var number_of_tokens_by_denomination: [String:Int] = [:]
-    public var total_value_of_found_tokens: Float = 0.0
-    public var total_unique_payment_addresses: Int = 0
+    public var height = 0
+    public var value = 0
+    public var tokens = 0
+    public var blocks: [RPC_StatsBlock] = []
+    public var denominations: [String:Int] = [:]
+    public var depletion: Double = 0.0
+    public var rate: Double = 0.0
+    public var transactions: Int = 0
+    public var addresses: Int = 0
     
     public init() {}
     

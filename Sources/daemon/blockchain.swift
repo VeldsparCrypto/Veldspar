@@ -34,7 +34,6 @@ class BlockChain {
     private let lock: Mutex
     public let lockStats: Mutex
     private var current_tidemark: Block?
-    private var stats = RPC_Stats()
     private var depletion: Double = 0.0
     private var creation: Double = 0.0
     
@@ -53,7 +52,7 @@ class BlockChain {
             
             do {
                 
-                let encodedData = try String(bytes: JSONEncoder().encode(stats), encoding: .ascii)
+                let encodedData = try String(bytes: JSONEncoder().encode(getStats()), encoding: .ascii)
                 if encodedData != nil {
                     json = encodedData!
                 }
@@ -68,15 +67,15 @@ class BlockChain {
     
     func getStats() -> RPC_Stats {
         
-        var retStats: RPC_Stats?
+        var stats: RPC_Stats?
         
         lockStats.mutex {
             
-            retStats = stats
+            stats = Database.GetStats()
             
         }
         
-        return retStats!
+        return stats!
         
     }
     

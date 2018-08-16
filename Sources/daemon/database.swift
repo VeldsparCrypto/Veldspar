@@ -68,7 +68,7 @@ SELECT MAX(block) as blocks,
 SUM(newTokens) as tokens,
 SUM(newValue) as value,
 (SELECT AVG(depletion) FROM stats WHERE block > (SELECT MAX(block) from stats)-3) as depletion,
-(SELECT (AVG(newTokens) / 2) FROM stats WHERE block > (SELECT MAX(block) from stats)-3) as rate,
+(SELECT CAST((CAST(AVG(newTokens) AS REAL) / 2) as REAL)  FROM stats WHERE block > (SELECT MAX(block) from stats)-3) as rate,
 MAX(addressCount) as addresses,
 SUM(transCount) as transactions,
 SUM(d1) as d1,
@@ -255,6 +255,55 @@ CREATE TABLE IF NOT EXISTS ledger (
         }
         
         return 0;
+        
+    }
+    
+    class func GetStats() -> RPC_Stats {
+        
+        let summary_stats = blockchain_db.query(sql: "SELECT * FROM stats_summary;", params: [])
+        if summary_stats.error != nil {
+            return RPC_Stats();
+        }
+        
+        if summary_stats.results.count > 0 {
+            
+            let stats = blockchain_db.query(sql: "SELECT * FROM stats ORDER BY block", params: [])
+            if stats.error != nil {
+                return RPC_Stats();
+            }
+            
+            if stats.results.count > 0 {
+                
+                // build the summary
+                let rpcstats = RPC_Stats()
+                rpcstats.depletion = summary_stats.results[0]["depletion"]!.asDouble() ?? 0
+                rpcstats.height = summary_stats.results[0]["blocks"]!.asInt() ?? 0
+                rpcstats.tokens = summary_stats.results[0]["tokens"]!.asInt() ?? 0
+                rpcstats.value = summary_stats.results[0]["value"]!.asInt() ?? 0
+                rpcstats.rate = summary_stats.results[0]["rate"]!.asDouble() ?? 0
+                rpcstats.transactions = summary_stats.results[0]["transactions"]!.asInt() ?? 0
+                rpcstats.addresses = summary_stats.results[0]["addresses"]!.asInt() ?? 0
+                
+                rpcstats.denominations["0.01"] = summary_stats.results[0]["d1"]!.asInt() ?? 0
+                rpcstats.denominations["0.02"] = summary_stats.results[0]["d2"]!.asInt() ?? 0
+                rpcstats.denominations["0.05"] = summary_stats.results[0]["d5"]!.asInt() ?? 0
+                rpcstats.denominations["0.10"] = summary_stats.results[0]["d10"]!.asInt() ?? 0
+                rpcstats.denominations["0.20"] = summary_stats.results[0]["d20"]!.asInt() ?? 0
+                rpcstats.denominations["0.50"] = summary_stats.results[0]["d50"]!.asInt() ?? 0
+                rpcstats.denominations["1.00"] = summary_stats.results[0]["d100"]!.asInt() ?? 0
+                rpcstats.denominations["2.00"] = summary_stats.results[0]["d200"]!.asInt() ?? 0
+                rpcstats.denominations["5.00"] = summary_stats.results[0]["d500"]!.asInt() ?? 0
+                rpcstats.denominations["10.00"] = summary_stats.results[0]["d1000"]!.asInt() ?? 0
+                rpcstats.denominations["20.00"] = summary_stats.results[0]["d2000"]!.asInt() ?? 0
+                rpcstats.denominations["50.00"] = summary_stats.results[0]["d5000"]!.asInt() ?? 0
+                
+                
+                
+            }
+            
+        }
+        
+        return RPC_Stats()
         
     }
     

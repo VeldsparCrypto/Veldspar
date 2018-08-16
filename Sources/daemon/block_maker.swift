@@ -76,6 +76,7 @@ class BlockMaker {
                     }
                     
                     print("produced block \(Int(blockchain.height()))")
+                    clearCache()
                     
                 }
                 

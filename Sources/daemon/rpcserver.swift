@@ -25,13 +25,22 @@ import Foundation
 import PerfectHTTP
 import VeldsparCore
 
+let cacheLock: Mutex = Mutex()
+var cache: [String:String] = [:]
 let banLock: Mutex = Mutex()
 var bans: [String:Int] = [:]
+
 
 enum RPCErrors : Error {
     case InvalidRequest
     case DuplicateRequest
     case Banned
+}
+
+public func clearCache() {
+    cacheLock.mutex {
+        cache.removeAll()
+    }
 }
 
 func handleRequest() throws -> RequestHandler {
@@ -62,79 +71,137 @@ func handleRequest() throws -> RequestHandler {
             
             do {
                 
-                if request.path == "/" {
-                    response.setHeader(.contentType, value: "text/html")
-                    response.setBody(string: RPCStatsPage.createPage(blockchain.getStats()))
+                var queryParamsDictionary: [String:String] = [:]
+                for o in request.queryParams {
+                    queryParamsDictionary[o.0] = o.1
                 }
                 
-                if request.path == "/info/timestamp" {
-                    try response.setBody(json: ["timestamp" : consensusTime()])
+                var qs = ""
+                for k in queryParamsDictionary.keys.sorted() {
+                    qs += "\(k)=\(queryParamsDictionary[k]!)"
                 }
                 
-                if request.path == "/blockchain/currentheight" {
-                    try response.setBody(json: ["height" : blockchain.height()])
+                let cacheIndex = request.path + qs
+                
+                var cachedResult: String?
+                cacheLock.mutex {
+                    cachedResult = cache[cacheIndex]
                 }
                 
-                if request.path == "/blockchain/seeds" {
-                    let encodedData = try String(bytes: JSONEncoder().encode(RPCOreSeeds.action()), encoding: .ascii)
-                    response.setBody(string: encodedData!)
-                }
-                
-                if request.path == "/blockchain/stats" {
-                    response.setBody(string: RPCStats.action())
-                }
-                
-                if request.path == "/blockchain/block" {
+                if cachedResult == nil {
                     
-                    // query the ledger at a specific height, and return the transactions.  Used for wallet implementations
-                    var height = 0
-                    for p in request.queryParams {
-                        if p.0 == "height" {
-                            height = Int(p.1) ?? 0
+                    if request.path == "/" {
+                        
+                        response.setHeader(.contentType, value: "text/html")
+                        let r = RPCStatsPage.createPage(blockchain.getStats())
+                        cacheLock.mutex {
+                            cache[cacheIndex] = r
                         }
+                        response.setBody(string: r)
+                        
                     }
                     
-                    let encodedData = try String(bytes: JSONEncoder().encode(RPCGetBlock.action(height)), encoding: .ascii)
-                    response.setBody(string: encodedData!)
+                    if request.path == "/info/timestamp" {
+                        try response.setBody(json: ["timestamp" : consensusTime()])
+                    }
                     
+                    if request.path == "/blockchain/currentheight" {
+                        
+                        let r = try? ["height" : blockchain.height()].jsonEncodedString()
+                        cacheLock.mutex {
+                            cache[cacheIndex] = r ?? ""
+                        }
+                        response.setBody(string: r ?? "" )
+                        
+                    }
+                    
+                    if request.path == "/blockchain/seeds" {
+                        
+                        let encodedData = try String(bytes: JSONEncoder().encode(RPCOreSeeds.action()), encoding: .ascii)
+                        
+                        if encodedData != nil {
+                            cacheLock.mutex {
+                                cache[cacheIndex] = encodedData!
+                            }
+                            
+                            response.setBody(string: encodedData!)
+                        }
+                        
+                    }
+                    
+                    if request.path == "/blockchain/stats" {
+                        
+                        let r = RPCStats.action()
+                        cacheLock.mutex {
+                            cache[cacheIndex] = r
+                        }
+                        response.setBody(string: r )
+
+                    }
+                    
+                    if request.path == "/blockchain/block" {
+                        
+                        // query the ledger at a specific height, and return the transactions.  Used for wallet implementations
+                        var height = 0
+                        for p in request.queryParams {
+                            if p.0 == "height" {
+                                height = Int(p.1) ?? 0
+                            }
+                        }
+                        
+                        let encodedData = try String(bytes: JSONEncoder().encode(RPCGetBlock.action(height)), encoding: .ascii)
+                        cacheLock.mutex {
+                            cache[request.path] = encodedData
+                        }
+                        response.setBody(string: encodedData!)
+                        
+                        
+                    }
+                    
+                    if request.path == "/wallet/sync" {
+                        
+                        // query the ledger at a specific height, and return the transactions.  Used for wallet implementations
+                        var height = 0
+                        var address = ""
+                        for p in request.queryParams {
+                            if p.0 == "height" {
+                                height = Int(p.1) ?? 0
+                            }
+                            if p.0 == "address" {
+                                address = p.1
+                            }
+                        }
+                        
+                        let encodedData = try String(bytes: JSONEncoder().encode(RPCSyncWallet.action(address: address, height: height)), encoding: .ascii)
+                        response.setBody(string: encodedData!)
+                        
+                        
+                    }
+                    
+                    if request.path == "/token/register" {
+                        
+                        var token = ""
+                        var address = ""
+                        for p in request.queryParams {
+                            if p.0 == "token" {
+                                token = p.1
+                            }
+                            if p.0 == "address" {
+                                address = p.1
+                            }
+                        }
+                        
+                        try response.setBody(json: RPCRegisterToken.action(["token" : token, "address" : address], host: request.remoteAddress.host))
+                    }
+                    
+                } else {
+                    
+                    // we have a cache hit, so return that.
+                    response.setBody(string: cachedResult!)
                     
                 }
                 
-                if request.path == "/wallet/sync" {
-                    
-                    // query the ledger at a specific height, and return the transactions.  Used for wallet implementations
-                    var height = 0
-                    var address = ""
-                    for p in request.queryParams {
-                        if p.0 == "height" {
-                            height = Int(p.1) ?? 0
-                        }
-                        if p.0 == "address" {
-                            address = p.1
-                        }
-                    }
-                    
-                    let encodedData = try String(bytes: JSONEncoder().encode(RPCSyncWallet.action(address: address, height: height)), encoding: .ascii)
-                    response.setBody(string: encodedData!)
-                    
-                    
-                }
                 
-                if request.path == "/token/register" {
-                    
-                    var token = ""
-                    var address = ""
-                    for p in request.queryParams {
-                        if p.0 == "token" {
-                            token = p.1
-                        }
-                        if p.0 == "address" {
-                            address = p.1
-                        }
-                    }
-                    
-                    try response.setBody(json: RPCRegisterToken.action(["token" : token, "address" : address], host: request.remoteAddress.host))
-                }
                 
             } catch RPCErrors.Banned {
                 
