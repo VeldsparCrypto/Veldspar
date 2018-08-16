@@ -24,15 +24,18 @@ import Foundation
 
 public class RPC_StatsBlock : Codable {
     
+    public var height = 0
     public var newTokens = 0
     public var newValue = 0
-    public var depletion = 0
+    public var depletion: Double = 0
     public var addressHeight = 0
     public var activeAddresses = 0
     public var reallocTokens = 0
     public var reallocValue = 0
     
     public var denominations: [String:Int] = [:]
+    
+    public init() {}
     
 }
 

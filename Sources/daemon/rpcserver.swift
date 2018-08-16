@@ -196,6 +196,10 @@ func handleRequest() throws -> RequestHandler {
                     
                 } else {
                     
+                    if request.path == "/" {
+                        response.setHeader(.contentType, value: "text/html")
+                    }
+                    
                     // we have a cache hit, so return that.
                     response.setBody(string: cachedResult!)
                     

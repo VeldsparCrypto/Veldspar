@@ -32,7 +32,6 @@ enum BlockchainErrors : Error {
 class BlockChain {
     
     private let lock: Mutex
-    public let lockStats: Mutex
     private var current_tidemark: Block?
     private var depletion: Double = 0.0
     private var creation: Double = 0.0
@@ -40,7 +39,6 @@ class BlockChain {
     init() {
         
         lock = Mutex()
-        lockStats = Mutex()
         
     }
     
@@ -48,7 +46,7 @@ class BlockChain {
         
         var json = ""
         
-        lockStats.mutex {
+        lock.mutex {
             
             do {
                 
@@ -69,7 +67,7 @@ class BlockChain {
         
         var stats: RPC_Stats?
         
-        lockStats.mutex {
+        lock.mutex {
             
             stats = Database.GetStats()
             

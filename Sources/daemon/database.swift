@@ -297,7 +297,36 @@ CREATE TABLE IF NOT EXISTS ledger (
                 rpcstats.denominations["20.00"] = summary_stats.results[0]["d2000"]!.asInt() ?? 0
                 rpcstats.denominations["50.00"] = summary_stats.results[0]["d5000"]!.asInt() ?? 0
                 
+                for s in stats.results {
+                    
+                    let block = RPC_StatsBlock()
+                    block.height = s["block"]!.asInt() ?? 0
+                    block.newTokens = s["newTokens"]!.asInt() ?? 0
+                    block.newValue = s["newValue"]!.asInt() ?? 0
+                    block.depletion = s["depletion"]!.asDouble() ?? 0
+                    block.addressHeight = s["addressCount"]!.asInt() ?? 0
+                    block.activeAddresses = s["activeAddressCount"]!.asInt() ?? 0
+                    block.reallocTokens = s["block"]!.asInt() ?? 0
+                    block.reallocValue = s["block"]!.asInt() ?? 0
+                    
+                    block.denominations["0.01"] = s["d1"]!.asInt() ?? 0
+                    block.denominations["0.02"] = s["d2"]!.asInt() ?? 0
+                    block.denominations["0.05"] = s["d5"]!.asInt() ?? 0
+                    block.denominations["0.10"] = s["d10"]!.asInt() ?? 0
+                    block.denominations["0.20"] = s["d20"]!.asInt() ?? 0
+                    block.denominations["0.50"] = s["d50"]!.asInt() ?? 0
+                    block.denominations["1.00"] = s["d100"]!.asInt() ?? 0
+                    block.denominations["2.00"] = s["d200"]!.asInt() ?? 0
+                    block.denominations["5.00"] = s["d500"]!.asInt() ?? 0
+                    block.denominations["10.00"] = s["d1000"]!.asInt() ?? 0
+                    block.denominations["20.00"] = s["d2000"]!.asInt() ?? 0
+                    block.denominations["50.00"] = s["d5000"]!.asInt() ?? 0
+                    
+                    rpcstats.blocks.append(block)
+                    
+                }
                 
+                return rpcstats
                 
             }
             

@@ -71,11 +71,10 @@ class BlockMaker {
                         }
                         
                         blockchain.GenerateStatsFor(block: index)
-                        
+                        print("produced block \(index)")
                         
                     }
                     
-                    print("produced block \(Int(blockchain.height()))")
                     clearCache()
                     
                 }
