@@ -303,8 +303,8 @@ class RPCStatsPage {
         statistics += rowWithDictionary(["Network token rate t/m" : "\(stats.rate)"])
         statistics += rowWithDictionary(["Estimated depletion rate" : "\(stats.depletion) %"])
         
-        var supply = rowWithDictionary(["Total value of found tokens" : "\(Int(stats.value))"])
-        supply += rowWithDictionary(["Ave token value" : "\(Int(stats.value) / stats.tokens)"])
+        var supply = rowWithDictionary(["Total value of found tokens" : "\(stats.value)"])
+        supply += rowWithDictionary(["Ave token value" : "\(stats.value / Double(stats.tokens))"])
         
         var denominations = ""
         for o in stats.denominations {
@@ -316,22 +316,41 @@ class RPCStatsPage {
         page = page.replacingOccurrences(of: "${STATS}", with: statistics)
         page = page.replacingOccurrences(of: "${SUPPLY}", with: supply)
         
-
+        let sampleSize = 50
+        
         // emmission data
         var emissionData: [(String, Double)] = []
+        var sum: Double = 0
+        var counter: Int = 0
         for b in stats.blocks {
             if b.height > 10 {
-            emissionData.append(("\(b.height)",Double(b.newTokens)))
+                counter += 1
+                sum += Double(b.newTokens)
+                if counter == sampleSize {
+                    emissionData.append(("\(b.height)",(sum / Double(sampleSize))))
+                    sum = 0
+                    counter = 0
+                }
+                
             }
+            
         }
         
         page = page.replacingOccurrences(of: "${EMISSION_CHART}", with: Chart(title: "Token Emission", bottomAxis: "Block No", sideAxis: "Number of Tokens", data: emissionData))
         
         // value data
         var valueData: [(String, Double)] = []
+        sum = 0
+        counter = 0
         for b in stats.blocks {
             if b.height > 10 {
-                valueData.append(("\(b.height)",Double((b.newValue / Config.DenominationDivider))))
+                counter += 1
+                sum += Double((b.newValue / Config.DenominationDivider))
+                if counter == sampleSize {
+                    valueData.append(("\(b.height)",sum  / 10))
+                    sum = 0
+                    counter = 0
+                }
             }
         }
         
@@ -339,9 +358,17 @@ class RPCStatsPage {
         
         // rate data
         var rateData: [(String, Double)] = []
+        sum = 0
+        counter = 0
         for b in stats.blocks {
             if b.height > 10 {
-                rateData.append(("\(b.height)",Double(Double(b.newTokens) / Double(2))))
+                counter += 1
+                sum += Double(Double(b.newTokens) / Double(2))
+                if counter == sampleSize {
+                    rateData.append(("\(b.height)",sum  / 10))
+                    sum = 0
+                    counter = 0
+                }
             }
         }
         
@@ -350,9 +377,17 @@ class RPCStatsPage {
         
         // depletion data
         var depletionData: [(String, Double)] = []
+        sum = 0
+        counter = 0
         for b in stats.blocks {
             if b.height > 3450 {
-                depletionData.append(("\(b.height)", b.depletion))
+                counter += 1
+                sum += b.depletion
+                if counter == sampleSize {
+                    depletionData.append(("\(b.height)", (sum / Double(sampleSize))))
+                    sum = 0
+                    counter = 0
+                }
             }
         }
         
@@ -360,9 +395,17 @@ class RPCStatsPage {
         
         // address data
         var addressData: [(String, Double)] = []
+        sum = 0
+        counter = 0
         for b in stats.blocks {
             if b.height > 10 {
-                addressData.append(("\(b.height)", Double(b.addressHeight)))
+                counter += 1
+                sum += Double(b.addressHeight)
+                if counter == sampleSize {
+                    addressData.append(("\(b.height)", (sum / Double(sampleSize))))
+                    sum = 0
+                    counter = 0
+                }
             }
         }
         
@@ -370,9 +413,17 @@ class RPCStatsPage {
         
         // active data
         var activeData: [(String, Double)] = []
+        sum = 0
+        counter = 0
         for b in stats.blocks {
             if b.height > 10 {
-                activeData.append(("\(b.height)", Double(b.activeAddresses)))
+                counter += 1
+                sum += Double(b.activeAddresses)
+                if counter == sampleSize {
+                    activeData.append(("\(b.height)", (sum / Double(sampleSize))))
+                    sum = 0
+                    counter = 0
+                }
             }
         }
         

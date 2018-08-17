@@ -61,12 +61,13 @@ CREATE TABLE IF NOT EXISTS stats (
     d2000 INTEGER,
     d5000 INTEGER)
 """, params: [])
+        _ = blockchain_db.execute(sql: "DROP VIEW IF EXISTS stats_summary;", params: [])
         _ = blockchain_db.execute(sql: """
 CREATE VIEW IF NOT EXISTS stats_summary
 AS
 SELECT MAX(block) as blocks,
 SUM(newTokens) as tokens,
-SUM(newValue) as value,
+(SUM(d1) + (SUM(d2)*2) + (SUM(d5)*5) + (SUM(d10)*10) + (SUM(d20)*20)  + (SUM(d50)*50) + (SUM(d100)*100) + (SUM(d200)*200) + (SUM(d500)*500) + (SUM(d1000)*1000)  + (SUM(d2000)*2000) + (SUM(d5000)*5000)) as value,
 (SELECT AVG(depletion) FROM stats WHERE block > (SELECT MAX(block) from stats)-3) as depletion,
 (SELECT CAST((CAST(AVG(newTokens) AS REAL) / 2) as REAL)  FROM stats WHERE block > (SELECT MAX(block) from stats)-3) as rate,
 MAX(addressCount) as addresses,
