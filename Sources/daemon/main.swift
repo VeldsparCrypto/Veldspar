@@ -91,6 +91,16 @@ Execute.background {
     
 }
 
+Execute.background {
+    
+    // loop repairing records in the background until no more
+    while(blockchain.PopulateMissingAddressRecords()) {
+        sleep(5);
+    }
+    print("no more records to repair")
+    
+}
+
 do {
     
     // Launch the servers based on the configuration data.

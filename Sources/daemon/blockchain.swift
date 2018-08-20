@@ -31,14 +31,19 @@ enum BlockchainErrors : Error {
 
 class BlockChain {
     
-    private let lock: Mutex
+    private let blockchain_lock: Mutex
+    private let pending_lock: Mutex
+    private let stats_lock: Mutex
     private var current_tidemark: Block?
+    private var current_height: Int?
     private var depletion: Double = 0.0
     private var creation: Double = 0.0
     
     init() {
         
-        lock = Mutex()
+        blockchain_lock = Mutex()
+        pending_lock = Mutex()
+        stats_lock = Mutex()
         
     }
     
@@ -46,18 +51,14 @@ class BlockChain {
         
         var json = ""
         
-        lock.mutex {
+        do {
             
-            do {
-                
-                let encodedData = try String(bytes: JSONEncoder().encode(getStats()), encoding: .ascii)
-                if encodedData != nil {
-                    json = encodedData!
-                }
-                
-            } catch {}
+            let encodedData = try String(bytes: JSONEncoder().encode(getStats()), encoding: .ascii)
+            if encodedData != nil {
+                json = encodedData!
+            }
             
-        }
+        } catch {}
         
         return json
         
@@ -67,7 +68,7 @@ class BlockChain {
         
         var stats: RPC_Stats?
         
-        lock.mutex {
+        blockchain_lock.mutex {
             
             stats = Database.GetStats()
             
@@ -77,26 +78,46 @@ class BlockChain {
         
     }
     
-
+    func setNewHeight(_ newHeight: Int) {
+        
+        stats_lock.mutex {
+            current_height = newHeight
+        }
+        
+    }
     
     func height() -> UInt32 {
         
         var count: UInt32 = 0
         
-        lock.mutex {
+        stats_lock.mutex {
+            if current_height != nil {
+                count = UInt32(current_height!)
+            }
+        }
+        
+        if count != 0 {
+            return count
+        }
+        
+        blockchain_lock.mutex {
             
             // query the database to find the highest block there is
             count = Database.CurrentHeight() ?? 0
+            stats_lock.mutex {
+                current_height = Int(count)
+            }
             
         }
         
+        // could legitimately still be zero of course.
         return count
         
     }
     
     func IncrementCreation() {
         
-        lock.mutex {
+        stats_lock.mutex {
             creation += 1.0;
         }
         
@@ -104,23 +125,43 @@ class BlockChain {
     
     func IncrementDepletion() {
         
-        lock.mutex {
+        stats_lock.mutex {
             depletion += 1.0;
         }
         
     }
     
+    func PopulateMissingAddressRecords() -> Bool {
+        
+        var retValue = false;
+        
+        blockchain_lock.mutex {
+            retValue = Database.PopulateAddressColumnsInBlockchain()
+        }
+        
+        if retValue == false {
+            pending_lock.mutex {
+                retValue = Database.PopulateAddressColumnsInPending()
+            }
+        }
+        
+        return retValue
+        
+    }
+    
     func GenerateStatsFor(block: Int) {
         
-        lock.mutex {
+        blockchain_lock.mutex {
             
             // query the database to find the highest block there is
-            if creation == 0.0 {
-                creation = 1.0
+            stats_lock.mutex {
+                if creation == 0.0 {
+                    creation = 1.0
+                }
+                Database.WriteStatsRecord(block: block, depletionRate: ((depletion / creation) * 100.0))
+                depletion = 0;
+                creation = 0;
             }
-            Database.WriteStatsRecord(block: block, depletionRate: ((depletion / creation) * 100.0))
-            depletion = 0;
-            creation = 0;
             
         }
         
@@ -130,11 +171,9 @@ class BlockChain {
         
         var count: Int = 0
         
-        lock.mutex {
-            
+        blockchain_lock.mutex {
             // query the database to find the highest block there is
             count = Database.StatsHeight()
-            
         }
         
         return count
@@ -145,11 +184,9 @@ class BlockChain {
         
         var block: Block? = nil
         
-        lock.mutex {
-            
+        blockchain_lock.mutex {
             // query database
             block = Database.BlockAtHeight(height)
-            
         }
         
         return block
@@ -160,10 +197,8 @@ class BlockChain {
         
         var ledgers: [Ledger] = []
         
-        lock.mutex {
-            
+        pending_lock.mutex {
             ledgers = Database.PendingLedgersForHeight(height)
-            
         }
         
         return ledgers
@@ -174,10 +209,13 @@ class BlockChain {
         
         var retValue = false
         
-        lock.mutex {
+        blockchain_lock.mutex {
             
-            if block.height > Database.CurrentHeight()! {
+            if block.height > height() {
                 retValue = Database.WriteBlock(block)
+                if retValue {
+                    setNewHeight(Int(block.height))
+                }
             }
             
         }
@@ -190,7 +228,7 @@ class BlockChain {
         
         var retValue: [Block] = []
         
-        lock.mutex {
+        blockchain_lock.mutex {
             retValue = Database.OreBlocks()
             
         }
@@ -205,7 +243,7 @@ class BlockChain {
         
         var l: Ledger?
         
-        lock.mutex {
+        blockchain_lock.mutex {
             l = Database.TokenOwnershipRecord(token)
         }
         
@@ -217,7 +255,7 @@ class BlockChain {
         
         var l: Ledger?
         
-        lock.mutex {
+        pending_lock.mutex {
             l = Database.TokenPendingRecord(token)
         }
         
@@ -255,23 +293,30 @@ class BlockChain {
             return false
         }
         
-        lock.mutex {
+        var databaseToken: Ledger? = nil
+        blockchain_lock.mutex {
+            databaseToken = Database.TokenOwnershipRecord(token)
+        }
+        
+        if databaseToken == nil {
             
-            if Database.TokenOwnershipRecord(token) == nil && Database.TokenPendingRecord(token) == nil {
-                
-                let l = Ledger(op: .RegisterToken, token: token, ref: UUID().uuidString, address: address, auth: "", block: block)
-                if Database.WritePendingLedger(l) == true {
-                    returnValue = true
+            pending_lock.mutex {
+                if  Database.TokenPendingRecord(token) == nil {
+                    let l = Ledger(op: .RegisterToken, token: token, ref: UUID().uuidString, address: address, auth: "", block: block)
+                    if Database.WritePendingLedger(l) == true {
+                        returnValue = true
+                    } else {
+                        debug("(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' call to 'Database.WritePendingLedger()' failed.")
+                    }
                 } else {
-                    debug("(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' call to 'Database.WritePendingLedger()' failed.")
+                    debug("(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' this token exists already.")
                 }
-                
-            } else {
-                
-                debug("(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' this token exists already.")
-                
             }
             
+        } else {
+            
+            debug("(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' this token exists already.")
+        
         }
         
         return returnValue
@@ -282,28 +327,28 @@ class BlockChain {
         
         var returnValue = false
         
-        // validate the token
-        do {
-            let t = try Token(address)
-            if t.value() == 0 {
-                return false
-            }
-        } catch {
-            return false
-        }
-        
-        lock.mutex {
-            
-            if Database.TokenOwnershipRecord(token) == nil && Database.TokenPendingRecord(token) == nil {
-                
-                let l = Ledger(op: .ChangeOwner, token: token, ref: reference, address: address, auth: auth, block: block)
-                if Database.WritePendingLedger(l) == true {
-                    returnValue = true
-                }
-                
-            }
-            
-        }
+//        // validate the token
+//        do {
+//            let t = try Token(address)
+//            if t.value() == 0 {
+//                return false
+//            }
+//        } catch {
+//            return false
+//        }
+//
+//        lock.mutex {
+//
+//            if Database.TokenOwnershipRecord(token) == nil && Database.TokenPendingRecord(token) == nil {
+//
+//                let l = Ledger(op: .ChangeOwner, token: token, ref: reference, address: address, auth: auth, block: block)
+//                if Database.WritePendingLedger(l) == true {
+//                    returnValue = true
+//                }
+//
+//            }
+//
+//        }
         
         return returnValue
         
@@ -313,7 +358,7 @@ class BlockChain {
         
         var l: [(Int,Ledger)] = []
         
-        lock.mutex {
+        blockchain_lock.mutex {
             l = Database.LedgersConcerningAddress(address, lastRowHeight: lastRowHeight)
         }
         

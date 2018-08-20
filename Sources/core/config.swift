@@ -24,7 +24,7 @@ import Foundation
 
 public class Config {
     
-    public static let Version = "0.0.7"
+    public static let Version = "0.0.8"
     public static let CurrencyName = "Veldspar"
     public static let CurrencyNetworkAddress = "VE"
     public static let GenesisID = "0fcbb8951fd052764f71a634b02361448386c5b0f70eadb716cc0f3f"
@@ -55,6 +55,6 @@ public class Config {
     public static let TokenAddressSize = 8
     
     // seed nodes
-    public static let SeedNodes: [String] = ["seed1.veldspar.co:14242"]
+    public static let SeedNodes: [String] = ["127.0.0.1:14242"]//["seed1.veldspar.co:14242"]
     
 }

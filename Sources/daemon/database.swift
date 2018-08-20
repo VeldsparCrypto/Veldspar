@@ -36,6 +36,11 @@ class Database {
     
     class func Initialize() {
         
+        _ = blockchain_db.execute(sql: "PRAGMA cache_size = -33554432;", params: [])
+        _ = blockchain_db.execute(sql: "PRAGMA temp_store = MEMORY;", params: [])
+        _ = pending_db.execute(sql: "PRAGMA cache_size = -33554432;", params: [])
+        _ = pending_db.execute(sql: "PRAGMA temp_store = MEMORY;", params: [])
+        
         _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS block (height INTEGER PRIMARY KEY, hash TEXT, oreSeed TEXT, confirms INTEGER, shenanigans INTEGER)", params: [])
         _ = blockchain_db.execute(sql: """
 CREATE TABLE IF NOT EXISTS stats (
@@ -104,6 +109,15 @@ CREATE TABLE IF NOT EXISTS ledger (
         _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_block ON ledger (block);", params: [])
         _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_op ON ledger (op);", params: [])
         _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_owner ON ledger (owner);", params: [])
+        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add1 INTEGER", params: [])
+        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add2 INTEGER", params: [])
+        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add3 INTEGER", params: [])
+        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add4 INTEGER", params: [])
+        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add5 INTEGER", params: [])
+        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add6 INTEGER", params: [])
+        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add7 INTEGER", params: [])
+        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add8 INTEGER", params: [])
+        _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_address ON ledger (add1,add2,add3,add4,add5,add6,add7,add8)", params: [])
         _ = pending_db.execute(sql:
             """
 CREATE TABLE IF NOT EXISTS ledger (
@@ -121,6 +135,15 @@ CREATE TABLE IF NOT EXISTS ledger (
         
         _ = pending_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_token ON ledger (token);", params: [])
         _ = pending_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_block ON ledger (block);", params: [])
+        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add1 INTEGER", params: [])
+        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add2 INTEGER", params: [])
+        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add3 INTEGER", params: [])
+        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add4 INTEGER", params: [])
+        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add5 INTEGER", params: [])
+        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add6 INTEGER", params: [])
+        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add7 INTEGER", params: [])
+        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add8 INTEGER", params: [])
+        _ = pending_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_address ON ledger (add1,add2,add3,add4,add5,add6,add7,add8)", params: [])
         
     }
     
@@ -135,8 +158,10 @@ CREATE TABLE IF NOT EXISTS ledger (
     
     class func WritePendingLedger(_ ledger: Ledger) -> Bool {
         
+        let address = ledger.addresses()
+        
         if pending_db.execute(
-            sql: "INSERT OR REPLACE INTO ledger (transaction_id, op, date, transaction_group, owner, token, spend_auth, block, checksum) VALUES (?,?,?,?,?,?,?,?,?)",
+            sql: "INSERT OR REPLACE INTO ledger (transaction_id, op, date, transaction_group, owner, token, spend_auth, block, checksum, add1, add2, add3, add4, add5, add6, add7, add8) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             params: [
                 
                 ledger.transaction_id,
@@ -147,7 +172,15 @@ CREATE TABLE IF NOT EXISTS ledger (
                 Token.compactToken(ledger.token),
                 ledger.spend_auth,
                 UInt64(ledger.block),
-                ledger.checksum()
+                ledger.checksum(),
+                address[0],
+                address[1],
+                address[2],
+                address[3],
+                address[4],
+                address[5],
+                address[6],
+                address[7],
                 
             ]).error != nil {
             return false
@@ -161,12 +194,16 @@ CREATE TABLE IF NOT EXISTS ledger (
         
         // TODO: transaction & rollback
         
+        _ = blockchain_db.execute(sql: "BEGIN TRANSACTION", params: [])
         if blockchain_db.execute(sql: "INSERT OR REPLACE INTO block (height, hash, oreSeed, confirms, shenanigans) VALUES (?,?,?,?,?)", params: [UInt64(block.height), block.hash!, block.oreSeed ?? NSNull(), block.confirms, block.shenanigans]).error == nil {
             
             // now write in the transactions into the table as well
             for t in block.transactions {
+                
+                let address = t.addresses()
+                
                 if blockchain_db.execute(
-                    sql: "INSERT OR REPLACE INTO ledger (transaction_id, op, date, transaction_group, owner, token, spend_auth, block, checksum) VALUES (?,?,?,?,?,?,?,?,?)",
+                    sql: "INSERT OR REPLACE INTO ledger (transaction_id, op, date, transaction_group, owner, token, spend_auth, block, checksum, add1, add2, add3, add4, add5, add6, add7, add8) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     params: [
                         
                         t.transaction_id,
@@ -177,17 +214,27 @@ CREATE TABLE IF NOT EXISTS ledger (
                         Token.compactToken(t.token),
                         t.spend_auth,
                         UInt64(t.block),
-                        t.checksum()
+                        t.checksum(),
+                        address[0],
+                        address[1],
+                        address[2],
+                        address[3],
+                        address[4],
+                        address[5],
+                        address[6],
+                        address[7]
                         
                     ]).error != nil {
+                    _ = blockchain_db.execute(sql: "ROLLBACK TRANSACTION;", params: [])
                     return false
                 }
             }
-            
+            _ = blockchain_db.execute(sql: "COMMIT TRANSACTION;", params: [])
             return true
         }
-        
+        _ = blockchain_db.execute(sql: "ROLLBACK TRANSACTION;", params: [])
         return false
+        
     }
 
     class func WriteStatsRecord(block: Int, depletionRate: Double) {
@@ -225,6 +272,94 @@ CREATE TABLE IF NOT EXISTS ledger (
         _ = blockchain_db.execute(sql: "DROP TABLE IF EXISTS temp_stats;", params: [])
         _ = blockchain_db.execute(sql: "DROP TABLE IF EXISTS temp_block;", params: [])
         _ = blockchain_db.execute(sql: "COMMIT TRANSACTION;", params: [])
+        
+    }
+    
+    class func PopulateAddressColumnsInBlockchain() -> Bool /* data found to fix, return false when no results because then we are all done and this function can be removed */ {
+        
+        let result = blockchain_db.query(sql: "SELECT transaction_id, token FROM ledger WHERE add1 IS NULL LIMIT 100", params: [])
+        if result.error != nil {
+            return true
+        }
+        
+        if result.results.count > 0 {
+            _ = blockchain_db.execute(sql: "BEGIN TRANSACTION", params: [])
+            for r in result.results {
+                let id = r["transaction_id"]!.asString()!
+                let token = r["token"]!.asString()!
+                
+                var addresses: [UInt64] = []
+                
+                var components = token.components(separatedBy: "-")
+                components.remove(at: 0) // ore
+                components.remove(at: 0) // algo
+                components.remove(at: 0) // value
+                
+                for a in components {
+                    addresses.append(UInt64(a, radix: 16) ?? 0)
+                }
+                
+                _ = blockchain_db.execute(sql: "UPDATE ledger SET add1 = ?, add2 = ?, add3 = ?, add4 = ?, add5 = ?, add6 = ?, add7 = ?, add8 = ? WHERE transaction_id = ?;", params: [
+                        addresses[0],
+                        addresses[1],
+                        addresses[2],
+                        addresses[3],
+                        addresses[4],
+                        addresses[5],
+                        addresses[6],
+                        addresses[7],
+                        id
+                    ])
+            }
+            _ = blockchain_db.execute(sql: "COMMIT TRANSACTION;", params: [])
+            return true
+        } else {
+            return false
+        }
+        
+    }
+    
+    class func PopulateAddressColumnsInPending() -> Bool /* data found to fix, return false when no results because then we are all done and this function can be removed */ {
+        
+        let result = pending_db.query(sql: "SELECT transaction_id, token FROM ledger WHERE add1 IS NULL LIMIT 100", params: [])
+        if result.error != nil {
+            return true
+        }
+        
+        if result.results.count > 0 {
+            _ = pending_db.execute(sql: "BEGIN TRANSACTION", params: [])
+            for r in result.results {
+                let id = r["transaction_id"]!.asString()!
+                let token = r["token"]!.asString()!
+                
+                var addresses: [UInt64] = []
+                
+                var components = token.components(separatedBy: "-")
+                components.remove(at: 0) // ore
+                components.remove(at: 0) // algo
+                components.remove(at: 0) // value
+                
+                for a in components {
+                    addresses.append(UInt64(a, radix: 16) ?? 0)
+                }
+                
+                _ = blockchain_db.execute(sql: "UPDATE ledger SET add1 = ?, add2 = ?, add3 = ?, add4 = ?, add5 = ?, add6 = ?, add7 = ?, add8 = ? WHERE transaction_id = ?;", params: [
+                    addresses[0],
+                    addresses[1],
+                    addresses[2],
+                    addresses[3],
+                    addresses[4],
+                    addresses[5],
+                    addresses[6],
+                    addresses[7],
+                    id
+                    ])
+            }
+            _ = blockchain_db.execute(sql: "COMMIT TRANSACTION;", params: [])
+            return true
+        } else {
+            return false
+        }
         
     }
     
@@ -356,7 +491,9 @@ CREATE TABLE IF NOT EXISTS ledger (
     
     class func LedgersConcerningAddress(_ address: String, lastRowHeight: Int) -> [(Int,Ledger)] {
         
-        let result = blockchain_db.query(sql: "SELECT ROWID,* FROM ledger WHERE token IN (SELECT DISTINCT token FROM ledger WHERE owner = ?) AND ROWID > ? ORDER BY block ASC LIMIT 10000", params: [address, lastRowHeight])
+        // need to improve this with an internal join I feel.  Super slow at the moment
+        
+        let result = blockchain_db.query(sql: "SELECT ROWID,* FROM ledger WHERE token IN (SELECT DISTINCT token FROM ledger WHERE owner = ?) AND ROWID > ? ORDER BY block ASC LIMIT 5000", params: [address, lastRowHeight])
         if result.error != nil {
             return []
         }

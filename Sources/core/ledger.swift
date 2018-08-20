@@ -68,6 +68,23 @@ public class Ledger {
         
     }
     
+    public func addresses() -> [UInt64] {
+        
+        var addresses: [UInt64] = []
+        
+        var components = token.components(separatedBy: "-")
+        components.remove(at: 0) // ore
+        components.remove(at: 0) // algo
+        components.remove(at: 0) // value
+        
+        for a in components {
+            addresses.append(UInt64(a, radix: 16) ?? 0)
+        }
+        
+        return addresses
+        
+    }
+    
     public func checksum() -> String {
         return "\(transaction_id)\(op.rawValue)\(date)\(transaction_group)\(destination)\(spend_auth)\(block)".md5()
     }
