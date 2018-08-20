@@ -55,6 +55,6 @@ public class Config {
     public static let TokenAddressSize = 8
     
     // seed nodes
-    public static let SeedNodes: [String] = ["127.0.0.1:14242"]//["seed1.veldspar.co:14242"]
+    public static let SeedNodes: [String] = ["seed1.veldspar.co:14242"]
     
 }
