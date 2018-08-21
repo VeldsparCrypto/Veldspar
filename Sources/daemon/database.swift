@@ -27,18 +27,20 @@ import VeldsparCore
 #if os(Linux)
 let blockchain_db = SWSQLite(path: "\(NSHomeDirectory())/.\(Config.CurrencyName)", filename: "blockchain.db")
 let pending_db = SWSQLite(path: "\(NSHomeDirectory())/.\(Config.CurrencyName)", filename: "pending.db")
+let log_db = SWSQLite(path: "\(NSHomeDirectory())/.\(Config.CurrencyName)", filename: "log.db")
 #else
 let blockchain_db = SWSQLite(path: "\(URL(fileURLWithPath: NSHomeDirectory())).\(Config.CurrencyName)", filename: "blockchain.db")
 let pending_db = SWSQLite(path: "\(URL(fileURLWithPath: NSHomeDirectory())).\(Config.CurrencyName)", filename: "pending.db")
+let log_db = SWSQLite(path: "\(URL(fileURLWithPath: NSHomeDirectory())).\(Config.CurrencyName)", filename: "log.db")
 #endif
 
 class Database {
     
     class func Initialize() {
         
-        _ = blockchain_db.execute(sql: "PRAGMA cache_size = -33554432;", params: [])
+        _ = blockchain_db.execute(sql: "PRAGMA cache_size = -128000;", params: [])
         _ = blockchain_db.execute(sql: "PRAGMA temp_store = MEMORY;", params: [])
-        _ = pending_db.execute(sql: "PRAGMA cache_size = -33554432;", params: [])
+        _ = pending_db.execute(sql: "PRAGMA cache_size = -128000;", params: [])
         _ = pending_db.execute(sql: "PRAGMA temp_store = MEMORY;", params: [])
         
         _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS block (height INTEGER PRIMARY KEY, hash TEXT, oreSeed TEXT, confirms INTEGER, shenanigans INTEGER)", params: [])
