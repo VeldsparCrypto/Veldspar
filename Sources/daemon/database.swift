@@ -38,11 +38,10 @@ class Database {
     
     class func Initialize() {
         
-        _ = blockchain_db.execute(sql: "PRAGMA cache_size = -128000;", params: [])
+        _ = blockchain_db.execute(sql: "PRAGMA cache_size = -\((cacheSize / 4)*3);", params: [])
         _ = blockchain_db.execute(sql: "PRAGMA temp_store = MEMORY;", params: [])
-        _ = pending_db.execute(sql: "PRAGMA cache_size = -128000;", params: [])
+        _ = pending_db.execute(sql: "PRAGMA cache_size = -\((cacheSize / 4)*1);", params: [])
         _ = pending_db.execute(sql: "PRAGMA temp_store = MEMORY;", params: [])
-        
         _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS block (height INTEGER PRIMARY KEY, hash TEXT, oreSeed TEXT, confirms INTEGER, shenanigans INTEGER)", params: [])
         _ = blockchain_db.execute(sql: """
 CREATE TABLE IF NOT EXISTS stats (

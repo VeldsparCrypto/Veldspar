@@ -32,11 +32,8 @@ print("---------------------------")
 print("\(Config.CurrencyName) Daemon v\(Config.Version)")
 print("---------------------------")
 
-// open the database connection
-Database.Initialize()
-print("Database connection opened")
-var blockchain = BlockChain()
-
+var cacheSize = 128*1024
+var isGenesis = false
 let args: [String] = CommandLine.arguments
 
 if args.count > 1 {
@@ -52,21 +49,41 @@ if args.count > 1 {
         }
         if arg.lowercased() == "--genesis" {
             // setup the blockchain with an empty block starting the generation of Ore
-            
-            if blockchain.blockAtHeight(0) != nil {
-                print("Genesis block has already been created, exiting.")
-                exit(0)
-            }
-            
-            let firstBlock = Block(height: 0)
-            firstBlock.oreSeed = Config.GenesisID
-            firstBlock.transactions = []
-            firstBlock.hash = firstBlock.GenerateHashForBlock(previousHash: "")
-            if(!Database.WriteBlock(firstBlock)) {
-                print("Unable to write initial genesis block into the blockchain.")
-                exit(0)
-            }
+            isGenesis = true
         }
+        if arg.lowercased() == "--cache64" {
+            cacheSize = 64*1024
+        }
+        if arg.lowercased() == "--cache128" {
+            cacheSize = 128*1024
+        }
+        if arg.lowercased() == "--cache256" {
+            cacheSize = 256*1024
+        }
+        if arg.lowercased() == "--cache512" {
+            cacheSize = 512*1024
+        }
+    }
+}
+
+// open the database connection
+Database.Initialize()
+print("Database connection opened")
+var blockchain = BlockChain()
+
+if isGenesis {
+    if blockchain.blockAtHeight(0) != nil {
+        print("Genesis block has already been created, exiting.")
+        exit(0)
+    }
+    
+    let firstBlock = Block(height: 0)
+    firstBlock.oreSeed = Config.GenesisID
+    firstBlock.transactions = []
+    firstBlock.hash = firstBlock.GenerateHashForBlock(previousHash: "")
+    if(!Database.WriteBlock(firstBlock)) {
+        print("Unable to write initial genesis block into the blockchain.")
+        exit(0)
     }
 }
 
