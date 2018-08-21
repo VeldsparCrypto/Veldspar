@@ -33,6 +33,7 @@ class RPCRegisterToken {
             banLock.mutex {
                 if bans[host!] != nil {
                     if bans[host!]! == 10 {
+                        logger.log(level: .Warning, log: "(BAN) Banned address '\(host!)'", token: nil, source: host, duration: 0)
                         banned = true
                     }
                 }
@@ -61,11 +62,13 @@ class RPCRegisterToken {
             if try blockchain.registerToken(tokenString: token, address: address, block: block) {
                 
                 blockchain.IncrementCreation()
+                logger.log(level: .Warning, log: "(Register) SUCCESSFUL token='\(token)' address='\(address)'", token: token, source: nil, duration: 0)
                 return ["success" : true, "token" : token, "block" : block]
                 
             } else {
                 
                 blockchain.IncrementDepletion()
+                logger.log(level: .Warning, log: "(Register) FAILED(exists) token='\(token)' address='\(address)'", token: token, source: nil, duration: 0)
                 return ["success" : false, "token" : token]
                 
             }
@@ -94,6 +97,7 @@ class RPCRegisterToken {
             
         } catch {
             
+            logger.log(level: .Warning, log: "(Register) ERROR token='\(token)' address='\(address)'", token: token, source: nil, duration: 0)
             return ["success" : false, "token" : token]
             
         }

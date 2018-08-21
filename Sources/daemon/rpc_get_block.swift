@@ -53,7 +53,7 @@ class RPCGetBlock {
             }
             
         } else {
-            debug("(RPCGetBlock) call to 'blockchain.blockAtHeight(UInt32(height))' returned no results.")
+            
         }
         
         return rpcBlock

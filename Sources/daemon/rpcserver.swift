@@ -55,17 +55,12 @@ func handleRequest() throws -> RequestHandler {
         }
         let payload = json.dictionaryObject
         
-        debug("RPC request '\(request.path)' received")
-        if request.queryParams.count > 0 {
-            for p in request.queryParams {
-                debug("RPC request query parameters '\(p.0)' = '\(p.1)'")
-            }
-        }
-        
         response.setHeader(.contentType, value: "application/json")
         response.setHeader(.accessControlAllowOrigin, value: "*")
         response.setHeader(.accessControlAllowMethods, value: "GET, POST, PATCH, PUT, DELETE, OPTIONS")
         response.setHeader(.accessControlAllowHeaders, value: "Origin, Content-Type, X-Auth-Token")
+        
+        let start = Date().timeIntervalSince1970
         
         if request.method == .get {
             
@@ -99,6 +94,8 @@ func handleRequest() throws -> RequestHandler {
                         }
                         response.setBody(string: r)
                         
+                        logger.log(level: .Warning, log: "(RPC) '\(request.path)'", token: nil, source: request.remoteAddress.host, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
+                        
                     }
                     
                     if request.path == "/info/timestamp" {
@@ -112,6 +109,8 @@ func handleRequest() throws -> RequestHandler {
                             cache[cacheIndex] = r ?? ""
                         }
                         response.setBody(string: r ?? "" )
+                        
+                        logger.log(level: .Warning, log: "(RPC) '\(request.path)'", token: nil, source: request.remoteAddress.host, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
                         
                     }
                     
@@ -127,6 +126,8 @@ func handleRequest() throws -> RequestHandler {
                             response.setBody(string: encodedData!)
                         }
                         
+                        logger.log(level: .Warning, log: "(RPC) '\(request.path)'", token: nil, source: request.remoteAddress.host, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
+                        
                     }
                     
                     if request.path == "/blockchain/stats" {
@@ -136,6 +137,8 @@ func handleRequest() throws -> RequestHandler {
                             cache[cacheIndex] = r
                         }
                         response.setBody(string: r )
+                        
+                        logger.log(level: .Warning, log: "(RPC) '\(request.path)'", token: nil, source: request.remoteAddress.host, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
 
                     }
                     
@@ -155,6 +158,7 @@ func handleRequest() throws -> RequestHandler {
                         }
                         response.setBody(string: encodedData!)
                         
+                        logger.log(level: .Warning, log: "(RPC) '\(request.path)' block=\(height)", token: nil, source: request.remoteAddress.host, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
                         
                     }
                     
@@ -180,6 +184,7 @@ func handleRequest() throws -> RequestHandler {
                         }
                         response.setBody(string: encodedData!)
                         
+                        logger.log(level: .Warning, log: "(RPC) '\(request.path)' address='\(address)' height=\(height)", token: nil, source: request.remoteAddress.host, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
                         
                     }
                     
@@ -197,6 +202,9 @@ func handleRequest() throws -> RequestHandler {
                         }
                         
                         try response.setBody(json: RPCRegisterToken.action(["token" : token, "address" : address], host: request.remoteAddress.host))
+                        
+                        logger.log(level: .Warning, log: "(RPC) '\(request.path)' token='\(token)' address='\(address)'", token: token, source: request.remoteAddress.host, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
+                        
                     }
                     
                 } else {
@@ -218,10 +226,9 @@ func handleRequest() throws -> RequestHandler {
                 
             } catch {
                 
-                debug("(handleRequest) call to RPCServer caused an exception.")
+                logger.log(level: .Warning, log: "(RPC) '\(request.path)' (handleRequest) call to RPCServer caused an exception.", token: nil, source: request.remoteAddress.host, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
                 
             }
-            
             
             
         } else if request.method == .post {

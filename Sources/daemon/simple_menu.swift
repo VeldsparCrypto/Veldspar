@@ -1,3 +1,12 @@
+//
+//  simple_menu.swift
+//  veldspard
+//
+//  Created by Adrian Herridge on 21/08/2018.
+//
+
+import Foundation
+
 //    MIT License
 //
 //    Copyright (c) 2018 Veldspar Team
@@ -20,30 +29,32 @@
 //    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //    SOFTWARE.
 
+
 import Foundation
+import VeldsparCore
 
-public enum LogType: String {
-    case Info =     "INFO    "
-    case Debug =    "DEBUG   "
-    case Warning =  "WARNING "
-    case Error =    "ERROR   "
+func SimpleMenu(_ options: [String:String]) {
+    
+    print("")
+    print("Daemon Options")
+    print("--------------")
+    print("")
+    
+    for o in options {
+        print("  [\(o.key.uppercased())] : \(o.value)")
+    }
+    print("")
+    print("Please choose one of the above options :")
+    
+    
 }
 
-public class Logger {
-    
-    private var filename: String
-    private var lock: Mutex = Mutex()
-    
-    public init(_ logfile: String) {
-        filename = logfile
-    }
-    
-    public func log(_ level: LogType,_ log: String) {
-        
-        let entry = "\(Date()) | \(level.rawValue) | \(log)"
-        try? entry.write(toFile: filename, atomically: true, encoding: .ascii)
-        print(entry)
-        
-    }
-    
+func ShowMenu() {
+    SimpleMenu(["L" : "Show last 20 logs",
+                "E" : "Show last 20 errors",
+                "T" : "Lookup token history",
+                "A" : "Lookup address history",
+                "S" : "Recent slow operations",
+                "F" : "Free text search (slow)"])
 }
+

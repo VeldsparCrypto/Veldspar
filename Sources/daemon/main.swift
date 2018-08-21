@@ -74,7 +74,9 @@ if args.count > 1 {
 
 // open the database connection
 Database.Initialize()
-print("Database connection opened")
+
+let logger = Logger()
+print("Database(s) opened (blockchain, pending, log)")
 var blockchain = BlockChain()
 
 if isGenesis {
@@ -112,6 +114,74 @@ Execute.background {
     // endlessly run the main process loop
     BlockMaker.Loop()
     
+}
+
+Execute.background {
+    while true {
+        while true {
+            
+            let answer = readLine()
+            switch answer?.lowercased() ?? "" {
+            case "f":
+                
+                print("search expression?")
+                let exp = readLine()
+                if exp == nil || exp!.count < 1 {
+                    print("ERROR: invalid search expression")
+                    break;
+                }
+                
+                logger.query(q: exp!, token: nil, limit: 9999, duration: nil);
+                break;
+                
+            case "a":
+                
+                print("address?")
+                let exp = readLine()
+                if exp == nil || exp!.count < 1 {
+                    print("ERROR: invalid search expression")
+                    break;
+                }
+                
+                logger.query(q: exp!, token: nil, limit: 9999, duration: nil);
+                break;
+            case "t":
+                
+                print("token?")
+                let exp = readLine()
+                if exp == nil || exp!.count < 1 {
+                    print("ERROR: invalid search expression")
+                    break;
+                }
+                
+                logger.query(q: nil, token: exp!, limit: 9999, duration: nil);
+                break;
+            case "s":
+                
+                logger.query(q: nil, token: nil, limit: 9999, duration: 1000);
+                break;
+                
+            case "l":
+                
+                print("count?")
+                let exp = readLine()
+                if exp == nil || exp!.count < 1 {
+                    print("ERROR: invalid count expression")
+                    break;
+                }
+                
+                let c = Int(exp!)
+                
+                logger.query(q: nil, token: nil, limit: c ?? 99, duration: nil);
+                break;
+                
+            default:
+                ShowMenu()
+                break;
+            }
+            
+        }
+    }
 }
 
 do {

@@ -33,8 +33,6 @@ public class RPCOreSeeds {
         
         let oreSeeds = blockchain.oreSeeds()
         
-        debug("(RPCOreSeeds) call to blockchain.oreSeeds() returned \(oreSeeds.count) results")
-
         for s in oreSeeds {
             let seed = RPC_Seed()
             seed.height = Int(s.height)

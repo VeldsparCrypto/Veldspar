@@ -268,18 +268,20 @@ class BlockChain {
         var returnValue = false
         var token = tokenString
         
+        var start = Date().timeIntervalSince1970
+        
         // validate the token
         do {
             
             let t = try Token(token)
             
             if AlgorithmManager.sharedInstance().depricated(type: t.algorithm, height: UInt(t.oreHeight)) {
-                debug("(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' was of deprecated method.")
+                logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' was of deprecated method.", token: t.tokenId(), source: nil, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
                 return false
             }
             
             if t.value() == 0 {
-                debug("(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' was invalid and has no value.")
+                logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' was invalid and has no value.", token: t.tokenId(), source: nil, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
                 throw BlockchainErrors.TokenHasNoValue
             }
             
@@ -289,9 +291,11 @@ class BlockChain {
         } catch BlockchainErrors.TokenHasNoValue {
             throw BlockchainErrors.TokenHasNoValue
         } catch {
-            debug("(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' caused an exception. '\(error)'")
+            logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' caused an exception. '\(error)'", token: token, source: nil, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
             return false
         }
+        
+        start = Date().timeIntervalSince1970
         
         var databaseToken: Ledger? = nil
         blockchain_lock.mutex {
@@ -306,17 +310,15 @@ class BlockChain {
                     if Database.WritePendingLedger(l) == true {
                         returnValue = true
                     } else {
-                        debug("(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' call to 'Database.WritePendingLedger()' failed.")
+                        logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' call to 'Database.WritePendingLedger()' failed.", token: token, source: nil, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
                     }
                 } else {
-                    debug("(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' this token exists already.")
+                    logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' this token exists already in pending.db", token: token, source: nil, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
                 }
             }
             
         } else {
-            
-            debug("(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' this token exists already.")
-        
+            logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' this token exists already in blockchain.db", token: token, source: nil, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
         }
         
         return returnValue
@@ -325,7 +327,7 @@ class BlockChain {
     
     func transferToken(token: String, address: String, block: UInt32, auth: String, reference: String) -> Bool {
         
-        var returnValue = false
+        let returnValue = false
         
 //        // validate the token
 //        do {
@@ -358,9 +360,13 @@ class BlockChain {
         
         var l: [(Int,Ledger)] = []
         
+        let start = Date().timeIntervalSince1970
+        
         blockchain_lock.mutex {
             l = Database.LedgersConcerningAddress(address, lastRowHeight: lastRowHeight)
         }
+        
+        logger.log(level: .Warning, log: "(Blockchain) ledgersConcerningAddress for address '\(address)' last height '\(lastRowHeight)'", token: nil, source: nil, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
         
         return l;
         

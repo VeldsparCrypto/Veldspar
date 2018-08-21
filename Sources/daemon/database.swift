@@ -146,6 +146,12 @@ CREATE TABLE IF NOT EXISTS ledger (
         _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add8 INTEGER", params: [])
         _ = pending_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_address ON ledger (add1,add2,add3,add4,add5,add6,add7,add8)", params: [])
         
+        // setup the logging table now
+        _ = log_db.execute(sql: "CREATE TABLE IF NOT EXISTS log (id INTEGER PRIMARY KEY AUTOINCREMENT,type TEXT, entry TEXT, timestamp TEXT, request TEXT, token TEXT, source TEXT, duration INTEGER);", params: [])
+        _ = log_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_token ON log(token);", params: [])
+        _ = log_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_type ON log(type);", params: [])
+        _ = log_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_source ON log(source);", params: [])
+        
     }
     
     class func DeleteBlock(_ block: Block) -> Bool {
@@ -520,7 +526,18 @@ CREATE TABLE IF NOT EXISTS ledger (
     
     class func TokenOwnershipRecord(_ id: String) -> Ledger? {
         
-        let result = blockchain_db.query(sql: "SELECT * FROM ledger WHERE token = ? ORDER BY block DESC LIMIT 1", params: [Token.compactToken(id)])
+        var t: Token?
+        
+        do {
+            try t = Token(id)
+            
+        } catch  {
+            return nil
+        }
+        
+        let address = t!.address
+        
+        let result = blockchain_db.query(sql: "SELECT * FROM ledger WHERE add1 = ? AND add2 = ? AND add3 = ? AND add4 = ? AND add5 = ? AND add6 = ? AND add7 = ? AND add8 = ? ORDER BY block DESC LIMIT 1", params: [address[0],address[1],address[2],address[3],address[4],address[5],address[6],address[07]])
         if result.error != nil {
             return nil
         }
@@ -543,7 +560,18 @@ CREATE TABLE IF NOT EXISTS ledger (
     
     class func TokenPendingRecord(_ id: String) -> Ledger? {
         
-        let result = pending_db.query(sql: "SELECT * FROM ledger WHERE token = ? ORDER BY block DESC LIMIT 1", params: [Token.compactToken(id)])
+        var t: Token?
+        
+        do {
+            try t = Token(id)
+            
+        } catch  {
+            return nil
+        }
+        
+        let address = t!.address
+        
+        let result = pending_db.query(sql: "SELECT * FROM ledger WHERE add1 = ? AND add2 = ? AND add3 = ? AND add4 = ? AND add5 = ? AND add6 = ? AND add7 = ? AND add8 = ? ORDER BY block DESC LIMIT 1", params: [address[0],address[1],address[2],address[3],address[4],address[5],address[6],address[07]])
         if result.error != nil {
             return nil
         }
@@ -568,7 +596,6 @@ CREATE TABLE IF NOT EXISTS ledger (
         
         let result = blockchain_db.query(sql: "SELECT * FROM block WHERE height = ? LIMIT 1", params: [UInt64(height)])
         if result.error != nil {
-            debug("(Database) 'BlockAtHeight(_ height: UInt32) -> Block?', received an Error from the SQLite database engine.  Error = '\(result.error!)'")
             return nil
         }
         
@@ -659,7 +686,7 @@ CREATE TABLE IF NOT EXISTS ledger (
             
         } else {
             
-            debug("(Database) call to 'OreBlocks() -> [Block]' returned no results.")
+            
             
         }
         

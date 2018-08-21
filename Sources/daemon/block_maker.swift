@@ -51,6 +51,8 @@ class BlockMaker {
                     
                     for index in Int(currentHeight+1)...Int(blockHeightForTime) {
                         
+                        var start = Date().timeIntervalSince1970
+                        
                         // produce the block, hash it, seek quorum, then write it
                         let previousBlock = blockchain.blockAtHeight(UInt32(index-1))
                         let newBlock = Block(height: UInt32(index))
@@ -71,7 +73,7 @@ class BlockMaker {
                         }
                         
                         blockchain.GenerateStatsFor(block: index)
-                        print("produced block \(index)")
+                        logger.log(level: .Info, log: "Blockchain produced block '\(index)'", token: nil, source: nil, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
                         
                     }
                     
