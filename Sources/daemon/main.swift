@@ -63,6 +63,12 @@ if args.count > 1 {
         if arg.lowercased() == "--cache512" {
             cacheSize = 512*1024
         }
+        if arg.lowercased() == "--cache768" {
+            cacheSize = 768*1024
+        }
+        if arg.lowercased() == "--cache1024" {
+            cacheSize = 1024*1024
+        }
     }
 }
 
