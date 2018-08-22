@@ -131,24 +131,6 @@ class BlockChain {
         
     }
     
-    func PopulateMissingAddressRecords() -> Bool {
-        
-        var retValue = false;
-        
-        blockchain_lock.mutex {
-            retValue = Database.PopulateAddressColumnsInBlockchain()
-        }
-        
-        if retValue == false {
-            pending_lock.mutex {
-                retValue = Database.PopulateAddressColumnsInPending()
-            }
-        }
-        
-        return retValue
-        
-    }
-    
     func GenerateStatsFor(block: Int) {
         
         blockchain_lock.mutex {

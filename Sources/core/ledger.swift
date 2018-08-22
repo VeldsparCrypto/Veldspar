@@ -68,9 +68,9 @@ public class Ledger {
         
     }
     
-    public func addresses() -> [UInt64] {
+    public func addressString() -> String {
         
-        var addresses: [UInt64] = []
+        var addresses: [String] = []
         
         var components = token.components(separatedBy: "-")
         components.remove(at: 0) // ore
@@ -78,10 +78,10 @@ public class Ledger {
         components.remove(at: 0) // value
         
         for a in components {
-            addresses.append(UInt64(a, radix: 16) ?? 0)
+            addresses.append(a)
         }
         
-        return addresses
+        return addresses.joined(separator: "-")
         
     }
     

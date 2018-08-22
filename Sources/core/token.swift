@@ -131,6 +131,23 @@ public class Token {
         
     }
     
+    public func addressString() -> String {
+        
+        var addresses: [String] = []
+        
+        var components = tokenId().components(separatedBy: "-")
+        components.remove(at: 0) // ore
+        components.remove(at: 0) // algo
+        components.remove(at: 0) // value
+        
+        for a in components {
+            addresses.append(a)
+        }
+        
+        return addresses.joined(separator: "-")
+        
+    }
+    
     public class func expandToken(_ token: String) -> String {
         
         // 00000000-0000-00000064-00078C65-00001DFC-00079155-000EB87D-00079193-000FE1C7-000C909A-000BD9C7

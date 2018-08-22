@@ -25,6 +25,8 @@ import Foundation
 import PerfectHTTP
 import VeldsparCore
 
+public let registrationsLock = Mutex()
+public var registrations: [Registration] = []
 let cacheLock: Mutex = Mutex()
 var cache: [String:String] = [:]
 let banLock: Mutex = Mutex()
@@ -201,8 +203,11 @@ func handleRequest() throws -> RequestHandler {
                             }
                         }
                         
-                        try response.setBody(json: RPCRegisterToken.action(["token" : token, "address" : address], host: request.remoteAddress.host))
+//                        registrationsLock.mutex {
+//                            registrations.append(Registration(tokenId: token, src: request.remoteAddress.host, dest: address))
+//                        }
                         
+                        try response.setBody(json: RPCRegisterToken.action(["token" : token, "address" : address], host: request.remoteAddress.host))
                         logger.log(level: .Warning, log: "(RPC) '\(request.path)' token='\(token)' address='\(address)'", token: token, source: request.remoteAddress.host, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
                         
                     }

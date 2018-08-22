@@ -68,83 +68,49 @@ CREATE TABLE IF NOT EXISTS stats (
     d5000 INTEGER)
 """, params: [])
         _ = blockchain_db.execute(sql: "DROP VIEW IF EXISTS stats_summary;", params: [])
-        _ = blockchain_db.execute(sql: """
-CREATE VIEW IF NOT EXISTS stats_summary
-AS
-SELECT MAX(block) as blocks,
-SUM(newTokens) as tokens,
-(SUM(d1) + (SUM(d2)*2) + (SUM(d5)*5) + (SUM(d10)*10) + (SUM(d20)*20)  + (SUM(d50)*50) + (SUM(d100)*100) + (SUM(d200)*200) + (SUM(d500)*500) + (SUM(d1000)*1000)  + (SUM(d2000)*2000) + (SUM(d5000)*5000)) as value,
-(SELECT AVG(depletion) FROM stats WHERE block > (SELECT MAX(block) from stats)-3) as depletion,
-(SELECT CAST((CAST(AVG(newTokens) AS REAL) / 2) as REAL)  FROM stats WHERE block > (SELECT MAX(block) from stats)-3) as rate,
-MAX(addressCount) as addresses,
-SUM(transCount) as transactions,
-SUM(d1) as d1,
-SUM(d2) as d2,
-SUM(d5) as d5,
-SUM(d10) as d10,
-SUM(d20) as d20,
-SUM(d50) as d50,
-SUM(d100) as d100,
-SUM(d200) as d200,
-SUM(d500) as d500,
-SUM(d1000) as d1000,
-SUM(d2000) as d2000,
-SUM(d5000) as d5000  FROM stats;
-""", params: [])
+        _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS statistics_summary (blocks INTEGER,tokens INTEGER,value REAL,depletion REAL,rate REAL,addresses INTEGER,transactions INTEGER,d1 INTEGER,d2 INTEGER,d5 INTEGER,d10 INTEGER,d20 INTEGER,d50 INTEGER,d100 INTEGER,d200 INTEGER,d500 INTEGER,d1000 INTEGER,d2000 INTEGER,d5000 INTEGER);", params: [])
+        _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS addresses (address TEXT, block INTEGER);", params: [])
         _ = blockchain_db.execute(sql:
             """
 CREATE TABLE IF NOT EXISTS ledger (
-    transaction_id TEXT PRIMARY KEY,
+    transaction_id TEXT COLLATE NOCASE PRIMARY KEY,
     op INTEGER,
     date INTEGER,
     transaction_group TEXT,
     owner TEXT,
-    token TEXT,
+    token TEXT COLLATE NOCASE,
     spend_auth TEXT,
     block INTEGER,
-    checksum TEXT
-)
+    checksum TEXT,
+    address TEXT COLLATE NOCASE
+);
 """, params: [])
         
-        _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_token ON ledger (token);", params: [])
-        _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_block ON ledger (block);", params: [])
+        _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_token ON ledger (token COLLATE NOCASE);", params: [])
+        _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_block ON ledger (block, token COLLATE NOCASE);", params: [])
         _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_op ON ledger (op);", params: [])
         _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_owner ON ledger (owner);", params: [])
-        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add1 INTEGER", params: [])
-        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add2 INTEGER", params: [])
-        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add3 INTEGER", params: [])
-        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add4 INTEGER", params: [])
-        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add5 INTEGER", params: [])
-        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add6 INTEGER", params: [])
-        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add7 INTEGER", params: [])
-        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add8 INTEGER", params: [])
-        _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_address ON ledger (add1,add2,add3,add4,add5,add6,add7,add8)", params: [])
+        _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_address ON ledger(address COLLATE NOCASE);", params: [])
+        
         _ = pending_db.execute(sql:
             """
 CREATE TABLE IF NOT EXISTS ledger (
-    transaction_id TEXT PRIMARY KEY,
+    transaction_id TEXT COLLATE NOCASE PRIMARY KEY,
     op INTEGER,
     date INTEGER,
     transaction_group TEXT,
     owner TEXT,
-    token TEXT,
+    token TEXT COLLATE NOCASE,
     spend_auth TEXT,
     block INTEGER,
-    checksum TEXT
-)
+    checksum TEXT,
+    address TEXT COLLATE NOCASE
+);
 """, params: [])
         
-        _ = pending_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_token ON ledger (token);", params: [])
-        _ = pending_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_block ON ledger (block);", params: [])
-        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add1 INTEGER", params: [])
-        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add2 INTEGER", params: [])
-        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add3 INTEGER", params: [])
-        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add4 INTEGER", params: [])
-        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add5 INTEGER", params: [])
-        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add6 INTEGER", params: [])
-        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add7 INTEGER", params: [])
-        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add8 INTEGER", params: [])
-        _ = pending_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_address ON ledger (add1,add2,add3,add4,add5,add6,add7,add8)", params: [])
+        _ = pending_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_token ON ledger (token COLLATE NOCASE);", params: [])
+        _ = pending_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_address ON ledger (address COLLATE NOCASE);", params: [])
+        _ = pending_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_block ON ledger (block, token COLLATE NOCASE);", params: [])
         
         // setup the logging table now
         _ = log_db.execute(sql: "CREATE TABLE IF NOT EXISTS log (id INTEGER PRIMARY KEY AUTOINCREMENT,type TEXT, entry TEXT, timestamp TEXT, request TEXT, token TEXT, source TEXT, duration INTEGER);", params: [])
@@ -165,10 +131,8 @@ CREATE TABLE IF NOT EXISTS ledger (
     
     class func WritePendingLedger(_ ledger: Ledger) -> Bool {
         
-        let address = ledger.addresses()
-        
         if pending_db.execute(
-            sql: "INSERT OR REPLACE INTO ledger (transaction_id, op, date, transaction_group, owner, token, spend_auth, block, checksum, add1, add2, add3, add4, add5, add6, add7, add8) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            sql: "INSERT OR REPLACE INTO ledger (transaction_id, op, date, transaction_group, owner, token, spend_auth, block, checksum, address) VALUES (?,?,?,?,?,?,?,?,?,?)",
             params: [
                 
                 ledger.transaction_id,
@@ -180,14 +144,7 @@ CREATE TABLE IF NOT EXISTS ledger (
                 ledger.spend_auth,
                 UInt64(ledger.block),
                 ledger.checksum(),
-                address[0],
-                address[1],
-                address[2],
-                address[3],
-                address[4],
-                address[5],
-                address[6],
-                address[7],
+                ledger.addressString()
                 
             ]).error != nil {
             return false
@@ -207,10 +164,8 @@ CREATE TABLE IF NOT EXISTS ledger (
             // now write in the transactions into the table as well
             for t in block.transactions {
                 
-                let address = t.addresses()
-                
                 if blockchain_db.execute(
-                    sql: "INSERT OR REPLACE INTO ledger (transaction_id, op, date, transaction_group, owner, token, spend_auth, block, checksum, add1, add2, add3, add4, add5, add6, add7, add8) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    sql: "INSERT OR REPLACE INTO ledger (transaction_id, op, date, transaction_group, owner, token, spend_auth, block, checksum, address) VALUES (?,?,?,?,?,?,?,?,?,?)",
                     params: [
                         
                         t.transaction_id,
@@ -222,14 +177,7 @@ CREATE TABLE IF NOT EXISTS ledger (
                         t.spend_auth,
                         UInt64(t.block),
                         t.checksum(),
-                        address[0],
-                        address[1],
-                        address[2],
-                        address[3],
-                        address[4],
-                        address[5],
-                        address[6],
-                        address[7]
+                        t.addressString()
                         
                     ]).error != nil {
                     _ = blockchain_db.execute(sql: "ROLLBACK TRANSACTION;", params: [])
@@ -253,7 +201,7 @@ CREATE TABLE IF NOT EXISTS ledger (
         _ = blockchain_db.execute(sql: "INSERT INTO temp_block VALUES (?);", params: [block])
         _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS temp_stats (denom TEXT PRIMARY KEY, denom_count INTEGER);", params: [])
         _ = blockchain_db.execute(sql: "INSERT OR REPLACE INTO stats (block) VALUES ((SELECT block FROM temp_block LIMIT 1));", params: [])
-        _ = blockchain_db.execute(sql: "INSERT INTO temp_stats SELECT substr(token,19,4) as denom, COUNT(*) as denom_count FROM ledger WHERE block = (SELECT block FROM temp_block LIMIT 1) AND op = 1 GROUP BY substr(token,19,4);", params: [])
+        _ = blockchain_db.execute(sql: "INSERT INTO temp_stats SELECT substr(token,19,4) as denom, COUNT(*) as denom_count FROM ledger INDEXED BY idx_ledger_block WHERE block = ? AND op = 1 GROUP BY denom;", params: [block])
         _ = blockchain_db.execute(sql: "UPDATE stats SET newTokens = (SELECT SUM(denom_count) FROM temp_stats) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
         _ = blockchain_db.execute(sql: "UPDATE stats SET d1 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 1))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
         _ = blockchain_db.execute(sql: "UPDATE stats SET d2 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 2))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
@@ -268,107 +216,46 @@ CREATE TABLE IF NOT EXISTS ledger (
         _ = blockchain_db.execute(sql: "UPDATE stats SET d2000 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 2000))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
         _ = blockchain_db.execute(sql: "UPDATE stats SET d5000 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 5000))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
         _ = blockchain_db.execute(sql: "UPDATE stats SET newValue = (SELECT SUM((CAST(denom as INT) * denom_count)) FROM temp_stats) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET addressCount = (SELECT COUNT(DISTINCT owner) FROM ledger WHERE block <= (SELECT block FROM temp_block LIMIT 1)) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
+        _ = blockchain_db.execute(sql: "INSERT INTO addresses (address,block) SELECT owner,? FROM ledger WHERE block = ? AND address NOT IN (SELECT address from addresses);", params: [block,block])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET addressCount = (SELECT COUNT(DISTINCT address) FROM addresses WHERE block <= (SELECT block FROM temp_block LIMIT 1)) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
         _ = blockchain_db.execute(sql: "UPDATE stats SET activeAddressCount = (SELECT COUNT(DISTINCT owner) FROM ledger WHERE block = (SELECT block FROM temp_block LIMIT 1)) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
         _ = blockchain_db.execute(sql: "UPDATE stats SET transCount = (SELECT COUNT(*) FROM ledger WHERE block = (SELECT block FROM temp_block LIMIT 1)) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET reallocTokens = (SELECT COUNT(*) FROM ledger WHERE block = (SELECT block FROM temp_block LIMIT 1) AND op = 2) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET reallocTokens = (SELECT COUNT(*) FROM ledger INDEXED BY idx_ledger_block WHERE block = (SELECT block FROM temp_block LIMIT 1) AND op = 2) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
         _ = blockchain_db.execute(sql: "DELETE FROM temp_stats;", params: [])
-        _ = blockchain_db.execute(sql: "INSERT INTO temp_stats SELECT substr(token,19,4) as denom, COUNT(*) as denom_count FROM ledger WHERE block = (SELECT block FROM temp_block LIMIT 1) AND op = 2 GROUP BY substr(token,19,4);", params: [])
+        _ = blockchain_db.execute(sql: "INSERT INTO temp_stats SELECT substr(token,19,4) as denom, COUNT(*) as denom_count FROM ledger  INDEXED BY idx_ledger_block WHERE block = (SELECT block FROM temp_block LIMIT 1) AND op = 2 GROUP BY substr(token,19,4);", params: [])
         _ = blockchain_db.execute(sql: "UPDATE stats SET reallocValue = (SELECT SUM((CAST(denom as INT) * denom_count)) FROM temp_stats) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
         _ = blockchain_db.execute(sql: "UPDATE stats SET depletion = ? WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [depletionRate])
         _ = blockchain_db.execute(sql: "DROP TABLE IF EXISTS temp_stats;", params: [])
         _ = blockchain_db.execute(sql: "DROP TABLE IF EXISTS temp_block;", params: [])
+        _ = blockchain_db.execute(sql: """
+DELETE FROM statistics_summary;
+""", params: [])
+        _ = blockchain_db.execute(sql: """
+INSERT INTO statistics_summary (blocks,tokens,value,depletion,rate,addresses,transactions,d1,d2,d5,d10,d20,d50,d100,d200,d500,d1000,d2000,d5000)
+SELECT MAX(block) as blocks,
+SUM(newTokens) as tokens,
+(SUM(d1) + (SUM(d2)*2) + (SUM(d5)*5) + (SUM(d10)*10) + (SUM(d20)*20)  + (SUM(d50)*50) + (SUM(d100)*100) + (SUM(d200)*200) + (SUM(d500)*500) + (SUM(d1000)*1000)  + (SUM(d2000)*2000) + (SUM(d5000)*5000)) as value,
+(SELECT AVG(depletion) FROM stats WHERE block > (SELECT MAX(block) from stats)-3) as depletion,
+(SELECT CAST((CAST(AVG(newTokens) AS REAL) / 2) as REAL)  FROM stats WHERE block > (SELECT MAX(block) from stats)-3) as rate,
+MAX(addressCount) as addresses,
+SUM(transCount) as transactions,
+SUM(d1) as d1,
+SUM(d2) as d2,
+SUM(d5) as d5,
+SUM(d10) as d10,
+SUM(d20) as d20,
+SUM(d50) as d50,
+SUM(d100) as d100,
+SUM(d200) as d200,
+SUM(d500) as d500,
+SUM(d1000) as d1000,
+SUM(d2000) as d2000,
+SUM(d5000) as d5000 FROM stats;
+""", params: [])
         _ = blockchain_db.execute(sql: "COMMIT TRANSACTION;", params: [])
         
     }
     
-    class func PopulateAddressColumnsInBlockchain() -> Bool /* data found to fix, return false when no results because then we are all done and this function can be removed */ {
-        
-        let result = blockchain_db.query(sql: "SELECT transaction_id, token FROM ledger WHERE add1 IS NULL LIMIT 100", params: [])
-        if result.error != nil {
-            return true
-        }
-        
-        if result.results.count > 0 {
-            _ = blockchain_db.execute(sql: "BEGIN TRANSACTION", params: [])
-            for r in result.results {
-                let id = r["transaction_id"]!.asString()!
-                let token = r["token"]!.asString()!
-                
-                var addresses: [UInt64] = []
-                
-                var components = token.components(separatedBy: "-")
-                components.remove(at: 0) // ore
-                components.remove(at: 0) // algo
-                components.remove(at: 0) // value
-                
-                for a in components {
-                    addresses.append(UInt64(a, radix: 16) ?? 0)
-                }
-                
-                _ = blockchain_db.execute(sql: "UPDATE ledger SET add1 = ?, add2 = ?, add3 = ?, add4 = ?, add5 = ?, add6 = ?, add7 = ?, add8 = ? WHERE transaction_id = ?;", params: [
-                        addresses[0],
-                        addresses[1],
-                        addresses[2],
-                        addresses[3],
-                        addresses[4],
-                        addresses[5],
-                        addresses[6],
-                        addresses[7],
-                        id
-                    ])
-            }
-            _ = blockchain_db.execute(sql: "COMMIT TRANSACTION;", params: [])
-            return true
-        } else {
-            return false
-        }
-        
-    }
-    
-    class func PopulateAddressColumnsInPending() -> Bool /* data found to fix, return false when no results because then we are all done and this function can be removed */ {
-        
-        let result = pending_db.query(sql: "SELECT transaction_id, token FROM ledger WHERE add1 IS NULL LIMIT 100", params: [])
-        if result.error != nil {
-            return true
-        }
-        
-        if result.results.count > 0 {
-            _ = pending_db.execute(sql: "BEGIN TRANSACTION", params: [])
-            for r in result.results {
-                let id = r["transaction_id"]!.asString()!
-                let token = r["token"]!.asString()!
-                
-                var addresses: [UInt64] = []
-                
-                var components = token.components(separatedBy: "-")
-                components.remove(at: 0) // ore
-                components.remove(at: 0) // algo
-                components.remove(at: 0) // value
-                
-                for a in components {
-                    addresses.append(UInt64(a, radix: 16) ?? 0)
-                }
-                
-                _ = blockchain_db.execute(sql: "UPDATE ledger SET add1 = ?, add2 = ?, add3 = ?, add4 = ?, add5 = ?, add6 = ?, add7 = ?, add8 = ? WHERE transaction_id = ?;", params: [
-                    addresses[0],
-                    addresses[1],
-                    addresses[2],
-                    addresses[3],
-                    addresses[4],
-                    addresses[5],
-                    addresses[6],
-                    addresses[7],
-                    id
-                    ])
-            }
-            _ = blockchain_db.execute(sql: "COMMIT TRANSACTION;", params: [])
-            return true
-        } else {
-            return false
-        }
-        
-    }
     
     class func CurrentHeight() -> UInt32? {
         
@@ -387,14 +274,14 @@ CREATE TABLE IF NOT EXISTS ledger (
     
     class func StatsHeight() -> Int {
         
-        let result = blockchain_db.query(sql: "SELECT blocks FROM stats_summary ORDER BY blocks DESC LIMIT 1", params: [])
+        let result = blockchain_db.query(sql: "SELECT block FROM stats ORDER BY block DESC LIMIT 1", params: [])
         if result.error != nil {
             return 0
         }
         
         if result.results.count > 0 {
             let r = result.results[0]
-            return Int(r["blocks"]!.asInt() ?? 0)
+            return Int(r["block"]!.asInt() ?? 0)
         }
         
         return 0;
@@ -403,7 +290,7 @@ CREATE TABLE IF NOT EXISTS ledger (
     
     class func GetStats() -> RPC_Stats {
         
-        let summary_stats = blockchain_db.query(sql: "SELECT * FROM stats_summary;", params: [])
+        let summary_stats = blockchain_db.query(sql: "SELECT * FROM statistics_summary;", params: [])
         if summary_stats.error != nil {
             return RPC_Stats();
         }
@@ -535,9 +422,7 @@ CREATE TABLE IF NOT EXISTS ledger (
             return nil
         }
         
-        let address = t!.address
-        
-        let result = blockchain_db.query(sql: "SELECT * FROM ledger WHERE add1 = ? AND add2 = ? AND add3 = ? AND add4 = ? AND add5 = ? AND add6 = ? AND add7 = ? AND add8 = ? ORDER BY block DESC LIMIT 1", params: [address[0],address[1],address[2],address[3],address[4],address[5],address[6],address[07]])
+        let result = blockchain_db.query(sql: "SELECT * FROM ledger WHERE address = ? ORDER BY block DESC LIMIT 1", params: [t!.addressString()])
         if result.error != nil {
             return nil
         }
@@ -569,9 +454,9 @@ CREATE TABLE IF NOT EXISTS ledger (
             return nil
         }
         
-        let address = t!.address
+        let address = t!.addressString()
         
-        let result = pending_db.query(sql: "SELECT * FROM ledger WHERE add1 = ? AND add2 = ? AND add3 = ? AND add4 = ? AND add5 = ? AND add6 = ? AND add7 = ? AND add8 = ? ORDER BY block DESC LIMIT 1", params: [address[0],address[1],address[2],address[3],address[4],address[5],address[6],address[07]])
+        let result = pending_db.query(sql: "SELECT * FROM ledger WHERE address = ? ORDER BY block DESC LIMIT 1", params: [address])
         if result.error != nil {
             return nil
         }
