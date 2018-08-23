@@ -302,6 +302,9 @@ class RPCStatsPage {
         statistics += rowWithDictionary(["Blockchain Height" : "\(stats.height)"])
         statistics += rowWithDictionary(["Network token rate t/m" : "\(stats.rate)"])
         statistics += rowWithDictionary(["Estimated depletion rate" : "\(stats.depletion) %"])
+        registrationsLock.mutex {
+            statistics += rowWithDictionary(["Backlog" : "\(registrations.count) registrations"])
+        }
         
         var supply = rowWithDictionary(["Total value of found tokens" : "\(stats.value)"])
         supply += rowWithDictionary(["Ave token value" : "\(stats.value / Double(stats.tokens))"])

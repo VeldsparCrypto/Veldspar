@@ -107,10 +107,10 @@ public class Logger {
             
             if results != nil && results!.results.count > 0 {
                 print("")
-                print("Date|Entry|Token|Duration")
+                print("Type|Date|Entry|Token|Duration")
                 // type TEXT, entry TEXT, timestamp TEXT, request TEXT, token TEXT, source TEXT, duration INTEGER);"
                 for r in results!.results {
-                    print("[\(r["type"]!.asString() ?? "")] | \(r["entry"]!.asString() ?? "") | \(r["token"]!.asString() ?? "") | \(r["source"]!.asString() ?? "") | \(r["duration"]!.asInt() ?? 0) ms")
+                    print("\(r["timestamp"]!.asString() ?? "") | [\(r["type"]!.asString() ?? "")] | \(r["entry"]!.asString() ?? "") | \(r["token"]!.asString() ?? "") | \(r["source"]!.asString() ?? "") | \(r["duration"]!.asInt() ?? 0) ms")
                 }
                 print("")
             }

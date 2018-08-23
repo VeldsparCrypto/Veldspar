@@ -218,7 +218,7 @@ func handleRequest() throws -> RequestHandler {
                         }
                         
                         registrationsLock.mutex {
-                            registrations.append(Registration(tokenId: token, src: request.remoteAddress.host, dest: address, height: Int(blockchain.height()) + Config.TransactionMaturityLevel))
+                            registrations.append(Registration(tokenId: token, src: request.remoteAddress.host, dest: address))
                         }
                         
                         try response.setBody(json: ["success" : true, "token" : token, "block" : 0])

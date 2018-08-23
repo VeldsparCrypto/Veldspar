@@ -28,13 +28,11 @@ public class Registration {
     public var token: String
     public var source: String
     public var address: String
-    public var height: Int
     
-    public init(tokenId: String, src: String, dest: String, height: Int) {
+    public init(tokenId: String, src: String, dest: String) {
         self.token = tokenId
         self.source = src
         self.address = dest
-        self.height = height
     }
     
 }
