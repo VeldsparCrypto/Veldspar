@@ -192,6 +192,20 @@ func handleRequest() throws -> RequestHandler {
                     
                     if request.path == "/token/register" {
                         
+                        let host = request.remoteAddress.host
+                        var banned = false
+                        banLock.mutex {
+                            if bans[host] != nil {
+                                if bans[host]! == 10 {
+                                    logger.log(level: .Warning, log: "(BAN) Banned address '\(host)'", token: nil, source: host, duration: 0)
+                                    banned = true
+                                }
+                            }
+                        }
+                        if banned {
+                            throw RPCErrors.Banned
+                        }
+                        
                         var token = ""
                         var address = ""
                         for p in request.queryParams {
@@ -203,11 +217,11 @@ func handleRequest() throws -> RequestHandler {
                             }
                         }
                         
-//                        registrationsLock.mutex {
-//                            registrations.append(Registration(tokenId: token, src: request.remoteAddress.host, dest: address))
-//                        }
+                        registrationsLock.mutex {
+                            registrations.append(Registration(tokenId: token, src: request.remoteAddress.host, dest: address, height: Int(blockchain.height()) + Config.TransactionMaturityLevel))
+                        }
                         
-                        try response.setBody(json: RPCRegisterToken.action(["token" : token, "address" : address], host: request.remoteAddress.host))
+                        try response.setBody(json: ["success" : true, "token" : token, "block" : 0])
                         logger.log(level: .Warning, log: "(RPC) '\(request.path)' token='\(token)' address='\(address)'", token: token, source: request.remoteAddress.host, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
                         
                     }

@@ -72,6 +72,8 @@ if args.count > 1 {
     }
 }
 
+let v3Beans = AlgorithmSHA512AppendV3.beans()
+
 // open the database connection
 Database.Initialize()
 
@@ -110,10 +112,12 @@ while blockchain.StatsHeight() < blockchain.height() {
 }
     
 Execute.background {
-    
     // endlessly run the main process loop
     BlockMaker.Loop()
-    
+}
+
+Execute.background {
+    process_registrations()
 }
 
 Execute.background {

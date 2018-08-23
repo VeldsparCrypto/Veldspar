@@ -28,22 +28,6 @@ class RPCRegisterToken {
     
     class func action(_ payload: [String:Any?], host: String?) throws -> [String:Any?] {
         
-        if host != nil {
-            var banned = false
-            banLock.mutex {
-                if bans[host!] != nil {
-                    if bans[host!]! == 10 {
-                        logger.log(level: .Warning, log: "(BAN) Banned address '\(host!)'", token: nil, source: host, duration: 0)
-                        banned = true
-                    }
-                }
-            }
-            if banned {
-                throw RPCErrors.Banned
-            }
-        }
-        
-        
         if payload["token"] == nil {
             throw RPCErrors.InvalidRequest
         }

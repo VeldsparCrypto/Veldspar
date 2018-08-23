@@ -34,6 +34,7 @@ public class Token {
     public var oreHeight: UInt32
     public var address: [UInt32]
     public var algorithm: AlgorithmType
+    private var cachedValue: UInt32?
     
     public init(oreHeight: UInt32, address: [UInt32], algorithm: AlgorithmType) {
         
@@ -105,7 +106,12 @@ public class Token {
     
     public func value() -> UInt32 {
         
-        return AlgorithmManager().value(token: self)
+        if cachedValue != nil {
+            return cachedValue!
+        }
+        
+        cachedValue = AlgorithmManager().value(token: self)
+        return cachedValue!
         
     }
 

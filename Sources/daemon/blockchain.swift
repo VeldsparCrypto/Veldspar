@@ -27,6 +27,7 @@ enum BlockchainErrors : Error {
     case TokenHasNoValue
     case InvalidAddress
     case InvalidAlgo
+    case InvalidToken
 }
 
 class BlockChain {
@@ -252,33 +253,25 @@ class BlockChain {
         
         var start = Date().timeIntervalSince1970
         
-        // validate the token
-        do {
-            
-            let t = try Token(token)
-            
-            if AlgorithmManager.sharedInstance().depricated(type: t.algorithm, height: UInt(t.oreHeight)) {
-                logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' was of deprecated method.", token: t.tokenId(), source: nil, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
-                return false
-            }
-            
-            if t.value() == 0 {
-                logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' was invalid and has no value.", token: t.tokenId(), source: nil, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
-                throw BlockchainErrors.TokenHasNoValue
-            }
-            
-            // update the token's id
-            token = t.tokenId()
-            
-        } catch BlockchainErrors.TokenHasNoValue {
-            throw BlockchainErrors.TokenHasNoValue
-        } catch {
-            logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' caused an exception. '\(error)'", token: token, source: nil, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
-            return false
+        // first off, check that the token is essentially valid in construction
+        // 00000000-0002-00000032-00018467-00043A62-0006F243-000B7C4E-00030D16-00058595-0009F676-00083326
+        if token.count != 94 {
+            throw BlockchainErrors.InvalidToken
         }
         
-        start = Date().timeIntervalSince1970
+        // now check for valid ore & algorithum
+        let validHeaders: [String] = ["00000000-0002-"]
+        var found = false;
+        for h in validHeaders {
+            if token.starts(with: h) {
+                found = true
+            }
+        }
+        if !found {
+            throw BlockchainErrors.InvalidToken
+        }
         
+        // now go and lookup existence in the database
         var databaseToken: Ledger? = nil
         blockchain_lock.mutex {
             databaseToken = Database.TokenOwnershipRecord(token)
@@ -286,8 +279,39 @@ class BlockChain {
         
         if databaseToken == nil {
             
+            var err: BlockchainErrors?
+            
             pending_lock.mutex {
                 if  Database.TokenPendingRecord(token) == nil {
+                    
+                    // now we validate the find
+                    // validate the token
+                    do {
+                        
+                        let t = try Token(token)
+                        
+                        if AlgorithmManager.sharedInstance().depricated(type: t.algorithm, height: UInt(t.oreHeight)) {
+                            logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' was of deprecated method.", token: t.tokenId(), source: nil, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
+                            return
+                        }
+                        
+                        if t.value() == 0 {
+                            logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' was invalid and has no value.", token: t.tokenId(), source: nil, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
+                            err = BlockchainErrors.TokenHasNoValue
+                            return
+                        }
+                        
+                        // update the token's id
+                        token = t.tokenId()
+                        
+                    } catch BlockchainErrors.TokenHasNoValue {
+                        err = BlockchainErrors.TokenHasNoValue
+                        return
+                    } catch {
+                        logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' caused an exception. '\(error)'", token: token, source: nil, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
+                        return
+                    }
+                    
                     let l = Ledger(op: .RegisterToken, token: token, ref: UUID().uuidString, address: address, auth: "", block: block)
                     if Database.WritePendingLedger(l) == true {
                         returnValue = true
@@ -299,10 +323,14 @@ class BlockChain {
                 }
             }
             
+            if err != nil {
+                throw err!
+            }
+            
         } else {
             logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' this token exists already in blockchain.db", token: token, source: nil, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
         }
-        
+
         return returnValue
         
     }

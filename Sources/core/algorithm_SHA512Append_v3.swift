@@ -32,12 +32,12 @@ public class AlgorithmSHA512AppendV3: AlgorithmProtocol {
     public static let distribution: [Int] = [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,5,5,5,5,5,5,5,5,5,5,10,10,10,10,10,10,10,20,20,20,20,20,20,20,50,50,50,50,50,100,100,100,100,100,500,500,500,500,1000,1000,1000,2000,2000,2000,5000]
     public static let rounds = 9000
     public static let window = UInt8(16)
-    public static var cache: [(String,Int)]?
+    public static var cache: [(UInt32,Int)]?
     static var lock: Mutex = Mutex()
     
-    public class func beans() -> [(String,Int)] {
+    public class func beans() -> [(UInt32,Int)] {
         
-        var retValue: [(String,Int)]?
+        var retValue: [(UInt32,Int)]?
         
         lock.mutex {
             
@@ -53,13 +53,14 @@ public class AlgorithmSHA512AppendV3: AlgorithmProtocol {
                     seedData.append(contentsOf: seedData.sha512())
                 }
                 
-                var b: [(String,Int)] = []
+                var b: [(UInt32,Int)] = []
                 while true {
                     
                     for value in distribution {
                         
-                        let key = Array(seedData.prefix(4)).toHexString()
-                        b.append((key, value))
+                        let key = Array(seedData.prefix(4))
+                        let data = Data(bytes: key)
+                        b.append((UInt32(bigEndian: data.withUnsafeBytes { $0.pointee }), value))
                         seedData.removeFirst(4)
                         
                         if b.count == rounds {
@@ -131,12 +132,22 @@ public class AlgorithmSHA512AppendV3: AlgorithmProtocol {
             
             // we are through the gate, so lets see if we can find some magic beans in the hash
             // do it string based, because weirdly swift is pretty damn fast finding strings in strings plus I do it with 5 chars, or 2.5 bytes to fuck up dedicated hardware!
-            let strHash = hash.toHexString()
+            
+            let hashData = Data(hash)
             
             for k in AlgorithmSHA512AppendV3.beans() {
                 
-                if strHash.contains(string: k.0) {
-                    workload.beans.append(k.0)
+                var bigEndian = k.0.bigEndian
+                let count = MemoryLayout<UInt32>.size
+                let bytePtr = withUnsafePointer(to: &bigEndian) {
+                    $0.withMemoryRebound(to: UInt8.self, capacity: count) {
+                        UnsafeBufferPointer(start: $0, count: count)
+                    }
+                }
+                let byteArray = Array(bytePtr)
+                
+                if hashData.range(of: Data(bytes: byteArray)) != nil {
+                    workload.beans.append(k.0.toHex())
                 }
                 
             }

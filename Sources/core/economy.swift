@@ -99,7 +99,8 @@ public class Economy {
             
             // now iterate the workload to calculate the reward
             var value = 0
-            for bean in workload.beans {
+            for bInt in workload.beans {
+                let bean = UInt32(bInt, radix: 16)
                 for b in AlgorithmSHA512AppendV3.beans() {
                     if bean == b.0 {
                         if b.1 > value {
