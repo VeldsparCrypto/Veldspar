@@ -35,8 +35,8 @@ func process_registrations() {
         
         if outstanding.count > 0 {
          
-            // now go through these registrations, look for all existing tokens in a single op.
-            
+            // now go through these registrations, look for all existing tokens in a single op.  Firstly write them into the registrations table.
+                        
             
         }
         

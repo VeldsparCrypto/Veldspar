@@ -387,7 +387,7 @@ SUM(d5000) as d5000 FROM stats;
         
         // need to improve this with an internal join I feel.  Super slow at the moment
         
-        let result = blockchain_db.query(sql: "SELECT ROWID,* FROM ledger WHERE token IN (SELECT DISTINCT token FROM ledger WHERE owner = ?) AND ROWID > ? ORDER BY block ASC LIMIT 5000", params: [address, lastRowHeight])
+        let result = blockchain_db.query(sql: "SELECT ROWID,* FROM ledger INDEXED BY idx_ledger_owner WHERE owner = ? AND ROWID > ? ORDER BY block ASC LIMIT 10000", params: [address, lastRowHeight])
         if result.error != nil {
             return []
         }
