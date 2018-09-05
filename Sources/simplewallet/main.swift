@@ -33,7 +33,7 @@ srandom(UInt32(time(nil)))
 var currentPassword: String?
 var currentFilename: String?
 var walletOpen = false
-var currentWallet: WalletContainer? = nil
+var wallet: WalletFile?
 let walletLock = Mutex()
 
 // the choice switch
@@ -103,25 +103,22 @@ if currentPassword != nil && currentFilename != nil {
     
     // now try and open/decrypt the wallet object
     walletLock.mutex {
-        let w = WalletContainer.read(filename: currentFilename!, password: currentPassword!)
-        if w != nil {
-            currentWallet = w
-            for wallet in currentWallet?.wallets ?? [] {
-                if wallet.height == nil {
-                    wallet.height = 0
-                }
-            }
+        let w =  WalletFile(currentFilename!, password: currentPassword!)
+        if w.isDecodable() {
+            
+            wallet = w
             walletOpen = true
             print("")
             print("Wallet opened containing addresses:")
-            for wallet in currentWallet?.wallets ?? [] {
-                print(wallet.address!)
+            for a in wallet!.addresses() {
+                print(a)
             }
             
         } else {
             print("incorrect password")
             exit(0)
         }
+        
     }
     
 }
@@ -133,98 +130,36 @@ func WalletLoop() {
         walletLock.mutex {
             
             // fetch the current height
-            if walletOpen && currentWallet != nil && (currentWallet?.wallets.count)! > 0 {
+            if walletOpen && wallet != nil {
                 
-                for wallet in currentWallet!.wallets {
+                if wallet!.height() < Int(Comms.requestHeight() ?? 0) {
                     
-                    var walletHeight: UInt32 = 0
-                    var address: String?
+                    let nextHeight = wallet!.height() + 1
+                    let block = Comms.blockAtHeight(height: nextHeight)
                     
-                    walletLock.mutex {
-                        walletHeight = wallet.height!
-                        address = wallet.address!
+                    var totalAdded = 0
+                    var totalSpent = 0
+                    
+                    for l in block.transactions {
+                        
+                        totalAdded += wallet?.addTokenIfOwned(l.token!, owner: l.destination!, transactionId: l.transaction_group!) ?? 0
+                        totalSpent += wallet?.removeTokenIfOwned(l.token!, newOwner: l.destination!) ?? 0
+                        
                     }
                     
-                    // there are blocks to process so get the next one
-                    let nextBlockData = Comms.request(method: "wallet/sync", parameters: ["height" : "\(walletHeight)", "address" : address!])
-                    if nextBlockData != nil {
-                        
-                        var grouped: [String:[RPC_Ledger]] = [:]
-                        
-                        let b = try? JSONDecoder().decode(RPC_Wallet_Sync_Object.self, from: nextBlockData!)
-                        if b != nil {
-                            
-                            if b!.transactions.count > 0 {
-                                
-                                var totalAdded: Int = 0
-                                var totalSpent: Int = 0
-                                
-                                // we actually don't care about the block, just the transactions
-                                for l in b!.transactions {
-                                    
-                                    if l.destination! == address! {
-                                        
-                                        // this is for us so we can add it into the wallet
-                                        let wt = WalletToken()
-                                        wt.token = l.token
-                                        wt.value = UInt32(Token.valueFromId(wt.token!))
-                                        wallet.tokens[l.token!] = wt
-                                        
-                                        totalAdded += Int(wt.value!)
-                                        
-                                    } else {
-                                        
-                                        // is this a transfer out of a token which was owned by this wallet?
-                                        if wallet.tokens[l.token!] != nil {
-                                            
-                                            let wt = wallet.tokens.removeValue(forKey: l.token!)
-                                            
-                                            // create a transaction record, for the wallet
-                                            if grouped[l.transaction_group!] == nil {
-                                                grouped[l.transaction_group!] = []
-                                            }
-                                            
-                                            grouped[l.transaction_group!]!.append(l)
-                                            
-                                            totalSpent += Int(wt!.value!)
-                                            
-                                        }
-                                        
-                                        
-                                    }
-                                    
-                                }
-                                
-                                // now write in any grouped ledgers as WalletTransaction objects
-                                for t in grouped {
-                                    
-                                    let trans = WalletTransaction()
-                                    trans.ref = t.key
-                                    trans.date = t.value[0].date
-                                    trans.destination = t.value[0].destination
-                                    
-                                    for l in t.value {
-                                        trans.value += UInt32(Token.valueFromId(l.token!))
-                                    }
-                                    
-                                    wallet.transactions.append(trans)
-                                    
-                                }
-                                
-                                wallet.height = UInt32(b!.rowid)
-                                
-                                
-                                currentWallet!.write(filename: currentFilename!, password: currentPassword!)
-                                
-                                print("\((Float(totalAdded) / Float(Config.DenominationDivider))) \(Config.CurrencyName) added to wallet.")
-                                print("Value of spent tokens: \((Float(totalSpent) / Float(Config.DenominationDivider)))")
-                                print("--------------------------")
-                                print("Current balance: \(wallet.balance())")
-                                
-                            }
-                        }
+                    print("\((Float(totalAdded) / Float(Config.DenominationDivider))) \(Config.CurrencyName) added to wallet.")
+                    print("Value of spent tokens: \((Float(totalSpent) / Float(Config.DenominationDivider)))")
+                    print("--------------------------")
+                    print("Current balance: \(wallet!.balance())")
+                    
+                    if block.height != nil {
+                        wallet?.setHeight(Int(block.height!))
                     }
+                    
                 }
+                
+                
+                
             }
         }
         Thread.sleep(forTimeInterval: 10)
@@ -262,22 +197,16 @@ while true {
                 
                 // now try and open/decrypt the wallet object
                 walletLock.mutex {
-                    let w = WalletContainer.read(filename: filename!, password: password!)
-                    if w != nil {
-                        currentWallet = w
-                        currentWallet = w
-                        for wallet in currentWallet?.wallets ?? [] {
-                            if wallet.height == nil {
-                                wallet.height = 0
-                            }
-                        }
+                    let w = WalletFile(filename!, password: password!)
+                    if w.isDecodable() {
+                        wallet = w
                         currentPassword = password
                         currentFilename = filename
                         walletOpen = true
                         print("")
                         print("Wallet opened containing addresses:")
-                        for wallet in currentWallet?.wallets ?? [] {
-                            print(wallet.address!)
+                        for a in w.addresses() {
+                            print(a)
                         }
                         
                         ShowOpenedMenu()
@@ -316,16 +245,8 @@ while true {
                 
                 walletLock.mutex {
                     
-                    currentWallet = WalletContainer()
-                    let newWallet = Wallet()
-                    let uuid = UUID().uuidString.lowercased() + "-" + UUID().uuidString.lowercased()
-                    let seed = Data(bytes:uuid.bytes.sha512()).prefix(32).bytes
-                    let k = Keys(seed)
-                    newWallet.address = k.address()
-                    newWallet.seed = uuid
-                    newWallet.height = 0
-                    currentWallet!.wallets.append(newWallet)
-                    currentWallet?.write(filename: filename!, password: password!)
+                    wallet = WalletFile(filename!, password: password!)
+                    let address = try? wallet!.createNewAddress()
                     currentFilename = filename
                     currentPassword = password
                     walletOpen = true
@@ -333,28 +254,22 @@ while true {
                     print("")
                     print("Wallet created, please record the information below somewhere secure.")
                     
-                    print("address: \(newWallet.address!)")
-                    print("seed uuid: \(uuid)")
+                    print("address: \(address ?? "")")
+                    print("seed uuid: \(wallet!.seedForAddress(address!) ?? "")")
                     print("")
-                    print("current balance: \(newWallet.balance())")
+                    print("current balance: \(wallet!.balance())")
                     
                     ShowOpenedMenu()
                     
                 }
                 
             case "r":
-                
-                var oldMethod = false;
-                
+
                 print("seed uuid ? (e.g. '82B27DE0-0FA8-4D86-9C7B-ACAA5424AC0F-82B27DE0-0FA8-4D86-9C7B-ACAA5424AC0F')")
                 let uuid = readLine()
                 if uuid == nil || uuid!.count < 36 {
                     print("ERROR: invalid seed uuid")
                     break;
-                }
-                
-                if uuid!.count == 36 {
-                    oldMethod = true
                 }
                 
                 print("filename ? (e.g. 'mywallet')")
@@ -384,21 +299,8 @@ while true {
                 
                 walletLock.mutex {
                     
-                    var seed: [UInt8] = []
-                    currentWallet = WalletContainer()
-                    let newWallet = Wallet()
-                    if oldMethod {
-                        seed = uuid!.sha224().data(using: String.Encoding.ascii)!.prefix(upTo: 32).bytes
-                    } else {
-                        seed = Data(bytes:uuid!.bytes.sha512()).prefix(32).bytes
-                    }
-                    
-                    let k = Keys(seed)
-                    newWallet.address = k.address()
-                    newWallet.seed = uuid
-                    newWallet.height = 0
-                    currentWallet!.wallets.append(newWallet)
-                    currentWallet?.write(filename: filename!, password: password!)
+                    wallet = WalletFile(filename!, password: password!)
+                    let address = try? wallet!.addExistingAddress(uuid!)
                     currentFilename = filename
                     currentPassword = password
                     walletOpen = true
@@ -406,10 +308,10 @@ while true {
                     print("")
                     print("Wallet restored, please record the information below somewhere secure.")
                     
-                    print("address: \(newWallet.address!)")
+                    print("address: \(address ?? "")")
                     print("seed uuid: \(uuid!)")
                     print("")
-                    print("current balance: \(newWallet.balance())")
+                    print("current balance: \(wallet!.balance())")
                     
                     ShowOpenedMenu()
                     
@@ -429,7 +331,7 @@ while true {
             switch answer?.lowercased() ?? "" {
             case "b":
                 print("")
-                print("current balance: \(currentWallet!.balance())")
+                print("current balance: \(wallet!.balance())")
             case "l":
                 print("feature not implemented yet")
             case "p":
@@ -437,29 +339,20 @@ while true {
             case "t":
                 print("feature not implemented yet")
             case "c": // create new
-                
-                let newWallet = Wallet()
+            
                 let uuid = UUID().uuidString.lowercased() + "-" + UUID().uuidString.lowercased()
-                let seed = Data(bytes:uuid.bytes.sha512()).prefix(32).bytes
-                let k = Keys(seed)
-                newWallet.address = k.address()
-                newWallet.seed = uuid
-                newWallet.height = 0
-                currentWallet!.wallets.append(newWallet)
-                currentWallet?.write(filename: currentFilename!, password: currentPassword!)
+                let address = try? wallet!.addExistingAddress(uuid)
                 print("")
                 print("Wallet created, please record the information below somewhere secure.")
                 
-                print("address: \(newWallet.address!)")
+                print("address: \(address ?? "")")
                 print("seed uuid: \(uuid)")
                 print("")
-                print("current balance: \(newWallet.balance())")
+                print("current balance: \(wallet!.balance())")
                 
                 ShowOpenedMenu()
                 
             case "a": // add existing
-                
-                var oldMethod = false;
                 
                 print("seed uuid ? (e.g. '82B27DE0-0FA8-4D86-9C7B-ACAA5424AC0F-82B27DE0-0FA8-4D86-9C7B-ACAA5424AC0F')")
                 let uuid = readLine()
@@ -468,36 +361,18 @@ while true {
                     break;
                 }
                 
-                if uuid!.count == 36 {
-                    oldMethod = true
-                }
-                
                 
                 walletLock.mutex {
                     
-                    var seed: [UInt8] = []
-                    let newWallet = Wallet()
-                    if oldMethod {
-                        seed = uuid!.sha224().data(using: String.Encoding.ascii)!.prefix(upTo: 32).bytes
-                    } else {
-                        seed = Data(bytes:uuid!.bytes.sha512()).prefix(32).bytes
-                    }
-                    
-                    let k = Keys(seed)
-                    newWallet.address = k.address()
-                    newWallet.seed = uuid
-                    newWallet.height = 0
-                    currentWallet!.wallets.append(newWallet)
-                    currentWallet?.write(filename: currentFilename!, password: currentPassword!)
-                    walletOpen = true
+                    let address = try? wallet!.addExistingAddress(uuid!)
                     
                     print("")
                     print("Wallet restored, please record the information below somewhere secure.")
                     
-                    print("address: \(newWallet.address!)")
-                    print("seed uuid: \(uuid!)")
+                    print("address: \(address ?? "")")
+                    print("seed uuid: \(wallet?.seedForAddress(address!) ?? "")")
                     print("")
-                    print("current balance: \(newWallet.balance())")
+                    print("current balance: \(wallet!.balance())")
                     
                     ShowOpenedMenu()
                     
@@ -505,10 +380,10 @@ while true {
                 
             case "d": // delete
                 
-                print("Choose wallet to delete")
+                print("Choose address to delete")
                 ListWallets()
                 
-                var choice = readLine()
+                let choice = readLine()
                 if choice == nil {
                     ShowOpenedMenu()
                     break
@@ -519,15 +394,12 @@ while true {
                     break
                 }
                 
-                if Int(choice!)! > currentWallet!.wallets.count {
+                if Int(choice!)! > wallet!.addresses().count {
                     ShowOpenedMenu()
                     break
                 }
                 
-                currentWallet!.wallets.remove(at: Int(choice!)!-1)
-                
-                currentWallet?.write(filename: currentFilename!, password: currentPassword!)
-                
+                wallet?.deleteAddress(wallet!.addresses()[Int(choice!)!-1])
                 ShowOpenedMenu()
                 break
                 
@@ -538,7 +410,7 @@ while true {
                 print("Choose wallet to rename")
                 ListWallets()
                 
-                var choice = readLine()
+                let choice = readLine()
                 if choice == nil {
                     ShowOpenedMenu()
                     break
@@ -549,21 +421,19 @@ while true {
                     break
                 }
                 
-                if Int(choice!)! > currentWallet!.wallets.count {
+                if Int(choice!)! > wallet!.addresses().count {
                     ShowOpenedMenu()
                     break
                 }
                 
-                let w = currentWallet!.wallets[Int(choice!)!-1]
+                let w = wallet!.addresses()[Int(choice!)!-1]
                 
                 print("new name ?")
                 
                 let newName = readLine()
                 if newName != nil && newName!.count > 0 {
-                    w.name = newName
+                    wallet!.nameAddress(w, name: newName!)
                 }
-                
-                currentWallet?.write(filename: currentFilename!, password: currentPassword!)
                 
                 ShowOpenedMenu()
                 break
@@ -574,30 +444,19 @@ while true {
                 
                 walletLock.mutex {
                     
-                    for w in currentWallet!.wallets {
-                        w.height = 0
-                        w.tokens = [:]
-                        w.transactions = []
-                    }
-                    
-                    currentWallet?.write(filename: currentFilename!, password: currentPassword!)
+                    wallet!.setHeight(0)
                     
                 }
                 
             case "x":
-                print("saving wallet")
-                walletLock.mutex {
-                    currentWallet!.write(filename: currentFilename!, password: currentPassword!)
-                }
                 exit(0)
             case "s":
                 walletLock.mutex {
                     
-                    for w in currentWallet!.wallets {
-                        print("seed for address \(w.address!) is \(w.seed!)")
+                    for w in wallet!.addresses() {
+                        print("seed for address \(w) is \(wallet!.seedForAddress(w) ?? "")")
                     }
-                    
-                    
+
                 }
             case "h":
                 ShowOpenedMenu()

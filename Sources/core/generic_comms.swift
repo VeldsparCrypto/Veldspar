@@ -26,7 +26,7 @@ import PerfectCURL
 
 public class Comms {
     
-    public class func request(method: String, parameters: [String:String]?) -> Data? {
+    public class func request(url: String, parameters: [String:String]?) -> Data? {
         
         var encodedParams: [String] = []
         for p in parameters ?? [:] {
@@ -34,7 +34,7 @@ public class Comms {
             encodedParams.append(value!)
         }
         
-        let result = try? CURLRequest("http://\(Config.SeedNodes[0])/\(method)?\(encodedParams.joined(separator: "&"))",.timeout(30)).perform()
+        let result = try? CURLRequest("\(url)?\(encodedParams.joined(separator: "&"))",.timeout(30)).perform()
         
         if result == nil {
             return nil
@@ -49,6 +49,12 @@ public class Comms {
         }
         
         return Data(bytes: result!.bodyBytes)
+        
+    }
+    
+    public class func request(method: String, parameters: [String:String]?) -> Data? {
+        
+        return request(url:"http://\(Config.SeedNodes[0])/\(method)", parameters:parameters)
         
     }
     
@@ -75,6 +81,22 @@ public class Comms {
         }
         
         return result!.bodyJSON
+        
+    }
+    
+    public class func blockAtHeight(height: Int) -> RPC_Block {
+        
+        let blockData = Comms.request(method: "blockchain/block", parameters: ["height" : "\(height)"])
+        if blockData != nil {
+            
+            let b = try? JSONDecoder().decode(RPC_Block.self, from: blockData!)
+            if b != nil {
+                return b!
+            }
+            
+        }
+        
+        return RPC_Block()
         
     }
     

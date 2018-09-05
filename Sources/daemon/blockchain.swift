@@ -314,6 +314,7 @@ class BlockChain {
                     
                     let l = Ledger(op: .RegisterToken, token: token, ref: UUID().uuidString, address: address, auth: "", block: block)
                     if Database.WritePendingLedger(l) == true {
+                        logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' call to 'Database.WritePendingLedger()' succeeded, token written.", token: token, source: nil, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
                         returnValue = true
                     } else {
                         logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: UInt32) -> Bool' call to 'Database.WritePendingLedger()' failed.", token: token, source: nil, duration: Int((Date().timeIntervalSince1970 - start) * 1000))

@@ -319,7 +319,7 @@ class RPCStatsPage {
         page = page.replacingOccurrences(of: "${STATS}", with: statistics)
         page = page.replacingOccurrences(of: "${SUPPLY}", with: supply)
         
-        let sampleSize = 50
+        let sampleSize = 100
         
         // emmission data
         var emissionData: [(String, Double)] = []

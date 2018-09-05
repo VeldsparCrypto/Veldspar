@@ -42,6 +42,34 @@ let statsLock: Mutex = Mutex()
 var hashes: Int = 0
 var matches: Int = 0
 
+var foundGateways = 0
+var h = 0
+var window = 16
+
+while window > 0 {
+    
+    h = 0
+    foundGateways = 0
+    
+    while true {
+        h += 1
+        let hash = UUID().uuidString.bytes.sha512()
+        if hash[0] == UInt8(255) && hash[1] >= UInt8(255-window) {
+            foundGateways += 1
+        }
+        if foundGateways == 100 {
+            break
+        }
+    }
+    
+    print("found 100 gateways in \(h) hashes.  So that's \(h / 100) hashes per gateway ave for window size (\(window)")
+    
+    window -= 1
+    
+}
+
+
+
 if args.count > 1 {
     for i in 1...args.count-1 {
         

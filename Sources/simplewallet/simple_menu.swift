@@ -62,11 +62,11 @@ func ListWallets() {
     print("")
     
     var i = 1
-    for w in currentWallet!.wallets {
-        if w.name != nil {
-            print("  [\(i)] : \(w.name!) (\(w.address!))")
+    for w in wallet!.addresses() {
+        if wallet!.nameForAddress(w) != w {
+            print("  [\(i)] : \(wallet!.nameForAddress(w)) (\(w))")
         } else {
-            print("  [\(i)] : \(w.address!)")
+            print("  [\(i)] : \(w)")
         }
         
         i+=1
