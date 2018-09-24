@@ -24,6 +24,6 @@ import Foundation
 
 public class Workload {
     
-    public var beans: [String] = []
+    public var beans: [Data] = []
     
 }

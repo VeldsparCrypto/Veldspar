@@ -23,17 +23,16 @@
 import Foundation
 
 public enum AlgorithmType : UInt16 {
-    case SHA512_AppendV1 = 0
-    case SHA512_AppendV2 = 1
-    case SHA512_AppendV3 = 2
+    case SHA512_AppendV0 = 0
+    case SHA512_AppendV1 = 1
 }
 
 public protocol AlgorithmProtocol {
-    func generate(ore: Ore, address: [UInt32]) -> Token
+    func generate(ore: Ore, address: [Int]) -> Token
     func validate(token: Token) -> Bool
     func deprecated(height: UInt) -> Bool
     func hash(token: Token) -> [UInt8]
-    func value(token: Token) -> UInt32
+    func value(token: Token) -> Int
     func workload(token: Token) -> Workload
 }
 
@@ -47,9 +46,8 @@ public class AlgorithmManager {
     private var lock: Mutex = Mutex()
     
     init() {
+        register(algorithm: AlgorithmSHA512AppendV0())
         register(algorithm: AlgorithmSHA512AppendV1())
-        register(algorithm: AlgorithmSHA512AppendV2())
-        register(algorithm: AlgorithmSHA512AppendV3())
     }
     
     public func countOfAlgos() -> Int {
@@ -75,7 +73,7 @@ public class AlgorithmManager {
         return AlgorithmManager.this
     }
     
-    public func generate(type: AlgorithmType, ore: Ore, address: [UInt32]) -> Token? {
+    public func generate(type: AlgorithmType, ore: Ore, address: [Int]) -> Token? {
         
         var token: Token? = nil
         
@@ -135,9 +133,9 @@ public class AlgorithmManager {
 
     }
     
-    public func value(token: Token) -> UInt32 {
+    public func value(token: Token) -> Int {
         
-        var value: UInt32 = 0
+        var value: Int = 0
         
         lock.mutex {
             if token.algorithm.rawValue < self.implementations.count {

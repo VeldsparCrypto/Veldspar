@@ -20,34 +20,11 @@
 //    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //    SOFTWARE.
 
+
 import Foundation
 
-public class RPC_Block : Codable {
+class Settings : Codable {
     
-    public var height: Int?
-    public var seed: String?
-    public var hash: String?
-    
-    public var transactions: [RPC_Ledger] = []
-    
-    public init() {}
-    
-}
 
-public class RPC_Ledger : Codable {
-    
-    public var transaction_id: String?
-    public var op: Int?
-    public var date: UInt64?
-    public var transaction_ref: String?
-    public var destination: String?
-    public var auth: String?
-    public var height: Int?
-    public var ore: Int?
-    public var algo: Int?
-    public var value: Int?
-    public var location: [Int]?
-    
-    public init() {}
     
 }

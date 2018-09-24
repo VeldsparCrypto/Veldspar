@@ -36,57 +36,49 @@ public class Ledger {
     public var transaction_id: String
     public var op: LedgerOPType
     public var date: UInt64
-    public var transaction_group: String
+    public var transaction_ref: String
     public var destination: String
-    public var token: String
-    public var spend_auth: String
-    public var block: UInt32
+    public var ore: Int
+    public var algo: Int
+    public var value: Int
+    public var location: [Int]
+    public var auth: String
+    public var height: Int
     
-    public init(op: LedgerOPType,token: String, ref: String, address: String, auth: String, block: UInt32) {
+    public init(op: LedgerOPType,token: String, ref: String, address: String, auth: String, height: Int, ore: Int, algo: Int, value: Int, location: [Int]) {
         
         self.transaction_id = UUID().uuidString.CryptoHash()
         self.op = op
-        self.transaction_group = ref
+        self.transaction_ref = ref
         self.destination = address
         self.date = consensusTime()
-        self.spend_auth = auth
-        self.block = block
-        self.token = token
+        self.auth = auth
+        self.height = height
+        self.ore = ore
+        self.algo = algo
+        self.value = value
+        self.location = location
         
     }
     
-    public init(id: String, op: LedgerOPType, token: String, ref: String, address: String, date: UInt64, auth: String, block: UInt32) {
+    public init(id: String, op: LedgerOPType, ref: String, address: String, date: UInt64, auth: String, height: Int, ore: Int, algo: Int, value: Int, location: [Int]) {
         
         self.transaction_id = id
         self.op = op
-        self.transaction_group = ref
+        self.transaction_ref = ref
         self.destination = address
         self.date = date
-        self.spend_auth = auth
-        self.block = block
-        self.token = token
-        
-    }
-    
-    public func addressString() -> String {
-        
-        var addresses: [String] = []
-        
-        var components = token.components(separatedBy: "-")
-        components.remove(at: 0) // ore
-        components.remove(at: 0) // algo
-        components.remove(at: 0) // value
-        
-        for a in components {
-            addresses.append(a)
-        }
-        
-        return addresses.joined(separator: "-")
+        self.auth = auth
+        self.height = height
+        self.ore = ore
+        self.algo = algo
+        self.value = value
+        self.location = location
         
     }
     
     public func checksum() -> String {
-        return "\(transaction_id)\(op.rawValue)\(date)\(transaction_group)\(destination)\(spend_auth)\(block)".md5()
+        return "\(transaction_id)\(op.rawValue)\(date)\(transaction_ref)\(destination)\(auth)\(height)\(algo)\(ore)\(location[0]))".md5()
     }
     
 }

@@ -22,22 +22,24 @@
 
 import Foundation
 
-public class AlgorithmSHA512AppendV3: AlgorithmProtocol {
+public class AlgorithmSHA512AppendV0: AlgorithmProtocol {
+    
     
     /*
-     *      Same as v3, but smaller window for entry and longer matches
+     *      Same as v0, but smaller window for entry and longer matches
      */
     
-    public static let seed = "BadgerBadgerDuckDuck".bytes.sha512()
-    public static let distribution: [Int] = [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,5,5,5,5,5,5,5,5,5,5,10,10,10,10,10,10,10,20,20,20,20,20,20,20,50,50,50,50,50,100,100,100,100,100,500,500,500,500,1000,1000,1000,2000,2000,2000,5000]
-    public static let rounds = 9000
-    public static let window = UInt8(16)
-    public static var cache: [(UInt32,Int)]?
+    public static let seed = "BoyBellSproutMouse".bytes.sha512()
+    public static let distribution: [Int] = [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,5,5,5,5,5,5,5,5,5,5,5,5,10,10,10,10,10,10,10,10,10,20,20,20,20,20,20,20,20,20,50,50,50,50,50,50,50,100,100,100,100,100,100,100,200,200,200,200,200,500,500,500,500,500,500,1000,1000,1000,2000,2000,2000,5000]
+    public static let rounds = 2000
+    public static let window = UInt8(250)
+    public static let seedSize = 2
+    public static var cache: [Data:Int]?
     static var lock: Mutex = Mutex()
     
-    public class func beans() -> [(UInt32,Int)] {
+    public class func beans() -> [Data:Int] {
         
-        var retValue: [(UInt32,Int)]?
+        var retValue: [Data:Int]?
         
         lock.mutex {
             
@@ -48,20 +50,22 @@ public class AlgorithmSHA512AppendV3: AlgorithmProtocol {
             } else {
                 
                 var seedData: [UInt8] = []
-                seedData.append(contentsOf: seed.sha512())
-                while seedData.count < (rounds * 4) {
-                    seedData.append(contentsOf: seedData.sha512())
+                var hash = seed.sha512()
+                seedData.append(contentsOf: hash)
+                while seedData.count < ((rounds * seedSize)*2) {
+                    hash = hash.sha512()
+                    seedData.append(contentsOf: hash)
                 }
                 
-                var b: [(UInt32,Int)] = []
+                var b: [Data:Int] = [:]
                 while true {
                     
                     for value in distribution {
                         
-                        let key = Array(seedData.prefix(4))
+                        let key = Array(seedData.prefix(seedSize))
                         let data = Data(bytes: key)
-                        b.append((UInt32(bigEndian: data.withUnsafeBytes { $0.pointee }), value))
-                        seedData.removeFirst(4)
+                        b[data] = value
+                        seedData.removeFirst(seedSize)
                         
                         if b.count == rounds {
                             break;
@@ -84,9 +88,9 @@ public class AlgorithmSHA512AppendV3: AlgorithmProtocol {
         
     }
     
-    public func generate(ore: Ore, address: [UInt32]) -> Token {
+    public func generate(ore: Ore, address: [Int]) -> Token {
         
-        return Token(oreHeight: ore.height, address: address, algorithm: .SHA512_AppendV3)
+        return Token(oreHeight: ore.height, location: address, algorithm: .SHA512_AppendV0)
         
     }
     
@@ -94,7 +98,7 @@ public class AlgorithmSHA512AppendV3: AlgorithmProtocol {
         
         // well the token is always valid, but does it meet any of the conditions
         let hash = self.hash(token: token)
-        if hash[0] == Config.MagicByte && hash.sha512()[0] >= (Config.MagicByte - AlgorithmSHA512AppendV3.window) {
+        if hash[0] == Config.MagicByte && hash.sha512()[0] >= (Config.MagicByte - AlgorithmSHA512AppendV0.window) {
             
             //TODO: more validation here to ensure it is valid, against the workload me thinks
             return true
@@ -115,7 +119,7 @@ public class AlgorithmSHA512AppendV3: AlgorithmProtocol {
         
         var byteArray: [UInt8] = []
         
-        for i in token.address {
+        for i in token.location {
             try? byteArray.append(contentsOf: Array(Ore.atHeight(token.oreHeight).rawMaterial[Int(i)...Int((Int(i)+Config.TokenSegmentSize)-1)]))
         }
         
@@ -128,26 +132,18 @@ public class AlgorithmSHA512AppendV3: AlgorithmProtocol {
         let workload = Workload()
         var hash = self.hash(token: token)
         
-        if hash[0] == Config.MagicByte && hash[1] >= (Config.MagicByte - AlgorithmSHA512AppendV3.window) {
+        if hash[0] == Config.MagicByte && hash[1] >= (Config.MagicByte - AlgorithmSHA512AppendV0.window) {
             
             // we are through the gate, so lets see if we can find some magic beans in the hash
             // do it string based, because weirdly swift is pretty damn fast finding strings in strings plus I do it with 5 chars, or 2.5 bytes to fuck up dedicated hardware!
             
             let hashData = Data(hash)
             
-            for k in AlgorithmSHA512AppendV3.beans() {
+            for k in AlgorithmSHA512AppendV0.beans() {
                 
-                var bigEndian = k.0.bigEndian
-                let count = MemoryLayout<UInt32>.size
-                let bytePtr = withUnsafePointer(to: &bigEndian) {
-                    $0.withMemoryRebound(to: UInt8.self, capacity: count) {
-                        UnsafeBufferPointer(start: $0, count: count)
-                    }
-                }
-                let byteArray = Array(bytePtr)
-                
-                if hashData.range(of: Data(bytes: byteArray)) != nil {
-                    workload.beans.append(k.0.toHex())
+                if hashData.range(of: k.key) != nil {
+                    workload.beans.append(k.key)
+                    return workload
                 }
                 
             }
@@ -158,7 +154,41 @@ public class AlgorithmSHA512AppendV3: AlgorithmProtocol {
         
     }
     
-    public func value(token: Token) -> UInt32 {
+    public func validateFind(token: Token, bean: Data) -> Bool {
+        
+        let hash = self.hash(token: token)
+        let hashData = Data(hash)
+        
+        if !AlgorithmSHA512AppendV0.beans().keys.contains(bean) {
+            return false
+        }
+        
+        if hash[0] == Config.MagicByte && hash[1] >= (Config.MagicByte - AlgorithmSHA512AppendV0.window) {
+            
+            if hashData.range(of: bean) != nil {
+                return true
+            }
+            
+        }
+        
+        return false
+        
+    }
+    
+    public func value(token: Token, bean: Data) -> Int {
+        
+        // generate the workload signature, and send it to the Economy class for valuation
+        let workload = Workload()
+        
+        if validateFind(token: token, bean: bean) {
+            workload.beans.append(bean)
+        }
+        
+        return Economy.value(token: token, workload: workload)
+        
+    }
+    
+    public func value(token: Token) -> Int {
         
         // generate the workload signature, and send it to the Economy class for valuation
         let workload = self.workload(token: token)
@@ -168,4 +198,3 @@ public class AlgorithmSHA512AppendV3: AlgorithmProtocol {
     
     
 }
-

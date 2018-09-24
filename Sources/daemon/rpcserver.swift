@@ -21,9 +21,8 @@
 //    SOFTWARE.
 
 import Foundation
-import Foundation
-import PerfectHTTP
 import VeldsparCore
+import PerfectHTTP
 
 public let registrationsLock = Mutex()
 public var registrations: [Registration] = []
@@ -154,57 +153,63 @@ func handleRequest() throws -> RequestHandler {
                             }
                         }
                         
-                        let encodedData = try String(bytes: JSONEncoder().encode(RPCGetBlock.action(height)), encoding: .ascii)
-                        cacheLock.mutex {
-                            cache[request.path] = encodedData
-                        }
-                        response.setBody(string: encodedData!)
+                        var filePath = ""
+                        #if os(Linux)
+                        filePath = "\(NSHomeDirectory())/.\(Config.CurrencyName)/cache/blocks/\(height).block"
+                        #else
+                        filePath = "\(NSHomeDirectory())/.\(Config.CurrencyName)/cache/blocks/\(height).block"
+                        #endif
                         
-                        logger.log(level: .Warning, log: "(RPC) '\(request.path)' block=\(height)", token: nil, source: request.remoteAddress.host, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
+                        // check to see if there is a local cache file
+                        if FileManager.default.fileExists(atPath: filePath) {
+                            
+                            response.setBody(string: try String(contentsOf: URL(fileURLWithPath: filePath), encoding: .ascii))
+                        
+                        } else {
+                            
+                            response.status = .notFound
+                            
+                        }
                         
                     }
                     
-                    if request.path == "/wallet/sync" {
-                        
-                        // query the ledger at a specific height, and return the transactions.  Used for wallet implementations
-                        var height = 0
-                        var address = ""
-                        for p in request.queryParams {
-                            if p.0 == "height" {
-                                height = Int(p.1) ?? 0
-                            }
-                            if p.0 == "address" {
-                                address = p.1
-                            }
-                        }
-                        
-                        let encodedData = try String(bytes: JSONEncoder().encode(RPCSyncWallet.action(address: address, height: height)), encoding: .ascii)
-                        if encodedData != nil {
-                            cacheLock.mutex {
-                                cache[cacheIndex] = encodedData!
-                            }
-                        }
-                        response.setBody(string: encodedData!)
-                        
-                        logger.log(level: .Warning, log: "(RPC) '\(request.path)' address='\(address)' height=\(height)", token: nil, source: request.remoteAddress.host, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
-                        
-                    }
+//                    if request.path == "/token/register" {
+//
+//                        let host = request.remoteAddress.host
+//                        var banned = false
+//                        banLock.mutex {
+//                            if bans[host] != nil {
+//                                if bans[host]! == 10 {
+//                                    logger.log(level: .Warning, log: "(BAN) Banned address '\(host)'", token: nil, source: host, duration: 0)
+//                                    banned = true
+//                                }
+//                            }
+//                        }
+//                        if banned {
+//                            throw RPCErrors.Banned
+//                        }
+//
+//                        var token = ""
+//                        var address = ""
+//                        for p in request.queryParams {
+//                            if p.0 == "token" {
+//                                token = p.1
+//                            }
+//                            if p.0 == "address" {
+//                                address = p.1
+//                            }
+//                        }
+//
+//                        registrationsLock.mutex {
+//                            registrations.append(Registration(tokenId: token, src: request.remoteAddress.host, dest: address))
+//                        }
+//
+//                        try response.setBody(json: ["success" : true, "token" : token, "block" : 0])
+//                        logger.log(level: .Warning, log: "(RPC) '\(request.path)' token='\(token)' address='\(address)'", token: token, source: request.remoteAddress.host, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
+//
+//                    }
                     
                     if request.path == "/token/register" {
-                        
-                        let host = request.remoteAddress.host
-                        var banned = false
-                        banLock.mutex {
-                            if bans[host] != nil {
-                                if bans[host]! == 10 {
-                                    logger.log(level: .Warning, log: "(BAN) Banned address '\(host)'", token: nil, source: host, duration: 0)
-                                    banned = true
-                                }
-                            }
-                        }
-                        if banned {
-                            throw RPCErrors.Banned
-                        }
                         
                         var token = ""
                         var address = ""
@@ -217,11 +222,7 @@ func handleRequest() throws -> RequestHandler {
                             }
                         }
                         
-                        registrationsLock.mutex {
-                            registrations.append(Registration(tokenId: token, src: request.remoteAddress.host, dest: address))
-                        }
-                        
-                        try response.setBody(json: ["success" : true, "token" : token, "block" : 0])
+                        try response.setBody(json: RPCRegisterToken.action(["token" : token, "address" : address], host: request.remoteAddress.host))
                         logger.log(level: .Warning, log: "(RPC) '\(request.path)' token='\(token)' address='\(address)'", token: token, source: request.remoteAddress.host, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
                         
                     }

@@ -55,12 +55,22 @@ public class Economy {
      
      */
     
-    public class func value(token: Token, workload: Workload) -> UInt32 {
+    public class func value(token: Token, workload: Workload) -> Int {
         
     
         
         // value can be differentiated by many things, so switch on the implementation to start
         switch token.algorithm {
+        case .SHA512_AppendV0:
+            
+            // now depricated
+            for bean in workload.beans {
+                return AlgorithmSHA512AppendV0.beans()[bean] ?? 0
+            }
+            
+            
+            
+            return 0
         case .SHA512_AppendV1:
             
             // now depricated
@@ -75,47 +85,13 @@ public class Economy {
                     }
                 }
                 
-                return UInt32(value)
+                return value
             }
             
-        case .SHA512_AppendV2:
-            
-            // now depricated
-            // now iterate the workload to calculate the reward
-            var value = 0
-            for bean in workload.beans {
-                for b in AlgorithmSHA512AppendV2.beans() {
-                    if bean == b.0 {
-                        if b.1 > value {
-                            value = b.1
-                        }
-                    }
-                }
-                
-                return UInt32(value)
-            }
-            
-        case .SHA512_AppendV3:
-            
-            // now iterate the workload to calculate the reward
-            var value = 0
-            for bInt in workload.beans {
-                let bean = UInt32(bInt, radix: 16)
-                for b in AlgorithmSHA512AppendV3.beans() {
-                    if bean == b.0 {
-                        if b.1 > value {
-                            value = b.1
-                        }
-                    }
-                }
-                
-                return UInt32(value)
-            }
-            
-        }
         
-        return UInt32(0)
+        
+        return 0
         
     }
-
+    }
 }

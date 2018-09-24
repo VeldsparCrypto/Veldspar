@@ -54,11 +54,11 @@ class BlockMaker {
                         var start = Date().timeIntervalSince1970
                         
                         // produce the block, hash it, seek quorum, then write it
-                        let previousBlock = blockchain.blockAtHeight(UInt32(index-1))
-                        let newBlock = Block(height: UInt32(index))
+                        let previousBlock = blockchain.blockAtHeight(index-1)
+                        let newBlock = Block(height: index)
                         
                         // query the pending table for this target block height
-                        let ledgers = blockchain.pendingLedgersForBlock(UInt32(index))
+                        let ledgers = blockchain.pendingLedgersForBlock(index)
                         
                         for l in ledgers {
                             newBlock.transactions.append(l)
@@ -75,6 +75,8 @@ class BlockMaker {
                         blockchain.GenerateStatsFor(block: index)
                         logger.log(level: .Info, log: "Blockchain produced block '\(index)'", token: nil, source: nil, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
                         
+                        BlockMaker.export_block(index)
+                        
                     }
                     
                     clearCache()
@@ -87,6 +89,32 @@ class BlockMaker {
 
             
         }
+        
+    }
+    
+    class func export_block(_ height: Int) {
+        
+        do {
+            
+            var filePath = ""
+            #if os(Linux)
+            filePath = "\(NSHomeDirectory())/.\(Config.CurrencyName)/cache/blocks/\(height).block"
+            #else
+            filePath = "\(NSHomeDirectory())/.\(Config.CurrencyName)/cache/blocks/\(height).block"
+            #endif
+            
+            // check to see if there is a local cache file
+            if !FileManager.default.fileExists(atPath: URL(fileURLWithPath: filePath).absoluteString) {
+                
+                let encodedData = try String(bytes: JSONEncoder().encode(RPCGetBlock.action(height)), encoding: .ascii)
+                if encodedData != nil {
+                    try encodedData!.write(to: URL(fileURLWithPath: filePath), atomically: true, encoding: .ascii)
+                }
+                
+            }
+            
+        } catch {}
+        
         
     }
     

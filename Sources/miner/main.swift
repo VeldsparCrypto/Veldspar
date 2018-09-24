@@ -31,7 +31,7 @@ srandom(UInt32(time(nil)))
 // defaults
 var nodeAddress: String = Config.SeedNodes[0]
 var oreBlocks: [Int:Ore] = [:]
-var miningMethods: [AlgorithmType] = [AlgorithmType.SHA512_AppendV3]
+var miningMethods: [AlgorithmType] = [AlgorithmType.SHA512_AppendV0]
 var walletAddress: String?
 var cacheLock = Mutex()
 var threads = 4
@@ -41,34 +41,6 @@ let args: [String] = CommandLine.arguments
 let statsLock: Mutex = Mutex()
 var hashes: Int = 0
 var matches: Int = 0
-
-var foundGateways = 0
-var h = 0
-var window = 16
-
-while window > 0 {
-    
-    h = 0
-    foundGateways = 0
-    
-    while true {
-        h += 1
-        let hash = UUID().uuidString.bytes.sha512()
-        if hash[0] == UInt8(255) && hash[1] >= UInt8(255-window) {
-            foundGateways += 1
-        }
-        if foundGateways == 100 {
-            break
-        }
-    }
-    
-    print("found 100 gateways in \(h) hashes.  So that's \(h / 100) hashes per gateway ave for window size (\(window)")
-    
-    window -= 1
-    
-}
-
-
 
 if args.count > 1 {
     for i in 1...args.count-1 {
@@ -133,7 +105,7 @@ if seeds != nil {
     if resObject != nil {
         for s in resObject!.seeds {
             print("Generating ORE for seed \(s.seed)")
-            oreBlocks[s.height] = Ore(s.seed, height: UInt32(s.height))
+            oreBlocks[s.height] = Ore(s.seed, height: s.height)
             cache.ore_cache[s.height] = s.seed
         }
         cache.write()
@@ -154,7 +126,7 @@ if oreBlocks.keys.count == 0 {
     // restore and generate from the cache
     for k in cache.ore_cache.keys {
         print("Generating ORE for seed (cached) '\(cache.ore_cache[k]!)'")
-        oreBlocks[k] = Ore(cache.ore_cache[k]!, height: UInt32(k))
+        oreBlocks[k] = Ore(cache.ore_cache[k]!, height: k)
     }
 }
 
@@ -189,19 +161,19 @@ for _ in 1...threads {
             
             let height = oreBlocks[Int(oreBlocks.keys.sorted()[Random.Integer(oreBlocks.keys.count-1)])]!.height
             
-            var address: [UInt32] = []
+            var address: [Int] = []
             for _ in 1...Config.TokenAddressSize {
-                address.append(UInt32(Random.Integer(oreSize)))
+                address.append(Int(Random.Integer(oreSize)))
             }
-            let t = Token(oreHeight: height, address: address, algorithm: method)
+            let t = Token(oreHeight: height, location: address, algorithm: method)
             statsLock.mutex {
                 hashes += 1
             }
             if t.value() > 0 {
                 print("Found token! @\(Date()) Ore:\(height) method:\(method.rawValue) value:\(Float(t.value()) / Float(Config.DenominationDivider))")
-                print("Token Address: " + t.tokenId())
+                print("Token Address: " + t.tokenStringId())
                 
-                let h = TokenRegistration.Register(token: t.tokenId(), address: walletAddress!, nodeAddress: nodeAddress)
+                let h = TokenRegistration.Register(token: t.tokenStringId(), address: walletAddress!, nodeAddress: nodeAddress)
                 
                 if h == nil {
                     
@@ -209,7 +181,7 @@ for _ in 1...threads {
                     
                     cacheLock.mutex {
                         // cache this bad boy for later
-                        cache.found_tokens[t.tokenId()] = Date()
+                        cache.found_tokens[t.tokenStringId()] = Date()
                         
                         // write out the cache
                         cache.write()

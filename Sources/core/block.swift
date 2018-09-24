@@ -26,17 +26,17 @@ import CryptoSwift
 public class Block {
     
     // block variables
-    public var height: UInt32
+    public var height: Int
     public var hash: String?
-    public var confirms: UInt64 = 0
-    public var shenanigans: UInt64 = 0
+    public var confirms: Int = 0
+    public var shenanigans: Int = 0
 
     // block contents
     public var oreSeed: String?
     public var transactions: [Ledger] = []
     
     // initializer
-    public init(height: UInt32) {
+    public init(height: Int) {
         self.height = height
     }
         
@@ -45,7 +45,7 @@ public class Block {
         // the hash is based on, the previous hash or "" for the genesis and all of the transaction summary data
         var data = "\(self.height)\(previousHash)\(self.height)"
         for t in self.transactions {
-            data += "\(t.transaction_id)\(t.block)\(t.checksum())\(t.date)\(t.op.rawValue))\(t.destination)\(t.token)\(t.spend_auth)\(t.transaction_group)"
+            data += t.checksum()
         }
         
         return data.CryptoHash()

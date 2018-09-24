@@ -30,14 +30,14 @@ public class Ore {
     
     // global ore cache, to be implemented in ram and generated/loaded from disk.
 
-    static private var cache: [UInt32:Ore] = [:]
+    static private var cache: [Int:Ore] = [:]
     static private var cacheLock: Mutex = Mutex()
     private var seedHash: String
     
     public var rawMaterial: [UInt8] = []
-    public var height: UInt32
+    public var height: Int
 
-    public init(_ seed: String, height: UInt32) {
+    public init(_ seed: String, height: Int) {
         
         self.height = height
         self.seedHash = seed
@@ -62,7 +62,7 @@ public class Ore {
         
     }
     
-    public class func atHeight(_ height: UInt32) throws -> Ore {
+    public class func atHeight(_ height: Int) throws -> Ore {
         
         var o: Ore? = nil
         Ore.cacheLock.mutex {

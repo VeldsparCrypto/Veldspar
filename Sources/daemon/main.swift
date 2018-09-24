@@ -72,7 +72,7 @@ if args.count > 1 {
     }
 }
 
-let v3Beans = AlgorithmSHA512AppendV3.beans()
+let v3Beans = AlgorithmSHA512AppendV0.beans()
 
 // open the database connection
 Database.Initialize()
@@ -110,6 +110,12 @@ while blockchain.StatsHeight() < blockchain.height() {
     print("generating stats for block \(height)")
     blockchain.GenerateStatsFor(block: height)
 }
+
+Execute.background {
+    for i in 0...Int(blockchain.height()) {
+        BlockMaker.export_block(i)
+    }
+}
     
 Execute.background {
     // endlessly run the main process loop
@@ -118,74 +124,6 @@ Execute.background {
 
 Execute.background {
     process_registrations()
-}
-
-Execute.background {
-    while true {
-        while true {
-            
-            let answer = readLine()
-            switch answer?.lowercased() ?? "" {
-            case "f":
-                
-                print("search expression?")
-                let exp = readLine()
-                if exp == nil || exp!.count < 1 {
-                    print("ERROR: invalid search expression")
-                    break;
-                }
-                
-                logger.query(q: exp!, token: nil, limit: 9999, duration: nil);
-                break;
-                
-            case "a":
-                
-                print("address?")
-                let exp = readLine()
-                if exp == nil || exp!.count < 1 {
-                    print("ERROR: invalid search expression")
-                    break;
-                }
-                
-                logger.query(q: exp!, token: nil, limit: 9999, duration: nil);
-                break;
-            case "t":
-                
-                print("token?")
-                let exp = readLine()
-                if exp == nil || exp!.count < 1 {
-                    print("ERROR: invalid search expression")
-                    break;
-                }
-                
-                logger.query(q: nil, token: exp!, limit: 9999, duration: nil);
-                break;
-            case "s":
-                
-                logger.query(q: nil, token: nil, limit: 9999, duration: 1000);
-                break;
-                
-            case "l":
-                
-                print("count?")
-                let exp = readLine()
-                if exp == nil || exp!.count < 1 {
-                    print("ERROR: invalid count expression")
-                    break;
-                }
-                
-                let c = Int(exp!)
-                
-                logger.query(q: nil, token: nil, limit: c ?? 99, duration: nil);
-                break;
-                
-            default:
-                ShowMenu()
-                break;
-            }
-            
-        }
-    }
 }
 
 do {

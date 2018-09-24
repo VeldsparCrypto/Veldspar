@@ -27,126 +27,126 @@ import VeldsparCore
 #if os(Linux)
 let blockchain_db = SWSQLite(path: "\(NSHomeDirectory())/.\(Config.CurrencyName)", filename: "blockchain.db")
 let pending_db = SWSQLite(path: "\(NSHomeDirectory())/.\(Config.CurrencyName)", filename: "pending.db")
-let log_db = SWSQLite(path: "\(NSHomeDirectory())/.\(Config.CurrencyName)", filename: "log.db")
 #else
 let blockchain_db = SWSQLite(path: "\(URL(fileURLWithPath: NSHomeDirectory())).\(Config.CurrencyName)", filename: "blockchain.db")
 let pending_db = SWSQLite(path: "\(URL(fileURLWithPath: NSHomeDirectory())).\(Config.CurrencyName)", filename: "pending.db")
-let log_db = SWSQLite(path: "\(URL(fileURLWithPath: NSHomeDirectory())).\(Config.CurrencyName)", filename: "log.db")
 #endif
 
 class Database {
     
     class func Initialize() {
         
-        _ = blockchain_db.execute(sql: "PRAGMA cache_size = -\((cacheSize / 4)*3);", params: [])
+        _ = blockchain_db.execute(sql: "PRAGMA cache_size = -16000;", params: [])
         _ = blockchain_db.execute(sql: "PRAGMA temp_store = MEMORY;", params: [])
-        _ = pending_db.execute(sql: "PRAGMA cache_size = -\((cacheSize / 4)*1);", params: [])
-        _ = pending_db.execute(sql: "PRAGMA temp_store = MEMORY;", params: [])
+        
         _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS block (height INTEGER PRIMARY KEY, hash TEXT, oreSeed TEXT, confirms INTEGER, shenanigans INTEGER)", params: [])
-        _ = blockchain_db.execute(sql: """
-CREATE TABLE IF NOT EXISTS stats (
-    block INTEGER PRIMARY KEY,
-    newTokens INTEGER,
-    newValue INTEGER,
-    depletion REAL,
-    addressCount INTEGER,
-    activeAddressCount INTEGER,
-    transCount INTEGER,
-    reallocTokens INTEGER,
-    reallocValue INTEGER,
-    d1 INTEGER,
-    d2 INTEGER,
-    d5 INTEGER,
-    d10 INTEGER,
-    d20 INTEGER,
-    d50 INTEGER,
-    d100 INTEGER,
-    d200 INTEGER,
-    d500 INTEGER,
-    d1000 INTEGER,
-    d2000 INTEGER,
-    d5000 INTEGER)
-""", params: [])
-        _ = blockchain_db.execute(sql: "DROP VIEW IF EXISTS stats_summary;", params: [])
-        _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS statistics_summary (blocks INTEGER,tokens INTEGER,value REAL,depletion REAL,rate REAL,addresses INTEGER,transactions INTEGER,d1 INTEGER,d2 INTEGER,d5 INTEGER,d10 INTEGER,d20 INTEGER,d50 INTEGER,d100 INTEGER,d200 INTEGER,d500 INTEGER,d1000 INTEGER,d2000 INTEGER,d5000 INTEGER);", params: [])
-        _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS addresses (address TEXT, block INTEGER);", params: [])
-        _ = blockchain_db.execute(sql:
-            """
-CREATE TABLE IF NOT EXISTS ledger (
-    transaction_id TEXT COLLATE NOCASE PRIMARY KEY,
-    op INTEGER,
-    date INTEGER,
-    transaction_group TEXT,
-    owner TEXT,
-    token TEXT COLLATE NOCASE,
-    spend_auth TEXT,
-    block INTEGER,
-    checksum TEXT,
-    address TEXT COLLATE NOCASE
-);
-""", params: [])
         
-        _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_token ON ledger (token COLLATE NOCASE);", params: [])
-        _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_block ON ledger (block, token COLLATE NOCASE);", params: [])
-        _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_op ON ledger (op);", params: [])
-        _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_owner ON ledger (owner);", params: [])
-        _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_address ON ledger(address COLLATE NOCASE);", params: [])
+        _ = pending_db.execute(sql: "PRAGMA cache_size = -16000;", params: [])
+        _ = pending_db.execute(sql: "PRAGMA temp_store = MEMORY;", params: [])
         
-        _ = pending_db.execute(sql:
-            """
-CREATE TABLE IF NOT EXISTS ledger (
-    transaction_id TEXT COLLATE NOCASE PRIMARY KEY,
-    op INTEGER,
-    date INTEGER,
-    transaction_group TEXT,
-    owner TEXT,
-    token TEXT COLLATE NOCASE,
-    spend_auth TEXT,
-    block INTEGER,
-    checksum TEXT,
-    address TEXT COLLATE NOCASE
-);
-""", params: [])
+        _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS stats (height INTEGER PRIMARY KEY)", params: [])
+        _ = blockchain_db.execute(sql: "ALTER TABLE stats ADD COLUMN newCoins INTEGER", params: [], silenceErrors:true)
+        _ = blockchain_db.execute(sql: "ALTER TABLE stats ADD COLUMN newValue INTEGER", params: [], silenceErrors:true)
+        _ = blockchain_db.execute(sql: "ALTER TABLE stats ADD COLUMN addressCount INTEGER", params: [], silenceErrors:true)
+        _ = blockchain_db.execute(sql: "ALTER TABLE stats ADD COLUMN activeAddressCount INTEGER", params: [], silenceErrors:true)
+        _ = blockchain_db.execute(sql: "ALTER TABLE stats ADD COLUMN transCount INTEGER", params: [], silenceErrors:true)
+        _ = blockchain_db.execute(sql: "ALTER TABLE stats ADD COLUMN reallocCoins INTEGER", params: [], silenceErrors:true)
+        _ = blockchain_db.execute(sql: "ALTER TABLE stats ADD COLUMN reallocValue INTEGER", params: [], silenceErrors:true)
+        _ = blockchain_db.execute(sql: "ALTER TABLE stats ADD COLUMN d1 INTEGER", params: [], silenceErrors:true)
+        _ = blockchain_db.execute(sql: "ALTER TABLE stats ADD COLUMN d2 INTEGER", params: [], silenceErrors:true)
+        _ = blockchain_db.execute(sql: "ALTER TABLE stats ADD COLUMN d5 INTEGER", params: [], silenceErrors:true)
+        _ = blockchain_db.execute(sql: "ALTER TABLE stats ADD COLUMN d10 INTEGER", params: [], silenceErrors:true)
+        _ = blockchain_db.execute(sql: "ALTER TABLE stats ADD COLUMN d20 INTEGER", params: [], silenceErrors:true)
+        _ = blockchain_db.execute(sql: "ALTER TABLE stats ADD COLUMN d50 INTEGER", params: [], silenceErrors:true)
+        _ = blockchain_db.execute(sql: "ALTER TABLE stats ADD COLUMN d100 INTEGER", params: [], silenceErrors:true)
+        _ = blockchain_db.execute(sql: "ALTER TABLE stats ADD COLUMN d200 INTEGER", params: [], silenceErrors:true)
+        _ = blockchain_db.execute(sql: "ALTER TABLE stats ADD COLUMN d500 INTEGER", params: [], silenceErrors:true)
+        _ = blockchain_db.execute(sql: "ALTER TABLE stats ADD COLUMN d1000 INTEGER", params: [], silenceErrors:true)
+        _ = blockchain_db.execute(sql: "ALTER TABLE stats ADD COLUMN d2000 INTEGER", params: [], silenceErrors:true)
+        _ = blockchain_db.execute(sql: "ALTER TABLE stats ADD COLUMN d5000 INTEGER", params: [], silenceErrors:true)
+        _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS statistics_summary (height INTEGER,coins INTEGER,value REAL,rate REAL,addresses INTEGER,transactions INTEGER,d1 INTEGER,d2 INTEGER,d5 INTEGER,d10 INTEGER,d20 INTEGER,d50 INTEGER,d100 INTEGER,d200 INTEGER,d500 INTEGER,d1000 INTEGER,d2000 INTEGER,d5000 INTEGER);", params: [])
+        _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS addresses (address TEXT, height INTEGER);", params: [])
+        _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS ledger (transaction_id TEXT COLLATE NOCASE PRIMARY KEY)", params: [])
+        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN op INTEGER", params: [], silenceErrors:true)
+        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN date INTEGER", params: [], silenceErrors:true)
+        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN transaction_ref TEXT", params: [], silenceErrors:true)
+        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN owner TEXT", params: [], silenceErrors:true)
+        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN ore INTEGER", params: [], silenceErrors:true)
+        for i in 0...(Config.TokenAddressSize - 1) {
+            _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN loc\(i) INTEGER", params: [], silenceErrors:true)
+        }
+        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN auth TEXT", params: [], silenceErrors:true)
+        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN height INTEGER", params: [], silenceErrors:true)
+        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN checksum TEXT", params: [], silenceErrors:true)
+        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN algorithm INTEGER", params: [], silenceErrors:true)
+        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN val INTEGER", params: [], silenceErrors:true)
+        var locations:[String] = []
+        for i in 0...(Config.TokenAddressSize - 1) {
+            locations.append("loc\(i)")
+        }
+        _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_address ON ledger (\(locations.joined(separator: ", ")));", params: [])
+        _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_block ON ledger (height, \(locations.joined(separator: ", ")));", params: [])
         
-        _ = pending_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_token ON ledger (token COLLATE NOCASE);", params: [])
-        _ = pending_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_address ON ledger (address COLLATE NOCASE);", params: [])
-        _ = pending_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_block ON ledger (block, token COLLATE NOCASE);", params: [])
-        
-        // setup the logging table now
-        _ = log_db.execute(sql: "CREATE TABLE IF NOT EXISTS log (id INTEGER PRIMARY KEY AUTOINCREMENT,type TEXT, entry TEXT, timestamp TEXT, request TEXT, token TEXT, source TEXT, duration INTEGER);", params: [])
-        _ = log_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_token ON log(token);", params: [])
-        _ = log_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_type ON log(type);", params: [])
-        _ = log_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_source ON log(source);", params: [])
+        // pending db
+        _ = pending_db.execute(sql: "CREATE TABLE IF NOT EXISTS ledger (transaction_id TEXT COLLATE NOCASE PRIMARY KEY)", params: [])
+        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN op INTEGER", params: [], silenceErrors:true)
+        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN date INTEGER", params: [], silenceErrors:true)
+        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN transaction_ref TEXT", params: [], silenceErrors:true)
+        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN owner TEXT", params: [], silenceErrors:true)
+        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN ore INTEGER", params: [], silenceErrors:true)
+        for i in 0...(Config.TokenAddressSize - 1) {
+            _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN loc\(i) INTEGER", params: [], silenceErrors:true)
+        }
+        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN auth TEXT", params: [], silenceErrors:true)
+        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN height INTEGER", params: [], silenceErrors:true)
+        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN checksum TEXT", params: [], silenceErrors:true)
+        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN algorithm INTEGER", params: [], silenceErrors:true)
+        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN val INTEGER", params: [], silenceErrors:true)
+        _ = pending_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_address ON ledger (\(locations.joined(separator: ", ")));", params: [])
+        _ = pending_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_block ON ledger (height, \(locations.joined(separator: ", ")));", params: [])
         
     }
     
     class func DeleteBlock(_ block: Block) -> Bool {
         
-        if blockchain_db.execute(sql: "DELETE FROM block WHERE height = ?; DELETE FROM ledger WHERE block = ?;", params: [block.height, block.height]).error != nil {
+        if blockchain_db.execute(sql: "DELETE FROM block WHERE height = ?; DELETE FROM ledger WHERE height = ?;", params: [block.height, block.height]).error != nil {
             return false
         }
         
         return true
     }
     
-    class func WritePendingLedger(_ ledger: Ledger) -> Bool {
+    class func WriteLedger(database: SWSQLite, ledger: Ledger) -> Bool {
         
-        if pending_db.execute(
-            sql: "INSERT OR REPLACE INTO ledger (transaction_id, op, date, transaction_group, owner, token, spend_auth, block, checksum, address) VALUES (?,?,?,?,?,?,?,?,?,?)",
-            params: [
-                
-                ledger.transaction_id,
-                UInt64(ledger.op.rawValue),
-                UInt64(ledger.date),
-                ledger.transaction_group,
-                ledger.destination,
-                Token.compactToken(ledger.token),
-                ledger.spend_auth,
-                UInt64(ledger.block),
-                ledger.checksum(),
-                ledger.addressString()
-                
-            ]).error != nil {
+        var locations:[String] = []
+        for i in 0...(Config.TokenAddressSize - 1) {
+            locations.append("loc\(i)")
+        }
+
+        var params: [Any] = []
+        params.append(ledger.transaction_id)
+        params.append(UInt64(ledger.op.rawValue))
+        params.append(UInt64(ledger.date))
+        params.append(ledger.transaction_ref)
+        params.append(ledger.destination)
+        params.append(ledger.ore)
+        for l in ledger.location {
+            params.append(l)
+        }
+        params.append(ledger.auth)
+        params.append(ledger.height)
+        params.append(ledger.checksum())
+        params.append(ledger.algo)
+        params.append(ledger.value)
+        
+        var placeholders: [String] = []
+        for _ in params {
+            placeholders.append("?")
+        }
+        
+        if database.execute(
+            sql: "INSERT OR REPLACE INTO ledger (transaction_id, op, date, transaction_ref, owner, ore, \(locations.joined(separator: ", ")), auth, height, checksum, algorithm, val) VALUES (\(placeholders.joined(separator: ",")));",
+            params: params).error != nil {
             return false
             
         }
@@ -162,27 +162,15 @@ CREATE TABLE IF NOT EXISTS ledger (
         if blockchain_db.execute(sql: "INSERT OR REPLACE INTO block (height, hash, oreSeed, confirms, shenanigans) VALUES (?,?,?,?,?)", params: [UInt64(block.height), block.hash!, block.oreSeed ?? NSNull(), block.confirms, block.shenanigans]).error == nil {
             
             // now write in the transactions into the table as well
-            for t in block.transactions {
+            for ledger in block.transactions {
                 
-                if blockchain_db.execute(
-                    sql: "INSERT OR REPLACE INTO ledger (transaction_id, op, date, transaction_group, owner, token, spend_auth, block, checksum, address) VALUES (?,?,?,?,?,?,?,?,?,?)",
-                    params: [
-                        
-                        t.transaction_id,
-                        UInt64(t.op.rawValue),
-                        UInt64(t.date),
-                        t.transaction_group,
-                        t.destination,
-                        Token.compactToken(t.token),
-                        t.spend_auth,
-                        UInt64(t.block),
-                        t.checksum(),
-                        t.addressString()
-                        
-                    ]).error != nil {
+                if WriteLedger(database: blockchain_db, ledger: ledger) == false {
+                    
                     _ = blockchain_db.execute(sql: "ROLLBACK TRANSACTION;", params: [])
                     return false
+                    
                 }
+                
             }
             _ = blockchain_db.execute(sql: "COMMIT TRANSACTION;", params: [])
             return true
@@ -192,51 +180,46 @@ CREATE TABLE IF NOT EXISTS ledger (
         
     }
 
-    class func WriteStatsRecord(block: Int, depletionRate: Double) {
+    class func WriteStatsRecord(height: Int) {
         
         _ = blockchain_db.execute(sql: "BEGIN TRANSACTION", params: [])
         _ = blockchain_db.execute(sql: "DROP TABLE IF EXISTS temp_stats;", params: [])
-        _ = blockchain_db.execute(sql: "DROP TABLE IF EXISTS temp_block;", params: [])
-        _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS temp_block (block INTEGER PRIMARY KEY);", params: [])
-        _ = blockchain_db.execute(sql: "INSERT INTO temp_block VALUES (?);", params: [block])
         _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS temp_stats (denom TEXT PRIMARY KEY, denom_count INTEGER);", params: [])
-        _ = blockchain_db.execute(sql: "INSERT OR REPLACE INTO stats (block) VALUES ((SELECT block FROM temp_block LIMIT 1));", params: [])
-        _ = blockchain_db.execute(sql: "INSERT INTO temp_stats SELECT substr(token,19,4) as denom, COUNT(*) as denom_count FROM ledger INDEXED BY idx_ledger_block WHERE block = ? AND op = 1 GROUP BY denom;", params: [block])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET newTokens = (SELECT SUM(denom_count) FROM temp_stats) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET d1 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 1))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET d2 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 2))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET d5 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 5))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET d10 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 10))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET d20 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 20))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET d50 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 50))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET d100 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 100))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET d200 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 200))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET d500 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 500))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET d1000 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 1000))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET d2000 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 2000))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET d5000 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 5000))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET newValue = (SELECT SUM((CAST(denom as INT) * denom_count)) FROM temp_stats) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "INSERT INTO addresses (address,block) SELECT owner,? FROM ledger WHERE block = ? AND address NOT IN (SELECT address from addresses);", params: [block,block])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET addressCount = (SELECT COUNT(DISTINCT address) FROM addresses WHERE block <= (SELECT block FROM temp_block LIMIT 1)) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET activeAddressCount = (SELECT COUNT(DISTINCT owner) FROM ledger WHERE block = (SELECT block FROM temp_block LIMIT 1)) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET transCount = (SELECT COUNT(*) FROM ledger WHERE block = (SELECT block FROM temp_block LIMIT 1)) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET reallocTokens = (SELECT COUNT(*) FROM ledger INDEXED BY idx_ledger_block WHERE block = (SELECT block FROM temp_block LIMIT 1) AND op = 2) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
+        _ = blockchain_db.execute(sql: "INSERT OR REPLACE INTO stats (height) VALUES (?);", params: [height])
+        _ = blockchain_db.execute(sql: "INSERT INTO temp_stats SELECT val as denom, COUNT(*) as denom_count FROM ledger INDEXED BY idx_ledger_block WHERE height = ? AND op = 1 GROUP BY denom;", params: [height])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET newCoins = (SELECT SUM(denom_count) FROM temp_stats) WHERE height = ?;", params: [height])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET d1 = (SELECT denom_count FROM temp_stats WHERE denom = 1) WHERE height = ?;", params: [height])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET d2 = (SELECT denom_count FROM temp_stats WHERE denom = 2) WHERE height = ?;", params: [height])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET d5 = (SELECT denom_count FROM temp_stats WHERE denom = 5) WHERE height = ?;", params: [height])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET d10 = (SELECT denom_count FROM temp_stats WHERE denom = 10) WHERE height = ?;", params: [height])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET d20 = (SELECT denom_count FROM temp_stats WHERE denom = 20) WHERE height = ?;", params: [height])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET d50 = (SELECT denom_count FROM temp_stats WHERE denom = 50) WHERE height = ?;", params: [height])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET d100 = (SELECT denom_count FROM temp_stats WHERE denom = 100) WHERE height = ?;", params: [height])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET d200 = (SELECT denom_count FROM temp_stats WHERE denom = 200) WHERE height = ?;", params: [height])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET d500 = (SELECT denom_count FROM temp_stats WHERE denom = 500) WHERE height = ?;", params: [height])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET d1000 = (SELECT denom_count FROM temp_stats WHERE denom = 1000) WHERE height = ?;", params: [height])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET d2000 = (SELECT denom_count FROM temp_stats WHERE denom = 2000) WHERE height = ?;", params: [height])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET d5000 = (SELECT denom_count FROM temp_stats WHERE denom = 5000) WHERE height = ?;", params: [height])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET newValue = (SELECT SUM((CAST(denom as INT) * denom_count)) FROM temp_stats) WHERE height = ?;", params: [height])
+        _ = blockchain_db.execute(sql: "INSERT INTO addresses (address,height) SELECT owner,? FROM ledger WHERE height = ? AND owner NOT IN (SELECT address from addresses);", params: [height,height])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET addressCount = (SELECT COUNT(DISTINCT address) FROM addresses WHERE height <= ?) WHERE height = ?;", params: [height,height])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET activeAddressCount = (SELECT COUNT(DISTINCT owner) FROM ledger WHERE height = ?) WHERE height = ?;", params: [height,height])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET transCount = (SELECT COUNT(*) FROM ledger WHERE height = ?) WHERE height = ?;", params: [])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET reallocCoins = (SELECT COUNT(*) FROM ledger INDEXED BY idx_ledger_block WHERE height = ? AND op = 2) WHERE height = ?;", params: [height,height])
         _ = blockchain_db.execute(sql: "DELETE FROM temp_stats;", params: [])
-        _ = blockchain_db.execute(sql: "INSERT INTO temp_stats SELECT substr(token,19,4) as denom, COUNT(*) as denom_count FROM ledger  INDEXED BY idx_ledger_block WHERE block = (SELECT block FROM temp_block LIMIT 1) AND op = 2 GROUP BY substr(token,19,4);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET reallocValue = (SELECT SUM((CAST(denom as INT) * denom_count)) FROM temp_stats) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET depletion = ? WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [depletionRate])
+        _ = blockchain_db.execute(sql: "INSERT INTO temp_stats SELECT val as denom, COUNT(*) as denom_count FROM ledger INDEXED BY idx_ledger_block WHERE height = ? AND op = 2 GROUP BY val;", params: [height])
+        _ = blockchain_db.execute(sql: "UPDATE stats SET reallocValue = (SELECT SUM((CAST(denom as INT) * denom_count)) FROM temp_stats) WHERE height = ?;", params: [height])
         _ = blockchain_db.execute(sql: "DROP TABLE IF EXISTS temp_stats;", params: [])
         _ = blockchain_db.execute(sql: "DROP TABLE IF EXISTS temp_block;", params: [])
         _ = blockchain_db.execute(sql: """
 DELETE FROM statistics_summary;
 """, params: [])
         _ = blockchain_db.execute(sql: """
-INSERT INTO statistics_summary (blocks,tokens,value,depletion,rate,addresses,transactions,d1,d2,d5,d10,d20,d50,d100,d200,d500,d1000,d2000,d5000)
-SELECT MAX(block) as blocks,
-SUM(newTokens) as tokens,
+INSERT INTO statistics_summary (height,coins,value,rate,addresses,transactions,d1,d2,d5,d10,d20,d50,d100,d200,d500,d1000,d2000,d5000)
+SELECT MAX(height) as height,
+SUM(newCoins) as coins,
 (SUM(d1) + (SUM(d2)*2) + (SUM(d5)*5) + (SUM(d10)*10) + (SUM(d20)*20)  + (SUM(d50)*50) + (SUM(d100)*100) + (SUM(d200)*200) + (SUM(d500)*500) + (SUM(d1000)*1000)  + (SUM(d2000)*2000) + (SUM(d5000)*5000)) as value,
-(SELECT AVG(depletion) FROM stats WHERE block > (SELECT MAX(block) from stats)-3) as depletion,
-(SELECT CAST((CAST(AVG(newTokens) AS REAL) / 2) as REAL)  FROM stats WHERE block > (SELECT MAX(block) from stats)-3) as rate,
+(SELECT CAST((CAST(AVG(newCoins) AS REAL) / 2) as REAL)  FROM stats WHERE height > (SELECT MAX(height) from stats)-3) as rate,
 MAX(addressCount) as addresses,
 SUM(transCount) as transactions,
 SUM(d1) as d1,
@@ -257,7 +240,7 @@ SUM(d5000) as d5000 FROM stats;
     }
     
     
-    class func CurrentHeight() -> UInt32? {
+    class func CurrentHeight() -> Int? {
         
         let result = blockchain_db.query(sql: "SELECT height FROM block ORDER BY height DESC LIMIT 1", params: [])
         if result.error != nil {
@@ -266,7 +249,7 @@ SUM(d5000) as d5000 FROM stats;
         
         if result.results.count > 0 {
             let r = result.results[0]
-            return UInt32(r["height"]!.asUInt64()!)
+            return r["height"]!.asInt() ?? 0
         }
         
         return nil;
@@ -274,14 +257,14 @@ SUM(d5000) as d5000 FROM stats;
     
     class func StatsHeight() -> Int {
         
-        let result = blockchain_db.query(sql: "SELECT block FROM stats ORDER BY block DESC LIMIT 1", params: [])
+        let result = blockchain_db.query(sql: "SELECT height FROM stats ORDER BY height DESC LIMIT 1", params: [])
         if result.error != nil {
             return 0
         }
         
         if result.results.count > 0 {
             let r = result.results[0]
-            return Int(r["block"]!.asInt() ?? 0)
+            return Int(r["height"]!.asInt() ?? 0)
         }
         
         return 0;
@@ -332,14 +315,14 @@ SUM(d5000) as d5000 FROM stats;
                 for s in stats.results {
                     
                     let block = RPC_StatsBlock()
-                    block.height = s["block"]!.asInt() ?? 0
-                    block.newTokens = s["newTokens"]!.asInt() ?? 0
+                    block.height = s["height"]!.asInt() ?? 0
+                    block.newCoins = s["newCoins"]!.asInt() ?? 0
                     block.newValue = s["newValue"]!.asInt() ?? 0
                     block.depletion = s["depletion"]!.asDouble() ?? 0
                     block.addressHeight = s["addressCount"]!.asInt() ?? 0
                     block.activeAddresses = s["activeAddressCount"]!.asInt() ?? 0
-                    block.reallocTokens = s["block"]!.asInt() ?? 0
-                    block.reallocValue = s["block"]!.asInt() ?? 0
+                    block.reallocCoins = s["height"]!.asInt() ?? 0
+                    block.reallocValue = s["height"]!.asInt() ?? 0
                     
                     block.denominations["0.01"] = s["d1"]!.asInt() ?? 0
                     block.denominations["0.02"] = s["d2"]!.asInt() ?? 0
@@ -383,101 +366,36 @@ SUM(d5000) as d5000 FROM stats;
         return 0;
     }
     
-    class func LedgersConcerningAddress(_ address: String, lastRowHeight: Int) -> [(Int,Ledger)] {
+    class func TokenOwnershipRecord(database: SWSQLite, token: Token) -> Ledger? {
         
-        // need to improve this with an internal join I feel.  Super slow at the moment
+        let t: Token = token
         
-        let result = blockchain_db.query(sql: "SELECT ROWID,* FROM ledger INDEXED BY idx_ledger_owner WHERE owner = ? AND ROWID > ? ORDER BY block ASC LIMIT 10000", params: [address, lastRowHeight])
+        var locations:[String] = []
+        for i in 0...(Config.TokenAddressSize - 1) {
+            locations.append(" loc\(i) = ? ")
+        }
+        
+        let result = database.query(sql: "SELECT * FROM ledger WHERE \(locations.joined(separator: " AND ")) ORDER BY height DESC LIMIT 1", params:t.location)
         if result.error != nil {
-            return []
+            return nil
         }
         
         if result.results.count > 0 {
-            var ledgers: [(Int,Ledger)] = []
-            for r in result.results {
-                let l = Ledger(id: r["transaction_id"]!.asString()!,
-                               op: LedgerOPType(rawValue: r["op"]!.asInt()!)!,
-                               token: Token.expandToken(r["token"]!.asString()!),
-                               ref: r["transaction_group"]!.asString()!,
-                               address: r["owner"]!.asString()!,
-                               date: r["date"]!.asUInt64()!,
-                               auth: r["spend_auth"]!.asString()!,
-                               block: UInt32(r["block"]!.asUInt64()!))
-                ledgers.append((Int(r["rowid"]!.asUInt64()!),l))
+            let r = result.results[0]
+            var loc:[Int] = []
+            for i in 0...(Config.TokenAddressSize - 1) {
+                loc.append(r["loc\(i)"]!.asInt() ?? 0)
             }
-            return ledgers
-        }
-        
-        return [];
-    }
-    
-    class func TokenOwnershipRecord(_ id: String) -> Ledger? {
-        
-        var t: Token?
-        
-        do {
-            try t = Token(id)
             
-        } catch  {
-            return nil
-        }
-        
-        let result = blockchain_db.query(sql: "SELECT * FROM ledger WHERE address = ? ORDER BY block DESC LIMIT 1", params: [t!.addressString()])
-        if result.error != nil {
-            return nil
-        }
-        
-        if result.results.count > 0 {
-            let r = result.results[0]
-            let l = Ledger(id: r["transaction_id"]!.asString()!,
-                           op: LedgerOPType(rawValue: r["op"]!.asInt()!)!,
-                           token: Token.expandToken(r["token"]!.asString()!),
-                           ref: r["transaction_group"]!.asString()!,
-                           address: r["owner"]!.asString()!,
-                           date: r["date"]!.asUInt64()!,
-                           auth: r["spend_auth"]!.asString()!,
-                           block: UInt32(r["block"]!.asUInt64()!))
+            let l = LedgerFromRecord(r)
+                           
             return l
         }
         
         return nil;
     }
     
-    class func TokenPendingRecord(_ id: String) -> Ledger? {
-        
-        var t: Token?
-        
-        do {
-            try t = Token(id)
-            
-        } catch  {
-            return nil
-        }
-        
-        let address = t!.addressString()
-        
-        let result = pending_db.query(sql: "SELECT * FROM ledger WHERE address = ? ORDER BY block DESC LIMIT 1", params: [address])
-        if result.error != nil {
-            return nil
-        }
-        
-        if result.results.count > 0 {
-            let r = result.results[0]
-            let l = Ledger(id: r["transaction_id"]!.asString()!,
-                           op: LedgerOPType(rawValue: r["op"]!.asInt()!)!,
-                           token: Token.expandToken(r["token"]!.asString()!),
-                           ref: r["transaction_group"]!.asString()!,
-                           address: r["owner"]!.asString()!,
-                           date: r["date"]!.asUInt64()!,
-                           auth: r["spend_auth"]!.asString()!,
-                           block: UInt32(r["block"]!.asUInt64()!))
-            return l
-        }
-        
-        return nil;
-    }
-    
-    class func BlockAtHeight(_ height: UInt32) -> Block? {
+    class func BlockAtHeight(_ height: Int) -> Block? {
         
         let result = blockchain_db.query(sql: "SELECT * FROM block WHERE height = ? LIMIT 1", params: [UInt64(height)])
         if result.error != nil {
@@ -490,11 +408,16 @@ SUM(d5000) as d5000 FROM stats;
             let b = Block(height: height)
             b.oreSeed = br["oreSeed"]?.asString()
             b.hash = br["hash"]?.asString()
-            b.confirms = br["confirms"]?.asUInt64() ?? 0
-            b.shenanigans = br["shenanigans"]?.asUInt64() ?? 0
+            b.confirms = br["confirms"]?.asInt() ?? 0
+            b.shenanigans = br["shenanigans"]?.asInt() ?? 0
+            
+            var locNames:[String] = []
+            for i in 0...(Config.TokenAddressSize - 1) {
+                locNames.append("loc\(i)")
+            }
             
             // now get the transactions for that block
-            let trans = blockchain_db.query(sql: "SELECT * FROM ledger WHERE block = ? ORDER BY token", params: [UInt64(height)])
+            let trans = blockchain_db.query(sql: "SELECT * FROM ledger WHERE height = ? ORDER BY \(locNames.joined(separator: ","))", params: [UInt64(height)])
             if trans.error != nil {
                 return nil
             }
@@ -503,14 +426,12 @@ SUM(d5000) as d5000 FROM stats;
                 
                 for r in trans.results {
                     
-                    let l = Ledger(id: r["transaction_id"]!.asString()!,
-                                   op: LedgerOPType(rawValue: r["op"]!.asInt()!)!,
-                                   token: Token.expandToken(r["token"]!.asString()!),
-                                   ref: r["transaction_group"]!.asString()!,
-                                   address: r["owner"]!.asString()!,
-                                   date: r["date"]!.asUInt64()!,
-                                   auth: r["spend_auth"]!.asString()!,
-                                   block: UInt32(r["block"]!.asUInt64()!))
+                    var loc:[Int] = []
+                    for i in 0...(Config.TokenAddressSize - 1) {
+                        loc.append(r["loc\(i)"]!.asInt() ?? 0)
+                    }
+                    
+                    let l = LedgerFromRecord(r)
                     
                     b.transactions.append(l)
                     
@@ -524,26 +445,46 @@ SUM(d5000) as d5000 FROM stats;
         return nil;
     }
     
-    class func PendingLedgersForHeight(_ height: UInt32) -> [Ledger] {
+    class func LedgerFromRecord(_ r: Record) -> Ledger {
+        
+        var loc:[Int] = []
+        for i in 0...(Config.TokenAddressSize - 1) {
+            loc.append(r["loc\(i)"]!.asInt() ?? 0)
+        }
+        
+        let l = Ledger(id: r["transaction_id"]!.asString()!,
+                       op: LedgerOPType(rawValue: r["op"]!.asInt()!)!,
+                       ref: r["transaction_ref"]!.asString()!,
+                       address: r["owner"]!.asString()!,
+                       date: r["date"]!.asUInt64()!,
+                       auth: r["auth"]!.asString()!,
+                       height: r["height"]!.asInt()!,
+                       ore: r["ore"]!.asInt()!,
+                       algo: r["algorithm"]!.asInt()!,
+                       value: r["val"]!.asInt()!,
+                       location: loc)
+        
+        return l
+        
+    }
+    
+    class func PendingLedgersForHeight(_ height: Int) -> [Ledger] {
         
         var retValue: [Ledger] = []
         
+        var locNames:[String] = []
+        for i in 0...(Config.TokenAddressSize - 1) {
+            locNames.append("loc\(i)")
+        }
+        
         // now get the transactions for that block
-        let trans = pending_db.query(sql: "SELECT * FROM ledger WHERE block = ? ORDER BY token", params: [UInt64(height)])
+        let trans = pending_db.query(sql: "SELECT * FROM ledger WHERE height = ? ORDER BY \(locNames.joined(separator: ","))", params: [UInt64(height)])
         
         if trans.error == nil && trans.results.count > 0 {
             
             for r in trans.results {
                 
-                let l = Ledger(id: r["transaction_id"]!.asString()!,
-                               op: LedgerOPType(rawValue: r["op"]!.asInt()!)!,
-                               token: Token.expandToken(r["token"]!.asString()!),
-                               ref: r["transaction_group"]!.asString()!,
-                               address: r["owner"]!.asString()!,
-                               date: r["date"]!.asUInt64()!,
-                               auth: r["spend_auth"]!.asString()!,
-                               block: UInt32(r["block"]!.asUInt64()!))
-                
+                let l = LedgerFromRecord(r)
                 retValue.append(l)
                 
             }
@@ -563,7 +504,7 @@ SUM(d5000) as d5000 FROM stats;
             
             for br in result.results {
                 
-                let b = Block(height: UInt32(br["height"]!.asUInt64()!))
+                let b = Block(height: br["height"]!.asInt()!)
                 b.oreSeed = br["oreSeed"]?.asString()
                 retValue.append(b)
                 

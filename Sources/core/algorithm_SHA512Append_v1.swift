@@ -25,21 +25,80 @@ import Foundation
 public class AlgorithmSHA512AppendV1: AlgorithmProtocol {
     
     
-    public func generate(ore: Ore, address: [UInt32]) -> Token {
+    /*
+     *      Same as v0, but smaller window for entry and longer matches
+     */
+    
+    public static let seed = "BoyBellSproutMouse".bytes.sha512()
+    public static let distribution: [Int] = [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,5,5,5,5,5,5,5,5,5,5,5,5,10,10,10,10,10,10,10,10,10,20,20,20,20,20,20,20,20,20,50,50,50,50,50,50,50,100,100,100,100,100,100,100,500,500,500,500,500,500,1000,1000,1000,2000,2000,2000,5000]
+    public static let rounds = 36000
+    public static let window = UInt8(16)
+    public static let seedSize = 5
+    public static var cache: [Data:Int]?
+    static var lock: Mutex = Mutex()
+    
+    public class func beans() -> [Data:Int] {
         
-        return Token(oreHeight: ore.height, address: address, algorithm: .SHA512_AppendV1)
-
+        var retValue: [Data:Int]?
+        
+        lock.mutex {
+            
+            if cache != nil {
+                
+                retValue = cache
+                
+            } else {
+                
+                var seedData: [UInt8] = []
+                var hash = seed.sha512()
+                seedData.append(contentsOf: hash)
+                while seedData.count < (rounds * seedSize) {
+                    hash = hash.sha512()
+                    seedData.append(contentsOf: hash)
+                }
+                
+                var b: [Data:Int] = [:]
+                while true {
+                    
+                    for value in distribution {
+                        
+                        let key = Array(seedData.prefix(seedSize))
+                        let data = Data(bytes: key)
+                        b[data] = value
+                        seedData.removeFirst(seedSize)
+                        
+                        if b.count == rounds {
+                            break;
+                        }
+                        
+                    }
+                    
+                    if b.count == rounds {
+                        break;
+                    }
+                    
+                }
+                
+                cache = b
+                
+                retValue = b
+            }
+        }
+        return retValue!
+        
     }
     
-    public class func beans() -> [(String,Int)] {
-        return v1_beans;
+    public func generate(ore: Ore, address: [Int]) -> Token {
+        
+        return Token(oreHeight: ore.height, location: address, algorithm: .SHA512_AppendV1)
+        
     }
     
     public func validate(token: Token) -> Bool {
         
         // well the token is always valid, but does it meet any of the conditions
         let hash = self.hash(token: token)
-        if hash[0] == Config.MagicByte && hash.sha512()[0] == Config.MagicByte {
+        if hash[0] == Config.MagicByte && hash.sha512()[0] >= (Config.MagicByte - AlgorithmSHA512AppendV1.window) {
             
             //TODO: more validation here to ensure it is valid, against the workload me thinks
             return true
@@ -53,15 +112,15 @@ public class AlgorithmSHA512AppendV1: AlgorithmProtocol {
     }
     
     public func deprecated(height: UInt) -> Bool {
-        return true
+        return false
     }
     
     public func hash(token: Token) -> [UInt8] {
         
         var byteArray: [UInt8] = []
         
-        for i in token.address {
-            try? byteArray.append(contentsOf: Array(Ore.atHeight(token.oreHeight).rawMaterial[Int(i)...Int(Int(i)+Config.TokenSegmentSize)]))
+        for i in token.location {
+            try? byteArray.append(contentsOf: Array(Ore.atHeight(token.oreHeight).rawMaterial[Int(i)...Int((Int(i)+Config.TokenSegmentSize)-1)]))
         }
         
         return byteArray.sha512()
@@ -73,28 +132,62 @@ public class AlgorithmSHA512AppendV1: AlgorithmProtocol {
         let workload = Workload()
         var hash = self.hash(token: token)
         
-        if hash[0] == Config.MagicByte && hash[1] >= (Config.MagicByte - 64) {
+        if hash[0] == Config.MagicByte && hash[1] >= (Config.MagicByte - AlgorithmSHA512AppendV1.window) {
             
             // we are through the gate, so lets see if we can find some magic beans in the hash
-            
             // do it string based, because weirdly swift is pretty damn fast finding strings in strings plus I do it with 5 chars, or 2.5 bytes to fuck up dedicated hardware!
-            let strHash = hash.toHexString()
+            
+            let hashData = Data(hash)
             
             for k in AlgorithmSHA512AppendV1.beans() {
                 
-                if strHash.contains(string: k.0) {
-                    workload.beans.append(k.0)
+                if hashData.range(of: k.key) != nil {
+                    workload.beans.append(k.key)
                 }
-                
+            
             }
             
         }
-    
+        
         return workload
         
     }
     
-    public func value(token: Token) -> UInt32 {
+    public func validateFind(token: Token, bean: Data) -> Bool {
+
+        let hash = self.hash(token: token)
+        let hashData = Data(hash)
+        
+        if !AlgorithmSHA512AppendV1.beans().keys.contains(bean) {
+            return false
+        }
+        
+        if hash[0] == Config.MagicByte && hash[1] >= (Config.MagicByte - AlgorithmSHA512AppendV1.window) {
+            
+            if hashData.range(of: bean) != nil {
+                return true
+            }
+            
+        }
+        
+        return false
+        
+    }
+    
+    public func value(token: Token, bean: Data) -> Int {
+        
+        // generate the workload signature, and send it to the Economy class for valuation
+        let workload = Workload()
+        
+        if validateFind(token: token, bean: bean) {
+            workload.beans.append(bean)
+        }
+        
+        return Economy.value(token: token, workload: workload)
+        
+    }
+    
+    public func value(token: Token) -> Int {
         
         // generate the workload signature, and send it to the Economy class for valuation
         let workload = self.workload(token: token)
@@ -103,6 +196,5 @@ public class AlgorithmSHA512AppendV1: AlgorithmProtocol {
     }
     
     
-    
-    
 }
+

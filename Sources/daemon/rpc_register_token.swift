@@ -40,18 +40,16 @@ class RPCRegisterToken {
         
         let token = payload["token"] as! String
         let address = payload["address"] as! String
-        let block = blockchain.height() + UInt32(Config.TransactionMaturityLevel)
+        let block = blockchain.height() + Config.TransactionMaturityLevel
         
         do {
             if try blockchain.registerToken(tokenString: token, address: address, block: block) {
                 
-                blockchain.IncrementCreation()
                 logger.log(level: .Warning, log: "(Register) SUCCESSFUL token='\(token)' address='\(address)'", token: token, source: nil, duration: 0)
                 return ["success" : true, "token" : token, "block" : block]
                 
             } else {
                 
-                blockchain.IncrementDepletion()
                 logger.log(level: .Warning, log: "(Register) FAILED(exists) token='\(token)' address='\(address)'", token: token, source: nil, duration: 0)
                 return ["success" : false, "token" : token]
                 

@@ -92,6 +92,22 @@ extension UInt64 {
     }
 }
 
+extension Int {
+    private func rawBytes() -> [UInt8] {
+        let totalBytes = MemoryLayout<UInt32>.size
+        var value = UInt32(self)
+        return withUnsafePointer(to: &value) { valuePtr in
+            return valuePtr.withMemoryRebound(to: UInt8.self, capacity: totalBytes) { reboundPtr in
+                return Array(UnsafeBufferPointer(start: reboundPtr, count: totalBytes))
+            }
+        }
+    }
+    func toHex() -> String {
+        let byteArray = self.rawBytes().reversed()
+        return byteArray.map{String(format: "%02X", $0)}.joined()
+    }
+}
+
 extension UInt32 {
     private func rawBytes() -> [UInt8] {
         let totalBytes = MemoryLayout<UInt32>.size

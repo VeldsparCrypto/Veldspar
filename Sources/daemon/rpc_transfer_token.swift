@@ -49,7 +49,7 @@ class RPCTransferToken {
         let address = payload["address"] as! String
         let auth = payload["auth"] as! String
         let reference = payload["reference"] as! String
-        let block = blockchain.height() + UInt32(Config.TransactionMaturityLevel)
+        let block = blockchain.height() + Config.TransactionMaturityLevel
         
         // get the current ownership details of the token
         let current = blockchain.tokenLedger(token: token)

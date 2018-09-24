@@ -100,7 +100,7 @@ public class Comms {
         
     }
     
-    public class func requestHeight() -> UInt32? {
+    public class func requestHeight() -> Int? {
     
         let response = requestJSON(method: "blockchain/currentheight", parameters: nil)
         if response != nil {
@@ -109,7 +109,7 @@ public class Comms {
                 
                 for v in response! {
                     if v.key == "height" {
-                        return UInt32(v.value as! Int)
+                        return v.value as? Int
                     }
                 }
                 
