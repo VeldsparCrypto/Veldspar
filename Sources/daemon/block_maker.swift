@@ -79,8 +79,6 @@ class BlockMaker {
                         
                     }
                     
-                    clearCache()
-                    
                 }
                 
             }
@@ -97,11 +95,7 @@ class BlockMaker {
         do {
             
             var filePath = ""
-            #if os(Linux)
-            filePath = "\(NSHomeDirectory())/.\(Config.CurrencyName)/cache/blocks/\(height).block"
-            #else
-            filePath = "\(NSHomeDirectory())/.\(Config.CurrencyName)/cache/blocks/\(height).block"
-            #endif
+            filePath = "\(NSHomeDirectory())/.\(Config.CurrencyName)/cache/\(height).block"
             
             // check to see if there is a local cache file
             if !FileManager.default.fileExists(atPath: URL(fileURLWithPath: filePath).absoluteString) {

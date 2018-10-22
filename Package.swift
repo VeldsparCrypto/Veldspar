@@ -7,6 +7,8 @@ let package = Package(
     name: "Veldspar",
     products: [
         .library        (name: "VeldsparCore",     targets: ["VeldsparCore"]),
+        .library        (name: "VeldsparDatabase", targets: ["VeldsparDatabase"]),
+        .library        (name: "VeldsparNetwork",  targets: ["VeldsparNetwork"]),
         .executable     (name: "veldspard",        targets: ["veldspard"]),
         .executable     (name: "miner",            targets: ["miner"]),
         .executable     (name: "simplewallet",     targets: ["simplewallet"]),
@@ -14,27 +16,36 @@ let package = Package(
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
-        .package(url: "https://github.com/krzyzanowskim/CryptoSwift.git", .exact("0.8.7")),
-        .package(url: "https://gitlab.com/katalysis/Ed25519.git", .exact("0.2.1")),
+        .package(url: "https://github.com/krzyzanowskim/CryptoSwift.git", .exact("0.12.0")),
+        .package(url: "https://github.com/VeldsparCrypto/Ed25519.git", .exact("0.0.1")),
         .package(url: "https://github.com/sharksync/SWSQLite.git", .exact("1.0.11")),
-        .package(url: "https://github.com/vapor/vapor.git", .exact("3.0.8")),
+        .package(url: "https://github.com/VeldsparCrypto/swifter.git", .exact("1.4.7")),
+        .package(url: "https://editfmah@github.com/VeldsparCrypto/SwiftClient.git", .exact("3.0.5")),
         ],
     targets: [
         .target(
             name: "veldspard",
-            dependencies: ["CryptoSwift","Vapor","SWSQLite","VeldsparCore","Ed25519"],
+            dependencies: ["CryptoSwift","Swifter","VeldsparDatabase","VeldsparNetwork","VeldsparCore","Ed25519","SwiftClient"],
             path: "./Sources/daemon"),
         .target(
+            name: "VeldsparNetwork",
+            dependencies: ["CryptoSwift","Swifter","SwiftClient"],
+            path: "./Sources/network"),
+        .target(
+            name: "VeldsparDatabase",
+            dependencies: ["SWSQLite","VeldsparCore"],
+            path: "./Sources/database"),
+        .target(
             name: "miner",
-            dependencies: ["CryptoSwift","Vapor","SWSQLite","VeldsparCore","Ed25519"],
+            dependencies: ["CryptoSwift","Swifter","SWSQLite","VeldsparCore","Ed25519","SwiftClient"],
             path: "./Sources/miner"),
         .target(
             name: "simplewallet",
-            dependencies: ["CryptoSwift","Vapor","SWSQLite","VeldsparCore","Ed25519"],
+            dependencies: ["CryptoSwift","Swifter","SWSQLite","VeldsparCore","Ed25519","SwiftClient"],
             path: "./Sources/simplewallet"),
         .target(
             name: "VeldsparCore",
-            dependencies: ["CryptoSwift","Vapor","SWSQLite","Ed25519"],
+            dependencies: ["CryptoSwift","Ed25519"],
             path: "./Sources/core"),
         ]
 )

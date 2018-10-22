@@ -31,9 +31,16 @@ public enum LedgerOPType : Int {
     
 }
 
+enum LedgerTransactionState : Int {
+    case New = 0
+    case Verified = 1
+    case Pending = 2
+    case Rejected = 3
+    case Accepted = 4
+}
+
 public class Ledger {
 
-    public var transaction_id: String
     public var op: LedgerOPType
     public var date: UInt64
     public var transaction_ref: String
@@ -41,9 +48,10 @@ public class Ledger {
     public var ore: Int
     public var algo: Int
     public var value: Int
-    public var location: [Int]
+    public var address: [UInt8]
     public var auth: String
     public var height: Int
+    
     
     public init(op: LedgerOPType,token: String, ref: String, address: String, auth: String, height: Int, ore: Int, algo: Int, value: Int, location: [Int]) {
         

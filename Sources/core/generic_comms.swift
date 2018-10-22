@@ -22,11 +22,12 @@
 
 
 import Foundation
-import PerfectCURL
+import SwiftClient
+import Dispatch
 
 public class Comms {
     
-    public class func request(url: String, parameters: [String:String]?) -> Data? {
+    public class func get(url: String, parameters: [String:String]?) -> Data?  {
         
         var encodedParams: [String] = []
         for p in parameters ?? [:] {
@@ -34,27 +35,37 @@ public class Comms {
             encodedParams.append(value!)
         }
         
-        let result = try? CURLRequest("\(url)?\(encodedParams.joined(separator: "&"))",.timeout(30)).perform()
-        
-        if result == nil {
-            return nil
+        let client = Client().onError { (err) in
+            
         }
         
-        if result!.responseCode != 200 {
-            return nil
+        // this is an async call, so we want to block and use it as a sync call
+        var response: Data?
+        let waitSemaphore: DispatchSemaphore = DispatchSemaphore(value: 0)
+        
+        client.get(url: url).query(query: parameters ?? [:]).end(done: { (res) in
+            
+            if res.basicStatus == .ok {
+                response = res.data
+            }
+            
+            waitSemaphore.signal()
+            
+        }) { (err) in
+            
+            waitSemaphore.signal()
+            
         }
         
-        if result!.bodyBytes.count == 0 {
-            return nil
-        }
+         waitSemaphore.wait()
         
-        return Data(bytes: result!.bodyBytes)
+        return response
         
     }
     
     public class func request(method: String, parameters: [String:String]?) -> Data? {
         
-        return request(url:"http://\(Config.SeedNodes[0])/\(method)", parameters:parameters)
+        return get(url:"http://\(Config.SeedNodes[0])/\(method)", parameters:parameters)
         
     }
     
@@ -66,22 +77,38 @@ public class Comms {
             encodedParams.append(value!)
         }
         
-        let result = try? CURLRequest("http://\(Config.SeedNodes[0])/\(method)?\(encodedParams.joined(separator: "&"))",.timeout(30)).perform()
-        
-        if result == nil {
-            return nil
+        let client = Client().onError { (err) in
+            
         }
         
-        if result!.responseCode != 200 {
-            return nil
+        // this is an async call, so we want to block and use it as a sync call
+        var response: [String:Any]?
+        let waitSemaphore: DispatchSemaphore = DispatchSemaphore(value: 0)
+        
+        client.get(url: "http://\(Config.SeedNodes[0])/\(method)").query(query: parameters ?? [:]).end(done: { (res) in
+            
+            if res.basicStatus == .ok {
+                if res.data != nil {
+                    do {
+                        response = try JSONSerialization.jsonObject(with: res.data!, options: []) as? [String: Any]
+                    } catch {
+                        
+                    }
+                }
+            }
+            
+            waitSemaphore.signal()
+            
+        }) { (err) in
+            
+            waitSemaphore.signal()
+            
         }
         
-        if result!.bodyBytes.count == 0 {
-            return nil
-        }
+        waitSemaphore.wait()
         
-        return result!.bodyJSON
-        
+        return response
+
     }
     
     public class func blockAtHeight(height: Int) -> RPC_Block {

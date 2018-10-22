@@ -22,35 +22,47 @@
 
 import Foundation
 
-public class RPC_StatsBlock : Codable {
+public class RPC_Block : Codable {
     
-    public var height = 0
-    public var newCoins = 0
-    public var newValue = 0
-    public var depletion: Double = 0
-    public var addressHeight = 0
-    public var activeAddresses = 0
-    public var reallocCoins = 0
-    public var reallocValue = 0
+    public var height: Int?
+    public var seed: String?
+    public var hash: String?
     
-    public var denominations: [String:Int] = [:]
+    public var transactions: [RPC_Ledger] = []
     
     public init() {}
     
 }
 
-public class RPC_Stats : Codable {
+public class RPC_Ledger : Codable {
     
-    public var height = 0
-    public var value: Double = 0.0
-    public var tokens = 0
-    public var blocks: [RPC_StatsBlock] = []
-    public var denominations: [String:Int] = [:]
-    public var depletion: Double = 0.0
-    public var rate: Double = 0.0
-    public var transactions: Int = 0
-    public var addresses: Int = 0
+    public var transaction_id: String?
+    public var op: Int?
+    public var date: UInt64?
+    public var transaction_ref: String?
+    public var destination: String?
+    public var auth: String?
+    public var height: Int?
+    public var ore: Int?
+    public var algo: Int?
+    public var value: Int?
+    public var location: [Int]?
     
     public init() {}
+    
+    public func token() -> String {
+        
+        var components: [String] = []
+        
+        components.append("\(self.ore ?? 0)")
+        components.append("\(self.algo ?? 0)")
+        components.append("\(self.value ?? 0)")
+        for l in location ?? [] {
+            components.append("\(l)")
+        }
+        
+        return components.joined(separator: "-")
+        
+    }
     
 }

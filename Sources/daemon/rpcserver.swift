@@ -22,12 +22,10 @@
 
 import Foundation
 import VeldsparCore
-import PerfectHTTP
+import Swifter
 
 public let registrationsLock = Mutex()
 public var registrations: [Registration] = []
-let cacheLock: Mutex = Mutex()
-var cache: [String:String] = [:]
 let banLock: Mutex = Mutex()
 var bans: [String:Int] = [:]
 
@@ -38,254 +36,153 @@ enum RPCErrors : Error {
     case Banned
 }
 
-public func clearCache() {
-    cacheLock.mutex {
-        cache.removeAll()
-    }
-}
-
-func handleRequest() throws -> RequestHandler {
-    return {
+class RPCHandler {
+    
+    func request(_ request: HttpRequest) -> HttpResponse {
         
-        request, response in
-        
-        let body = request.postBodyString ?? ""
-        var json: JSON = JSON.null
-        if body != "" {
-            json = try! JSON(data: body.data(using: .utf8, allowLossyConversion: false)!)
-        }
-        let payload = json.dictionaryObject
-        
-        response.setHeader(.contentType, value: "application/json")
-        response.setHeader(.accessControlAllowOrigin, value: "*")
-        response.setHeader(.accessControlAllowMethods, value: "GET, POST, PATCH, PUT, DELETE, OPTIONS")
-        response.setHeader(.accessControlAllowHeaders, value: "Origin, Content-Type, X-Auth-Token")
-        
-        let start = Date().timeIntervalSince1970
-        
-        if request.method == .get {
+        do {
             
-            do {
-                
-                var queryParamsDictionary: [String:String] = [:]
-                for o in request.queryParams {
-                    queryParamsDictionary[o.0] = o.1
-                }
-                
-                var qs = ""
-                for k in queryParamsDictionary.keys.sorted() {
-                    qs += "\(k)=\(queryParamsDictionary[k]!)"
-                }
-                
-                let cacheIndex = request.path + qs
-                
-                var cachedResult: String?
-                cacheLock.mutex {
-                    cachedResult = cache[cacheIndex]
-                }
-                
-                if cachedResult == nil {
-                    
-                    if request.path == "/" {
-                        
-                        response.setHeader(.contentType, value: "text/html")
-                        let r = RPCStatsPage.createPage(blockchain.getStats())
-                        cacheLock.mutex {
-                            cache[cacheIndex] = r
-                        }
-                        response.setBody(string: r)
-                        
-                        logger.log(level: .Warning, log: "(RPC) '\(request.path)'", token: nil, source: request.remoteAddress.host, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
-                        
-                    }
-                    
-                    if request.path == "/info/timestamp" {
-                        try response.setBody(json: ["timestamp" : consensusTime()])
-                    }
-                    
-                    if request.path == "/blockchain/currentheight" {
-                        
-                        let r = try? ["height" : blockchain.height()].jsonEncodedString()
-                        cacheLock.mutex {
-                            cache[cacheIndex] = r ?? ""
-                        }
-                        response.setBody(string: r ?? "" )
-                        
-                        logger.log(level: .Warning, log: "(RPC) '\(request.path)'", token: nil, source: request.remoteAddress.host, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
-                        
-                    }
-                    
-                    if request.path == "/blockchain/seeds" {
-                        
-                        let encodedData = try String(bytes: JSONEncoder().encode(RPCOreSeeds.action()), encoding: .ascii)
-                        
-                        if encodedData != nil {
-                            cacheLock.mutex {
-                                cache[cacheIndex] = encodedData!
-                            }
-                            
-                            response.setBody(string: encodedData!)
-                        }
-                        
-                        logger.log(level: .Warning, log: "(RPC) '\(request.path)'", token: nil, source: request.remoteAddress.host, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
-                        
-                    }
-                    
-                    if request.path == "/blockchain/stats" {
-                        
-                        let r = RPCStats.action()
-                        cacheLock.mutex {
-                            cache[cacheIndex] = r
-                        }
-                        response.setBody(string: r )
-                        
-                        logger.log(level: .Warning, log: "(RPC) '\(request.path)'", token: nil, source: request.remoteAddress.host, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
-
-                    }
-                    
-                    if request.path == "/blockchain/block" {
-                        
-                        // query the ledger at a specific height, and return the transactions.  Used for wallet implementations
-                        var height = 0
-                        for p in request.queryParams {
-                            if p.0 == "height" {
-                                height = Int(p.1) ?? 0
-                            }
-                        }
-                        
-                        var filePath = ""
-                        #if os(Linux)
-                        filePath = "\(NSHomeDirectory())/.\(Config.CurrencyName)/cache/blocks/\(height).block"
-                        #else
-                        filePath = "\(NSHomeDirectory())/.\(Config.CurrencyName)/cache/blocks/\(height).block"
-                        #endif
-                        
-                        // check to see if there is a local cache file
-                        if FileManager.default.fileExists(atPath: filePath) {
-                            
-                            response.setBody(string: try String(contentsOf: URL(fileURLWithPath: filePath), encoding: .ascii))
-                        
-                        } else {
-                            
-                            response.status = .notFound
-                            
-                        }
-                        
-                    }
-                    
-//                    if request.path == "/token/register" {
-//
-//                        let host = request.remoteAddress.host
-//                        var banned = false
-//                        banLock.mutex {
-//                            if bans[host] != nil {
-//                                if bans[host]! == 10 {
-//                                    logger.log(level: .Warning, log: "(BAN) Banned address '\(host)'", token: nil, source: host, duration: 0)
-//                                    banned = true
-//                                }
-//                            }
-//                        }
-//                        if banned {
-//                            throw RPCErrors.Banned
-//                        }
-//
-//                        var token = ""
-//                        var address = ""
-//                        for p in request.queryParams {
-//                            if p.0 == "token" {
-//                                token = p.1
-//                            }
-//                            if p.0 == "address" {
-//                                address = p.1
-//                            }
-//                        }
-//
-//                        registrationsLock.mutex {
-//                            registrations.append(Registration(tokenId: token, src: request.remoteAddress.host, dest: address))
-//                        }
-//
-//                        try response.setBody(json: ["success" : true, "token" : token, "block" : 0])
-//                        logger.log(level: .Warning, log: "(RPC) '\(request.path)' token='\(token)' address='\(address)'", token: token, source: request.remoteAddress.host, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
-//
-//                    }
-                    
-                    if request.path == "/token/register" {
-                        
-                        var token = ""
-                        var address = ""
-                        for p in request.queryParams {
-                            if p.0 == "token" {
-                                token = p.1
-                            }
-                            if p.0 == "address" {
-                                address = p.1
-                            }
-                        }
-                        
-                        try response.setBody(json: RPCRegisterToken.action(["token" : token, "address" : address], host: request.remoteAddress.host))
-                        logger.log(level: .Warning, log: "(RPC) '\(request.path)' token='\(token)' address='\(address)'", token: token, source: request.remoteAddress.host, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
-                        
-                    }
-                    
-                } else {
-                    
-                    if request.path == "/" {
-                        response.setHeader(.contentType, value: "text/html")
-                    }
-                    
-                    // we have a cache hit, so return that.
-                    response.setBody(string: cachedResult!)
-                    
-                }
-                
-                
-                
-            } catch RPCErrors.Banned {
-                
-                response.status = .forbidden
-                
-            } catch {
-                
-                logger.log(level: .Warning, log: "(RPC) '\(request.path)' (handleRequest) call to RPCServer caused an exception.", token: nil, source: request.remoteAddress.host, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
-                
+            let start = Date().timeIntervalSince1970
+            
+            var queryParamsDictionary: [String:String] = [:]
+            for o in request.queryParams {
+                queryParamsDictionary[o.0] = o.1
+            }
+            
+            var qs = ""
+            for k in queryParamsDictionary.keys.sorted() {
+                qs += "\(k)=\(queryParamsDictionary[k]!)"
             }
             
             
-        } else if request.method == .post {
-            
-            do {
+            switch request.path {
+            case "/":
                 
-                if payload != nil {
-                    
-                    if request.path == "/token/register" {
-                        try response.setBody(json: RPCRegisterToken.action(payload!, host: request.remoteAddress.host))
+                let r = RPCStatsPage.createPage(blockchain.getStats())
+                
+                logger.log(level: .Warning, log: "(RPC) '\(request.path)'", token: nil, source: request.address!, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
+                
+                return .ok(.html(r))
+                
+            case "/info/timestamp":
+                
+                return .ok(.jsonString("{\"timestamp\" : \(consensusTime())}"))
+                
+            case "/blockchain/seeds":
+                
+                var encodedData = try String(bytes: JSONEncoder().encode(RPCOreSeeds.action()), encoding: .ascii)
+                if encodedData == nil {
+                    encodedData = ""
+                }
+                
+                return .ok(.jsonString(encodedData!))
+                
+            case "/blockchain/currentheight":
+                
+                let r = "{\"height\" : \(blockchain.height())}"
+                log(level: .Warning, log: "(RPC) '\(request.path)'", token: nil, source: request.address!, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
+                
+                return .ok(.jsonString(r))
+                
+            case "/blockchain/stats":
+                
+                let r = RPCStats.action()
+                
+                logger.log(level: .Warning, log: "(RPC) '\(request.path)'", token: nil, source: request.address!, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
+                
+                return .ok(.jsonString(r))
+                
+            case "/blockchain/block":
+                
+                var height = 0
+                for p in request.queryParams {
+                    if p.0 == "height" {
+                        height = Int(p.1) ?? 0
                     }
+                }
+                
+                let filePath = "\(NSHomeDirectory())/.\(Config.CurrencyName)/cache/\(height).block"
+                
+                // check to see if there is a local cache file
+                if FileManager.default.fileExists(atPath: filePath) {
                     
-                    if request.path == "/token/transfer" {
-                        try response.setBody(json: RPCTransferToken.action(payload!))
-                    }
+                    let r = try? String(contentsOf: URL(fileURLWithPath: filePath), encoding: .ascii)
+                    return .ok(.jsonString(r ?? ""))
                     
                 } else {
                     
+                    return .notFound
                     
                 }
                 
-            } catch RPCErrors.DuplicateRequest {
+            case "/token/register":
                 
+                var token = ""
+                var address = ""
+                for p in request.queryParams {
+                    if p.0 == "token" {
+                        token = p.1
+                    }
+                    if p.0 == "address" {
+                        address = p.1
+                    }
+                }
                 
+                logger.log(level: .Warning, log: "(RPC) '\(request.path)' token='\(token)' address='\(address)'", token: token, source: request.address!, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
                 
-            } catch RPCErrors.InvalidRequest {
+                // try response.setBody(json: )
+                let r = try? RPCRegisterToken.action(["token" : token, "address" : address], host: request.address)
+                return .ok(.json(r!))
                 
-                
-                
-            } catch {
-                
-                
-                
+            default:
+                return .notFound
             }
+            
+        } catch RPCErrors.Banned {
+            
+            return .forbidden
+            
+        } catch RPCErrors.DuplicateRequest {
+            
+            return .badRequest(.html("Veldspar: Duplicate Request"))
+            
+        } catch RPCErrors.InvalidRequest {
+            
+            return .badRequest(.html("Veldspar: Bad Request"))
+            
+        } catch {
+            
+            return .internalServerError
             
         }
         
-        response.completed()
     }
+    
 }
+
+class RPCServer {
+    
+    static var this = RPCServer()
+    var server: HttpServer = HttpServer()
+    
+    class func start() {
+        
+        this.server[""] = { request in
+            return RPCHandler().request(request)
+        }
+        this.server["*"] = { request in
+            return RPCHandler().request(request)
+        }
+        this.server["*/*"] = { request in
+            return RPCHandler().request(request)
+        }
+        this.server["*/*/*"] = { request in
+            return RPCHandler().request(request)
+        }
+        
+        try? this.server.start(14242, forceIPv4: true, priority: .default)
+        
+    }
+    
+}
+

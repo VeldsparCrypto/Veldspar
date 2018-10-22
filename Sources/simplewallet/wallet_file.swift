@@ -57,7 +57,7 @@ class WalletFile {
         var encSeed: String?
         
         do {
-            let aes = try AES(key: Data(bytes: pw.bytes.sha512()).prefix(32).bytes, blockMode: BlockMode.CBC(iv: Data(bytes:pw.bytes.sha512().sha512()).prefix(16).bytes), padding: Padding.pkcs7)
+            let aes = try AES(key: Data(bytes: pw.bytes.sha512()).prefix(32).bytes, blockMode: CBC(iv: Data(bytes:pw.bytes.sha512().sha512()).prefix(16).bytes), padding: Padding.pkcs7)
             
             encSeed = try aes.encrypt(uuid.bytes).base58EncodedString
             
@@ -131,7 +131,7 @@ class WalletFile {
         var encSeed: String?
         
         do {
-            let aes = try AES(key: Data(bytes: pw.bytes.sha512()).prefix(32).bytes, blockMode: BlockMode.CBC(iv: Data(bytes:pw.bytes.sha512().sha512()).prefix(16).bytes), padding: Padding.pkcs7)
+            let aes = try AES(key: Data(bytes: pw.bytes.sha512()).prefix(32).bytes, blockMode: CBC(iv: Data(bytes:pw.bytes.sha512().sha512()).prefix(16).bytes), padding: Padding.pkcs7)
             
             encSeed = try aes.encrypt(uuid.bytes).base58EncodedString
             
@@ -198,9 +198,9 @@ class WalletFile {
                     
                     // this is where we check for the old format file & old AES implementation.  It's upgraded on write out.
                     let encryptedData = seed.base58DecodedData
-                    let aes = try AES(key: Data(bytes: pw.bytes.sha512()).prefix(32).bytes, blockMode: BlockMode.CBC(iv: Data(bytes:pw.bytes.sha512().sha512()).prefix(16).bytes), padding: Padding.pkcs7)
+                    let aes = try AES(key: Data(bytes: pw.bytes.sha512()).prefix(32).bytes, blockMode: CBC(iv: Data(bytes:pw.bytes.sha512().sha512()).prefix(16).bytes), padding: Padding.pkcs7)
                     let decryptedSeed = String(bytes: try aes.decrypt(Array(encryptedData!)), encoding: .ascii)
-                    if !decryptedSeed!.contains(string: "-") {
+                    if !decryptedSeed!.contains("-") {
                         return nil
                     }
                     return decryptedSeed!

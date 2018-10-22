@@ -29,7 +29,7 @@ public class Block {
     public var height: Int
     public var hash: String?
     public var confirms: Int = 0
-    public var shenanigans: Int = 0
+    public var rejections: Int = 0
 
     // block contents
     public var oreSeed: String?

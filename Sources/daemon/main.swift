@@ -22,8 +22,7 @@
 
 import Foundation
 import VeldsparCore
-import PerfectHTTP
-import PerfectHTTPServer
+import Swifter
 
 // defaults
 var port: Int = 14242
@@ -126,16 +125,8 @@ Execute.background {
     process_registrations()
 }
 
-do {
-    
-    // Launch the servers based on the configuration data.
-    var r = Routes()
-    try r.add(uri: "/**", handler: handleRequest())
-    let server = HTTPServer()
-    server.serverPort = UInt16(port)
-    server.addRoutes(r)
-    try server.start()
-    
-} catch {
-    print("error: unable to start rest service.\n")
-}
+// now start the webserver and block
+RPCServer.start()
+
+let block = DispatchSemaphore(value: 0)
+block.wait()

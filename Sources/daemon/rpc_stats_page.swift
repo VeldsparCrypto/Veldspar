@@ -317,7 +317,6 @@ class RPCStatsPage {
         statistics += rowWithDictionary(["Number of unique payment addresses" : "\(stats.addresses)"])
         statistics += rowWithDictionary(["Blockchain Height" : "\(stats.height)"])
         statistics += rowWithDictionary(["Network token rate t/m" : "\(stats.rate)"])
-        statistics += rowWithDictionary(["Estimated depletion rate" : "\(stats.depletion) %"])
         registrationsLock.mutex {
             statistics += rowWithDictionary(["Backlog" : "\(registrations.count) registrations"])
         }
@@ -393,24 +392,6 @@ class RPCStatsPage {
         
         page = page.replacingOccurrences(of: "${RATE_CHART}", with: Chart(title: "Network Rate", bottomAxis: "Block No", sideAxis: "Tokens / min", data: rateData))
         
-        
-        // depletion data
-        var depletionData: [(String, Double)] = []
-        sum = 0
-        counter = 0
-        for b in stats.blocks {
-            if b.height > 3450 {
-                counter += 1
-                sum += b.depletion
-                if counter == sampleSize {
-                    depletionData.append(("\(b.height)", (sum / Double(sampleSize))))
-                    sum = 0
-                    counter = 0
-                }
-            }
-        }
-        
-        page = page.replacingOccurrences(of: "${DEPLETION_CHART}", with: Chart(title: "Depletion", bottomAxis: "Block No", sideAxis: "Depletion rate", data: depletionData))
         
         // address data
         var addressData: [(String, Double)] = []

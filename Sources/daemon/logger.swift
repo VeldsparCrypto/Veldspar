@@ -32,27 +32,10 @@ public enum LogType: String {
     case SlowQuery = "SLOW"
 }
 
-public class Log {
-    
-    var level: LogType?
-    var entry: String?
-    var token: String?
-    var source: String?
-    var duration: Int = 0
-    
-}
-
 public class Logger {
     
     private var lock: Mutex = Mutex()
-    public func log( level: LogType, log: String, token: String?, source: String?, duration: Int) {
-        
-        let l = Log()
-        l.level = level
-        l.entry = log
-        l.token = token
-        l.source = source
-        l.duration = duration
+    public func log( level: LogType, log: String) {
         
         lock.mutex {
             

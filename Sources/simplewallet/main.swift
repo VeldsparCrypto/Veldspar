@@ -142,8 +142,8 @@ func WalletLoop() {
                     
                     for l in block.transactions {
                         
-                        totalAdded += wallet?.addTokenIfOwned(l.token!, owner: l.destination!, transactionId: l.transaction_ref!) ?? 0
-                        totalSpent += wallet?.removeTokenIfOwned(l.token!, newOwner: l.destination!) ?? 0
+                        totalAdded += wallet?.addTokenIfOwned(l.token(), owner: l.destination!, transactionId: l.transaction_ref!) ?? 0
+                        totalSpent += wallet?.removeTokenIfOwned(l.token(), newOwner: l.destination!) ?? 0
                         
                     }
                     
