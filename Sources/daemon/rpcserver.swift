@@ -58,9 +58,9 @@ class RPCHandler {
             switch request.path {
             case "/":
                 
-                let r = RPCStatsPage.createPage(blockchain.getStats())
+                let r = "\(Config.CurrencyName) Daemon \(Config.Version)"
                 
-                logger.log(level: .Warning, log: "(RPC) '\(request.path)'", token: nil, source: request.address!, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
+                logger.log(level: .Warning, log: "(RPC) '\(request.path)'")
                 
                 return .ok(.html(r))
                 
@@ -68,28 +68,10 @@ class RPCHandler {
                 
                 return .ok(.jsonString("{\"timestamp\" : \(consensusTime())}"))
                 
-            case "/blockchain/seeds":
-                
-                var encodedData = try String(bytes: JSONEncoder().encode(RPCOreSeeds.action()), encoding: .ascii)
-                if encodedData == nil {
-                    encodedData = ""
-                }
-                
-                return .ok(.jsonString(encodedData!))
-                
             case "/blockchain/currentheight":
                 
                 let r = "{\"height\" : \(blockchain.height())}"
-                log(level: .Warning, log: "(RPC) '\(request.path)'", token: nil, source: request.address!, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
-                
-                return .ok(.jsonString(r))
-                
-            case "/blockchain/stats":
-                
-                let r = RPCStats.action()
-                
-                logger.log(level: .Warning, log: "(RPC) '\(request.path)'", token: nil, source: request.address!, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
-                
+                logger.log(level: .Info, log: "(RPC) '\(request.path)'")
                 return .ok(.jsonString(r))
                 
             case "/blockchain/block":
@@ -128,11 +110,11 @@ class RPCHandler {
                     }
                 }
                 
-                logger.log(level: .Warning, log: "(RPC) '\(request.path)' token='\(token)' address='\(address)'", token: token, source: request.address!, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
+                logger.log(level: .Warning, log: "(RPC) '\(request.path)' token='\(token)' address='\(address)'")
                 
                 // try response.setBody(json: )
-                let r = try? RPCRegisterToken.action(["token" : token, "address" : address], host: request.address)
-                return .ok(.json(r!))
+                let r = try RPCRegisterToken.action(["token" : token, "address" : address], host: request.address)
+                return .ok(.json(r))
                 
             default:
                 return .notFound

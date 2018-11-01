@@ -87,48 +87,10 @@ print("---------------------------")
 print("\(Config.CurrencyName) Miner v\(Config.Version)")
 print("---------------------------")
 
-// check for a cache file
-var cache = MinerCacheObject()
-if FileManager.default.fileExists(atPath: "miner.cache") {
-    let cacheObject = try? JSONDecoder().decode(MinerCacheObject.self, from: Data(contentsOf: URL(fileURLWithPath: "miner.cache")))
-    if cacheObject != nil {
-        cache = cacheObject!
-    }
-}
-
 print("Connecting to server \(nodeAddress)")
 // connect to the server, download the ore seeds and the allowed methods & algos
 
-let seeds = Comms.request(method: "blockchain/seeds", parameters: nil)
-if seeds != nil {
-    let resObject = try? JSONDecoder().decode(RPC_SeedList.self, from: seeds!)
-    if resObject != nil {
-        for s in resObject!.seeds {
-            print("Generating ORE for seed \(s.seed)")
-            oreBlocks[s.height] = Ore(s.seed, height: s.height)
-            cache.ore_cache[s.height] = s.seed
-        }
-        cache.write()
-    } else if (cache.ore_cache.keys.count == 0) {
-        // no comms from server, can't mine nothing.
-        print("Unable to download ORE from the server located at '\(nodeAddress)', can't continue as cache is also empty.  Please try again later.")
-        exit(0)
-    }
-} else if (cache.ore_cache.keys.count == 0) {
-    
-    // no comms from server, can't mine nothing.
-    print("Unable to download ORE from the server located at '\(nodeAddress)', can't continue as cache is also empty.  Please try again later.")
-    exit(0)
-    
-}
-
-if oreBlocks.keys.count == 0 {
-    // restore and generate from the cache
-    for k in cache.ore_cache.keys {
-        print("Generating ORE for seed (cached) '\(cache.ore_cache[k]!)'")
-        oreBlocks[k] = Ore(cache.ore_cache[k]!, height: k)
-    }
-}
+oreBlocks[0] = Ore(Config.GenesisID, height: 0)
 
 if oreBlocks.keys.count == 0 {
     // no ore :(
@@ -161,11 +123,18 @@ for _ in 1...threads {
             
             let height = oreBlocks[Int(oreBlocks.keys.sorted()[Random.Integer(oreBlocks.keys.count-1)])]!.height
             
-            var address: [Int] = []
+            var locations: [UInt32] = []
             for _ in 1...Config.TokenAddressSize {
-                address.append(Int(Random.Integer(oreSize)))
+                locations.append(UInt32(Int(Random.Integer(oreSize))))
             }
-            let t = Token(oreHeight: height, location: address, algorithm: method)
+            var address = ""
+            
+            for l in locations {
+                let hex = "00000000" + String(l, radix: 16, uppercase: true)
+                address += hex.suffix(8)
+            }
+            
+            let t = Token(oreHeight: height, address: address.hexToData, algorithm: method)
             statsLock.mutex {
                 hashes += 1
             }
@@ -177,54 +146,12 @@ for _ in 1...threads {
                 
                 if h == nil {
                     
-                    print("Unable to register token with \(Config.CurrencyName) network, caching locally until available.")
-                    
-                    cacheLock.mutex {
-                        // cache this bad boy for later
-                        cache.found_tokens[t.tokenStringId()] = Date()
-                        
-                        // write out the cache
-                        cache.write()
-                    }
+                    print("Unable to register token with \(Config.CurrencyName) network")
                     
                 } else if (h! > 0) {
                     print("Token successfully registered with \(Config.CurrencyName) node.")
                 } else if (h! == -1) {
                     print("Token registration unsuccessful, token already registered :(, or invalid token.")
-                }
-                
-                if h != nil && (h! == -1 || h! > 0) {
-                    
-                    // we had communication just a moment ago so try and flush the cache to the network
-                    
-                    cacheLock.mutex {
-                        if cache.found_tokens.keys.count > 0 {
-                            
-                            for token in cache.found_tokens.keys.sorted() {
-                                
-                                let registration = TokenRegistration.Register(token: token, address: walletAddress!, nodeAddress: nodeAddress)
-                                
-                                if registration != nil {
-                                    
-                                    if registration! > 0 {
-                                        print("Cached token successfully registered with \(Config.CurrencyName) node.")
-                                    }
-                                    if registration! == -1 {
-                                        print("Cached token registration unsuccessful, token already registered :( or invalid.")
-                                    }
-                                    
-                                    // now remove from the cache
-                                    
-                                    cache.found_tokens.removeValue(forKey: token)
-                                    
-                                    cache.write()
-                                    
-                                }
-                                
-                            }
-                            
-                        }
-                    }
                 }
             }
         }

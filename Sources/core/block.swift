@@ -23,28 +23,27 @@
 import Foundation
 import CryptoSwift
 
-public class Block {
+public struct Block : Codable {
     
     // block variables
-    public var height: Int
+    public var height: Int?
     public var hash: String?
-    public var confirms: Int = 0
-    public var rejections: Int = 0
+    public var confirms: Int?
+    public var rejections: Int?
 
     // block contents
     public var oreSeed: String?
-    public var transactions: [Ledger] = []
+    public var transactions: [Ledger]?
     
-    // initializer
-    public init(height: Int) {
-        self.height = height
-    }
+    public init() {
         
+    }
+    
     public func GenerateHashForBlock(previousHash: String) -> String {
         
         // the hash is based on, the previous hash or "" for the genesis and all of the transaction summary data
-        var data = "\(self.height)\(previousHash)\(self.height)"
-        for t in self.transactions {
+        var data = "\(self.height ?? 0)\(previousHash)\(self.height ?? 0)"
+        for t in self.transactions ?? [] {
             data += t.checksum()
         }
         

@@ -45,12 +45,12 @@ class RPCRegisterToken {
         do {
             if try blockchain.registerToken(tokenString: token, address: address, block: block) {
                 
-                logger.log(level: .Warning, log: "(Register) SUCCESSFUL token='\(token)' address='\(address)'", token: token, source: nil, duration: 0)
+                logger.log(level: .Warning, log: "(Register) SUCCESSFUL token='\(token)' address='\(address)'")
                 return ["success" : true, "token" : token, "block" : block]
                 
             } else {
                 
-                logger.log(level: .Warning, log: "(Register) FAILED(exists) token='\(token)' address='\(address)'", token: token, source: nil, duration: 0)
+                logger.log(level: .Warning, log: "(Register) FAILED(exists) token='\(token)' address='\(address)'")
                 return ["success" : false, "token" : token]
                 
             }
@@ -79,7 +79,7 @@ class RPCRegisterToken {
             
         } catch {
             
-            logger.log(level: .Warning, log: "(Register) ERROR token='\(token)' address='\(address)'", token: token, source: nil, duration: 0)
+            logger.log(level: .Warning, log: "(Register) ERROR token='\(token)' address='\(address)'")
             return ["success" : false, "token" : token]
             
         }

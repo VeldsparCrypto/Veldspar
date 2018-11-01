@@ -31,62 +31,35 @@ public enum LedgerOPType : Int {
     
 }
 
-enum LedgerTransactionState : Int {
-    case New = 0
+public enum LedgerTransactionState : Int {
+    
+    case Pending = 0
     case Verified = 1
-    case Pending = 2
-    case Rejected = 3
-    case Accepted = 4
+    
 }
 
-public class Ledger {
+public struct Ledger : Codable {
 
-    public var op: LedgerOPType
-    public var date: UInt64
-    public var transaction_ref: String
-    public var destination: String
-    public var ore: Int
-    public var algo: Int
-    public var value: Int
-    public var address: [UInt8]
-    public var auth: String
-    public var height: Int
+    public var id: Int?
+    public var op: Int?
+    public var date: UInt64?
+    public var transaction_ref: String?
+    public var destination: String?
+    public var ore: Int?
+    public var address: Data?
+    public var auth: String?
+    public var height: Int?
+    public var algorithm: Int?
+    public var value: Int?
+    public var state: Int?
+    public var source_node: String?
+    public var hash: String?
     
-    
-    public init(op: LedgerOPType,token: String, ref: String, address: String, auth: String, height: Int, ore: Int, algo: Int, value: Int, location: [Int]) {
-        
-        self.transaction_id = UUID().uuidString.CryptoHash()
-        self.op = op
-        self.transaction_ref = ref
-        self.destination = address
-        self.date = consensusTime()
-        self.auth = auth
-        self.height = height
-        self.ore = ore
-        self.algo = algo
-        self.value = value
-        self.location = location
-        
-    }
-    
-    public init(id: String, op: LedgerOPType, ref: String, address: String, date: UInt64, auth: String, height: Int, ore: Int, algo: Int, value: Int, location: [Int]) {
-        
-        self.transaction_id = id
-        self.op = op
-        self.transaction_ref = ref
-        self.destination = address
-        self.date = date
-        self.auth = auth
-        self.height = height
-        self.ore = ore
-        self.algo = algo
-        self.value = value
-        self.location = location
-        
+    public init() {
     }
     
     public func checksum() -> String {
-        return "\(transaction_id)\(op.rawValue)\(date)\(transaction_ref)\(destination)\(auth)\(height)\(algo)\(ore)\(location[0]))".md5()
+        return "\(date ?? 0)\(transaction_ref ?? "")\(destination ?? "")\(auth ?? "")\(height ?? 0)\(algorithm ?? 0)\(ore ?? 0)\(address?.base64EncodedString() ?? ""))".md5()
     }
     
 }

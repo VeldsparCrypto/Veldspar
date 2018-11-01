@@ -32,14 +32,14 @@ public enum TokenError : Error {
 public class Token {
     
     public var oreHeight: Int
-    public var location: [Int]
+    public var address: Data
     public var algorithm: AlgorithmType
     private var cachedValue: Int?
     
-    public init(oreHeight: Int, location: [Int], algorithm: AlgorithmType) {
+    public init(oreHeight: Int, address: Data, algorithm: AlgorithmType) {
         
         self.oreHeight = oreHeight
-        self.location = location
+        self.address = address
         self.algorithm = algorithm
         
     }
@@ -47,12 +47,12 @@ public class Token {
     public init(_ tokenString: String) throws {
         
         self.oreHeight = 0
-        self.location = []
+        self.address = Data()
         self.algorithm = .SHA512_AppendV1
         
         var segments = tokenString.components(separatedBy: "-")
         
-        if segments.count < (3 + Config.TokenAddressSize) {
+        if segments.count < (4) {
             throw TokenError.InvalidTokenAddress
         }
         
@@ -64,7 +64,7 @@ public class Token {
         }
         segments.remove(at: 0)
         
-        let algorithm = UInt16(segments[0], radix: 16)
+        let algorithm = Int(segments[0], radix: 16)
         if algorithm != nil {
             if algorithm! < AlgorithmManager.sharedInstance().countOfAlgos() {
                 self.algorithm = AlgorithmType(rawValue: algorithm!)!
@@ -78,28 +78,22 @@ public class Token {
         segments.remove(at: 0)
         segments.remove(at: 0) // remove the value segment as this is evaluated
         
-        while segments.count > 0 {
-            let address = Int(segments[0], radix: 16)
-            if address != nil {
-                self.location.append(address!)
-                segments.remove(at: 0)
-            } else {
-                throw TokenError.InvalidTokenAddress
-            }
+        self.address = Data()
+        var hex = segments[0]
+        
+        while hex.count > 0 {
+            let segment = String(hex.prefix(8))
+            hex.removeFirst(8)
+            self.address.append(segment.hexToData)
         }
         
     }
     
-    // <height>-<algorithm>-<value>-<add1>..-..<add n>
-    // FFFFFFFF-FFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF-FFFFFFFF
+    // <height>-<algorithm>-<value>-<add1>..<add n> * in 4Byte segments
+    // FFFFFFFF-FFFF-FFFFFFFF-FFFFFFFFFFFFFFFFFFFFFFFF
     public func tokenStringId() -> String {
         
-        var id = "\(self.oreHeight.toHex())-\(self.algorithm.rawValue.toHex())-\(self.value().toHex())"
-        
-        for a in self.location {
-            id = id + "-\(a.toHex())"
-        }
-        
+        let id = "\(self.oreHeight.toHex())-\(self.algorithm.rawValue.toHex())-\(self.value().toHex())-\(self.address.toHexString())"
         return id
         
     }

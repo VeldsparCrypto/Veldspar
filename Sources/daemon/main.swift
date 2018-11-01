@@ -71,6 +71,8 @@ if args.count > 1 {
     }
 }
 
+let ore = Ore(Config.GenesisID, height: 0)
+
 let v3Beans = AlgorithmSHA512AppendV0.beans()
 
 // open the database connection
@@ -86,7 +88,8 @@ if isGenesis {
         exit(0)
     }
     
-    let firstBlock = Block(height: 0)
+    var firstBlock = Block()
+    firstBlock.height = 0
     firstBlock.oreSeed = Config.GenesisID
     firstBlock.transactions = []
     firstBlock.hash = firstBlock.GenerateHashForBlock(previousHash: "")
@@ -97,18 +100,6 @@ if isGenesis {
 }
 
 print("Blockchain created, currently at height \(blockchain.height())")
-print("Generating Ore")
-
-for o in blockchain.oreSeeds() {
-    let _ = Ore(o.oreSeed!, height: o.height)
-}
-
-print("Generating missing stats")
-while blockchain.StatsHeight() < blockchain.height() {
-    let height = blockchain.StatsHeight() + 1
-    print("generating stats for block \(height)")
-    blockchain.GenerateStatsFor(block: height)
-}
 
 Execute.background {
     for i in 0...Int(blockchain.height()) {
@@ -128,5 +119,5 @@ Execute.background {
 // now start the webserver and block
 RPCServer.start()
 
-let block = DispatchSemaphore(value: 0)
-block.wait()
+let waiter = DispatchSemaphore(value: 0)
+waiter.wait()

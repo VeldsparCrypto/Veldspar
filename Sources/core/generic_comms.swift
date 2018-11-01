@@ -111,19 +111,19 @@ public class Comms {
 
     }
     
-    public class func blockAtHeight(height: Int) -> RPC_Block {
+    public class func blockAtHeight(height: Int) -> Block {
         
         let blockData = Comms.request(method: "blockchain/block", parameters: ["height" : "\(height)"])
         if blockData != nil {
             
-            let b = try? JSONDecoder().decode(RPC_Block.self, from: blockData!)
+            let b = try? JSONDecoder().decode(Block.self, from: blockData!)
             if b != nil {
                 return b!
             }
             
         }
         
-        return RPC_Block()
+        return Block()
         
     }
     

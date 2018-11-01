@@ -51,17 +51,20 @@ class BlockMaker {
                     
                     for index in Int(currentHeight+1)...Int(blockHeightForTime) {
                         
-                        var start = Date().timeIntervalSince1970
-                        
                         // produce the block, hash it, seek quorum, then write it
                         let previousBlock = blockchain.blockAtHeight(index-1)
-                        let newBlock = Block(height: index)
+                        var newBlock = Block()
+                        newBlock.height = index
                         
-                        // query the pending table for this target block height
-                        let ledgers = blockchain.pendingLedgersForBlock(index)
+                        // query the table for this target block height
+                        let ledgers = blockchain.LedgersForBlock(index)
+                        
+                        if newBlock.transactions == nil {
+                            newBlock.transactions = []
+                        }
                         
                         for l in ledgers {
-                            newBlock.transactions.append(l)
+                            newBlock.transactions!.append(l)
                         }
                         
                         newBlock.hash = newBlock.GenerateHashForBlock(previousHash: previousBlock?.hash ?? "")
@@ -72,9 +75,7 @@ class BlockMaker {
                             break;
                         }
                         
-                        blockchain.GenerateStatsFor(block: index)
-                        logger.log(level: .Info, log: "Blockchain produced block '\(index)'", token: nil, source: nil, duration: Int((Date().timeIntervalSince1970 - start) * 1000))
-                        
+                        logger.log(level: .Info, log: "Blockchain produced block '\(index)'")
                         BlockMaker.export_block(index)
                         
                     }
@@ -100,14 +101,21 @@ class BlockMaker {
             // check to see if there is a local cache file
             if !FileManager.default.fileExists(atPath: URL(fileURLWithPath: filePath).absoluteString) {
                 
-                let encodedData = try String(bytes: JSONEncoder().encode(RPCGetBlock.action(height)), encoding: .ascii)
-                if encodedData != nil {
-                    try encodedData!.write(to: URL(fileURLWithPath: filePath), atomically: true, encoding: .ascii)
+                if let block: Block = RPCGetBlock.action(height) {
+                    let encodedData = try String(bytes: JSONEncoder().encode(block), encoding: .ascii)
+                    if encodedData != nil {
+                        try encodedData!.write(to: URL(fileURLWithPath: filePath), atomically: true, encoding: .ascii)
+                    }
                 }
+                
                 
             }
             
-        } catch {}
+        } catch {
+            
+            print(error)
+            
+        }
         
         
     }

@@ -88,9 +88,9 @@ public class AlgorithmSHA512AppendV0: AlgorithmProtocol {
         
     }
     
-    public func generate(ore: Ore, address: [Int]) -> Token {
+    public func generate(ore: Ore, address: Data) -> Token {
         
-        return Token(oreHeight: ore.height, location: address, algorithm: .SHA512_AppendV0)
+        return Token(oreHeight: ore.height, address: address, algorithm: .SHA512_AppendV0)
         
     }
     
@@ -118,9 +118,16 @@ public class AlgorithmSHA512AppendV0: AlgorithmProtocol {
     public func hash(token: Token) -> [UInt8] {
         
         var byteArray: [UInt8] = []
+        var address = token.address.toHexString()
         
-        for i in token.location {
+        while address.count > 0 {
+            
+            let d = address.prefix(8)
+            address.removeFirst(8)
+            let i = Int(UInt32(d, radix:16)!)
+            
             try? byteArray.append(contentsOf: Array(Ore.atHeight(token.oreHeight).rawMaterial[Int(i)...Int((Int(i)+Config.TokenSegmentSize)-1)]))
+            
         }
         
         return byteArray.sha512()

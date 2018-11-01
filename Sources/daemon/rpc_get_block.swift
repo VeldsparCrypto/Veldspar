@@ -22,40 +22,12 @@
 
 import Foundation
 import VeldsparCore
+
 class RPCGetBlock {
     
-    class func action(_ height: Int) -> RPC_Block {
+    class func action(_ height: Int) -> Block? {
         
-        let rpcBlock = RPC_Block()
-        
-        let b = blockchain.blockAtHeight(height)
-        if b != nil {
-            
-            rpcBlock.hash = b?.hash
-            rpcBlock.height = b?.height
-            rpcBlock.seed = b?.oreSeed
-            
-            for l in b?.transactions ?? [] {
-                
-                let ledger = RPC_Ledger()
-                ledger.height = l.height
-                ledger.date = l.date
-                ledger.destination = l.destination
-                ledger.op = l.op.rawValue
-                ledger.auth = l.auth
-                ledger.location = l.location
-                ledger.transaction_ref = l.transaction_ref
-                ledger.transaction_id = l.transaction_id
-
-                rpcBlock.transactions.append(ledger)
-                
-            }
-            
-        } else {
-            
-        }
-        
-        return rpcBlock
+        return blockchain.blockAtHeight(height)
         
     }
     

@@ -282,6 +282,21 @@ extension Array where Element == UInt8 {
 
 extension String {
     
+    public var hexToData: Data {
+        
+        var d = Data()
+        var copy = self
+        
+        while copy.count > 0 {
+            let byte = copy.prefix(2).uppercased()
+            copy.removeFirst(2)
+            d.append(UInt8(byte, radix: 16)!)
+        }
+        
+        return d
+        
+    }
+    
     public var base58EncodedString: String {
         return [UInt8](utf8).base58EncodedString
     }

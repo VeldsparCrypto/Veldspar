@@ -52,20 +52,21 @@ class RPCTransferToken {
         let block = blockchain.height() + Config.TransactionMaturityLevel
         
         // get the current ownership details of the token
-        let current = blockchain.tokenLedger(token: token)
-        if current == nil { // not a registered token, or maturity level not reached, it can't be transferred
+        let ownership = blockchain.tokenOwnership(token: token)
+        if ownership.count == 0 { // not a registered token
             throw RPCErrors.InvalidRequest
         }
         
-        // check that the token is not currently the subject of an existing transfer
-        let pending = blockchain.tokenLedger(token: token)
-        if pending != nil { // token is already a pending transaction
+        // check that it doesn't have an outstanding transfer request
+        if ownership[0].state! == LedgerTransactionState.Pending.rawValue {
             throw RPCErrors.InvalidRequest
         }
+        
+        let current = ownership[0]
         
         // check that the request has the authority to transfer the token by testing the public key signature
-        let transferSignature = Crypto.makeTransactionIdentifier(src: current!.destination, dest: address, token: token)
-        if Crypto.isSigned(transferSignature, signature: auth, address: current!.destination) {
+        let transferSignature = Crypto.makeTransactionIdentifier(src: current.destination!, dest: address, token: token)
+        if Crypto.isSigned(transferSignature, signature: auth, address: current.destination!) {
             // signatures match, time to add this to the pending chain
             
             if blockchain.transferToken(token: token, address: address, block: block, auth: auth, reference: reference) {

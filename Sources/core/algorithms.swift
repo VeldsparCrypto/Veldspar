@@ -22,13 +22,13 @@
 
 import Foundation
 
-public enum AlgorithmType : UInt16 {
+public enum AlgorithmType : Int {
     case SHA512_AppendV0 = 0
     case SHA512_AppendV1 = 1
 }
 
 public protocol AlgorithmProtocol {
-    func generate(ore: Ore, address: [Int]) -> Token
+    func generate(ore: Ore, address: Data) -> Token
     func validate(token: Token) -> Bool
     func deprecated(height: UInt) -> Bool
     func hash(token: Token) -> [UInt8]
@@ -73,7 +73,7 @@ public class AlgorithmManager {
         return AlgorithmManager.this
     }
     
-    public func generate(type: AlgorithmType, ore: Ore, address: [Int]) -> Token? {
+    public func generate(type: AlgorithmType, ore: Ore, address: Data) -> Token? {
         
         var token: Token? = nil
         
