@@ -142,17 +142,39 @@ for _ in 1...threads {
                 print("Found token! @\(Date()) Ore:\(height) method:\(method.rawValue) value:\(Float(t.value()) / Float(Config.DenominationDivider))")
                 print("Token Address: " + t.tokenStringId())
                 
-                let h = TokenRegistration.Register(token: t.tokenStringId(), address: walletAddress!, nodeAddress: nodeAddress)
-                
-                if h == nil {
+                /*UTokenRegistration.Register(token: t.tokenStringId(), address: walletAddress!, nodeAddress: nodeAddress,success: ({ data in
                     
-                    print("Unable to register token with \(Config.CurrencyName) network")
+                    if data == nil {
+                        return
+                    }
                     
-                } else if (h! > 0) {
-                    print("Token successfully registered with \(Config.CurrencyName) node.")
-                } else if (h! == -1) {
+                    // we have a valid response
+                    let resObject: RPC_Register_Repsonse? = try? JSONDecoder().decode(RPC_Register_Repsonse.self, from: data!)
+                    if resObject != nil {
+                        
+                        // check for failure
+                        if resObject?.success == false {
+                            
+                            print("Token registration unsuccessful, token already registered :(, or invalid token.")
+                            return  // specific, communication was fine, but registration was unsuccessful
+                        }
+                        
+                        // successfully written, return the height at which it was placed
+                        print("Token successfully registered with \(Config.CurrencyName) node.")
+                        
+                    } else {
+                        
+                        print("Token registration unsuccessful, token already registered :(, or invalid token.")
+                        
+                    }
+                    
+                }), error: {
+                    
                     print("Token registration unsuccessful, token already registered :(, or invalid token.")
-                }
+                    
+                })
+                */
+                
             }
         }
     }

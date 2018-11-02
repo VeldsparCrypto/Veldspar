@@ -40,7 +40,7 @@ public class Logger {
         lock.mutex {
             
             // write out to the logfile and print out to the screen.
-            
+            print("[\(Date())] [\(level)] \(log)")
             
         }
         

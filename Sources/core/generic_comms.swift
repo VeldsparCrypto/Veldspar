@@ -27,6 +27,24 @@ import Dispatch
 
 public class Comms {
     
+    public class func getAsync(url: String, parameters: [String:String]?, success:@escaping (Data?) -> (), failure:@escaping () -> ())  {
+        
+        let client = Client().onError { (err) in
+            failure()
+        }
+        
+        client.get(url: url).query(query: parameters ?? [:]).end(done: { (res) in
+            
+            success(res.data)
+            
+        }) { (err) in
+
+            failure()
+            
+        }
+        
+    }
+    
     public class func get(url: String, parameters: [String:String]?) -> Data?  {
         
         var encodedParams: [String] = []
@@ -66,6 +84,12 @@ public class Comms {
     public class func request(method: String, parameters: [String:String]?) -> Data? {
         
         return get(url:"http://\(Config.SeedNodes[0])/\(method)", parameters:parameters)
+        
+    }
+    
+    public class func requestAsync(method: String, parameters: [String:String]?, success:@escaping (Data?) -> (), error:@escaping () -> ()) {
+        
+        getAsync(url:"http://\(Config.SeedNodes[0])/\(method)", parameters:parameters, success: success, failure: error)
         
     }
     
