@@ -62,4 +62,8 @@ public struct Ledger : Codable {
         return "\(date ?? 0)\(transaction_ref ?? "")\(destination ?? "")\(auth ?? "")\(height ?? 0)\(algorithm ?? 0)\(ore ?? 0)\(address?.base64EncodedString() ?? ""))".md5()
     }
     
+    public func token() -> Token? {
+        return Token.init(oreHeight: self.ore ?? 0, address: self.address ?? Data(), algorithm: AlgorithmType(rawValue: self.algorithm ?? 0) ?? AlgorithmType.SHA512_AppendV0)
+    }
+    
 }
