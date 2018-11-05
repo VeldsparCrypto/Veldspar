@@ -55,6 +55,9 @@ public struct Ledger : Codable {
     public var source_node: String?
     public var hash: String?
     
+    // indexes
+    
+    
     public init() {
     }
     

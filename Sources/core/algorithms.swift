@@ -34,6 +34,8 @@ public protocol AlgorithmProtocol {
     func hash(token: Token) -> [UInt8]
     func value(token: Token) -> Int
     func workload(token: Token) -> Workload
+    func validateFind(token: Token, bean: Data) -> Bool
+    func foundBean(token: Token) -> Data?
 }
 
 public class AlgorithmManager {
@@ -145,6 +147,36 @@ public class AlgorithmManager {
         }
         
         return value
+        
+    }
+    
+    public func foundBean(token: Token) -> Data? {
+        
+        var value: Data? = nil
+        
+        lock.mutex {
+            if token.algorithm.rawValue < self.implementations.count {
+                let imp = self.implementations[Int(token.algorithm.rawValue)]
+                value = imp.foundBean(token: token)
+            }
+        }
+        
+        return value
+        
+    }
+    
+    public func validate(token: Token, bean: String) -> Bool {
+        
+        var retValue: Bool = false
+        
+        lock.mutex {
+            if token.algorithm.rawValue < self.implementations.count {
+                let imp = self.implementations[Int(token.algorithm.rawValue)]
+                retValue = imp.validateFind(token: token, bean: bean.hexToData)
+            }
+        }
+        
+        return retValue
         
     }
     

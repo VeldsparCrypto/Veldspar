@@ -33,6 +33,29 @@ enum WalletErrors : Error {
     case InvalidSeed
 }
 
+struct Address : Codable {
+    
+    var addressId: String?
+    var seed: String?
+    var height: Int?
+    var name: String?
+    
+    init() {
+    }
+    
+}
+
+struct Transfer : Codable {
+    
+    var id: Int?
+    var timestamp: Int?
+    var transferGroup: String?
+    var tokenValue: Int?
+    
+    init() {}
+    
+}
+
 class WalletFile {
     
     private var db: SWSQLite
@@ -43,10 +66,9 @@ class WalletFile {
         
         db = SWSQLite(path: "./", filename: walletFilePath)
         
-        // init the db with the table structure
-        _ = db.execute(sql: "CREATE TABLE IF NOT EXISTS address (addressId TEXT PRIMARY KEY, seed TEXT, height INTEGER, name TEXT)", params: [])
-        _ = db.execute(sql: "CREATE TABLE IF NOT EXISTS token (tokenId TEXT PRIMARY KEY, address TEXT, value INTEGER, usedInTransaction TEXT, transactionId TEXT)", params: [])
-        _ = db.execute(sql: "CREATE TABLE IF NOT EXISTS transfer (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp INTEGER, transferGroup TEXT, tokenValue INTEGER)", params: [])
+        db.create(Address(), pk: "addressId", auto: false, indexes:[])
+        db.create(Transfer(), pk: "id", auto: true, indexes:[])
+        db.create(Ledger(), pk: "id", auto: true, indexes:["address"])
         
         pw = password
         

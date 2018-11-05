@@ -20,11 +20,28 @@
 //    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //    SOFTWARE.
 
-
 import Foundation
 
 class Settings : Codable {
     
-
+    var node_id: String = UUID().uuidString.CryptoHash()
+    var blockchain_export_data: Bool = false
+    var blockchain_export_data_path: String = "./cache/blocks"
+    var blockchain_produce_blocks: Bool = false
+    var network_distribute_transactions: Bool = false
+    var network_accept_transactions: Bool = true
+    var network_accept_registrations: Bool = false
+    var rpc_allow_block: Bool = true
+    var rpc_allow_height: Bool = true
+    var rpc_allow_timestamp: Bool = true
+    var rpc_allow_pending: Bool = true
+    var rpc_allow_transfer: Bool = false
+    var rpc_ban_invalid_requests: Bool = true
+    var rpc_ban_invalid_limit: Int = 10
+    var database_service_type: String = "SQLITE"
+    var database_cache_size: Int = 8
+    var database_connection_string: String? = nil
+    var database_connection_username: String? = nil
+    var database_connection_password: String? = nil
     
 }

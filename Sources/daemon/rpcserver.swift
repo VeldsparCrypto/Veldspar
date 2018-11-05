@@ -1,4 +1,4 @@
-//    MIT License
+ //    MIT License
 //
 //    Copyright (c) 2018 Veldspar Team
 //
@@ -24,11 +24,8 @@ import Foundation
 import VeldsparCore
 import Swifter
 
-public let registrationsLock = Mutex()
-public var registrations: [Registration] = []
 let banLock: Mutex = Mutex()
 var bans: [String:Int] = [:]
-
 
 enum RPCErrors : Error {
     case InvalidRequest
@@ -41,8 +38,6 @@ class RPCHandler {
     func request(_ request: HttpRequest) -> HttpResponse {
         
         do {
-            
-            let start = Date().timeIntervalSince1970
             
             var queryParamsDictionary: [String:String] = [:]
             for o in request.queryParams {
@@ -59,22 +54,32 @@ class RPCHandler {
             case "/":
                 
                 let r = "\(Config.CurrencyName) Daemon \(Config.Version)"
-                
                 logger.log(level: .Warning, log: "(RPC) '\(request.path)'")
-                
                 return .ok(.html(r))
                 
             case "/info/timestamp":
                 
+                if !settings.rpc_allow_timestamp {
+                    return .forbidden
+                }
+                
                 return .ok(.jsonString("{\"timestamp\" : \(consensusTime())}"))
                 
             case "/blockchain/currentheight":
+                
+                if !settings.rpc_allow_height {
+                    return .forbidden
+                }
                 
                 let r = "{\"height\" : \(blockchain.height())}"
                 logger.log(level: .Info, log: "(RPC) '\(request.path)'")
                 return .ok(.jsonString(r))
                 
             case "/blockchain/block":
+                
+                if !settings.rpc_allow_block {
+                    return .forbidden
+                }
                 
                 var height = 0
                 for p in request.queryParams {
@@ -99,8 +104,13 @@ class RPCHandler {
                 
             case "/token/register":
                 
+                if !settings.network_accept_transactions {
+                    return .forbidden
+                }
+                
                 var token = ""
                 var address = ""
+                var bean = ""
                 for p in request.queryParams {
                     if p.0 == "token" {
                         token = p.1
@@ -108,12 +118,15 @@ class RPCHandler {
                     if p.0 == "address" {
                         address = p.1
                     }
+                    if p.0 == "bean" {
+                        bean = p.1
+                    }
                 }
                 
                 logger.log(level: .Warning, log: "(RPC) '\(request.path)' token='\(token)' address='\(address)'")
                 
                 // try response.setBody(json: )
-                let r = try RPCRegisterToken.action(["token" : token, "address" : address], host: request.address)
+                let r = try RPCRegisterToken.action(["token" : token, "address" : address, "bean" : bean], host: request.address)
                 return .ok(.json(r))
                 
             default:

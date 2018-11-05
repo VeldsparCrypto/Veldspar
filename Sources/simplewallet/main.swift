@@ -127,12 +127,16 @@ func WalletLoop() {
     
     while true {
         
+        var delay = 30.0
+        
         walletLock.mutex {
             
             // fetch the current height
             if walletOpen && wallet != nil {
                 
-                if wallet!.height() < Int(Comms.requestHeight() ?? 0) {
+                let currentH = Int(Comms.requestHeight() ?? 0)
+                
+                if wallet!.height() < currentH {
                     
                     let nextHeight = wallet!.height() + 1
                     let block = Comms.blockAtHeight(height: nextHeight)
@@ -147,14 +151,26 @@ func WalletLoop() {
                         
                     }
                     
-                    print("\((Float(totalAdded) / Float(Config.DenominationDivider))) \(Config.CurrencyName) added to wallet.")
-                    print("Value of spent tokens: \((Float(totalSpent) / Float(Config.DenominationDivider)))")
-                    print("--------------------------")
-                    print("Current balance: \(wallet!.balance())")
+                    print("processing block \(block.height!) of \(currentH)")
+                    
+                    if totalAdded > 0 || totalSpent > 0 {
+                        
+                        print("\((Float(totalAdded) / Float(Config.DenominationDivider))) \(Config.CurrencyName) added to wallet.")
+                        print("Value of spent tokens: \((Float(totalSpent) / Float(Config.DenominationDivider)))")
+                        print("--------------------------")
+                        print("Current balance: \(wallet!.balance())")
+                        
+                    }
                     
                     if block.height != nil {
                         wallet?.setHeight(Int(block.height!))
                     }
+                    
+                    delay = 0.0
+                    
+                } else {
+                    
+                    delay = 30.0
                     
                 }
                 
@@ -162,7 +178,7 @@ func WalletLoop() {
                 
             }
         }
-        Thread.sleep(forTimeInterval: 10)
+        Thread.sleep(forTimeInterval: delay)
     }
 }
 

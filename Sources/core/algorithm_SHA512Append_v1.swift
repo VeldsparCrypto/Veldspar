@@ -162,6 +162,24 @@ public class AlgorithmSHA512AppendV1: AlgorithmProtocol {
         
     }
     
+    public func foundBean(token: Token) -> Data? {
+        
+        let hash = self.hash(token: token)
+        
+        let hashData = Data(hash)
+        
+        for k in AlgorithmSHA512AppendV0.beans() {
+            
+            if hashData.range(of: k.key) != nil {
+                return k.key
+            }
+            
+        }
+        
+        return nil
+        
+    }
+    
     public func validateFind(token: Token, bean: Data) -> Bool {
 
         let hash = self.hash(token: token)

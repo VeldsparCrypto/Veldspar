@@ -52,7 +52,8 @@ class BlockMaker {
                     for index in Int(currentHeight+1)...Int(blockHeightForTime) {
                         
                         // produce the block, hash it, seek quorum, then write it
-                        let previousBlock = blockchain.blockAtHeight(index-1)
+                        let previousBlock = blockchain.blockAtHeight(index-1, includeTransactions: false)
+                        
                         var newBlock = Block()
                         newBlock.height = index
                         
@@ -68,11 +69,13 @@ class BlockMaker {
                         }
                         
                         newBlock.hash = newBlock.GenerateHashForBlock(previousHash: previousBlock?.hash ?? "")
-                        
+                        newBlock.transactions = []
                         //TODO: call out to other nodes and wait for their hash results to come back, then set the confirms
                         
-                        if !blockchain.addBlock(newBlock) {
-                            break;
+                        if blockchain.addBlock(newBlock) {
+                           blockchain.setTransactionStateForHeight(height: index, state: .Verified)
+                        } else {
+                           break
                         }
                         
                         logger.log(level: .Info, log: "Blockchain produced block '\(index)'")

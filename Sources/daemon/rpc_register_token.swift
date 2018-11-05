@@ -36,14 +36,19 @@ class RPCRegisterToken {
             throw RPCErrors.InvalidRequest
         }
         
+        if payload["bean"] == nil {
+            throw RPCErrors.InvalidRequest
+        }
+        
         // setup the variables
         
         let token = payload["token"] as! String
         let address = payload["address"] as! String
+        let bean = payload["bean"] as! String
         let block = blockchain.height() + Config.TransactionMaturityLevel
         
         do {
-            if try blockchain.registerToken(tokenString: token, address: address, block: block) {
+            if try blockchain.registerToken(tokenString: token, address: address, bean: bean, block: block) {
                 
                 logger.log(level: .Warning, log: "(Register) SUCCESSFUL token='\(token)' address='\(address)'")
                 return ["success" : true, "token" : token, "block" : block]
@@ -55,6 +60,29 @@ class RPCRegisterToken {
                 
             }
         } catch BlockchainErrors.TokenHasNoValue {
+            
+            if host != nil {
+                banLock.mutex {
+                    if bans[host!] == nil {
+                        bans[host!] = 1
+                    }
+                    else {
+                        bans[host!] = bans[host!]! + 1
+                        if bans[host!]! == 10 {
+                            // clear this ban in 1 minute
+                            Execute.backgroundAfter(after: 60.0, {
+                                banLock.mutex {
+                                    bans.removeValue(forKey: host!)
+                                }
+                            })
+                        }
+                    }
+                }
+            }
+            
+            return ["nice" : "try"]
+        
+        } catch BlockchainErrors.InvalidToken {
             
             if host != nil {
                 banLock.mutex {

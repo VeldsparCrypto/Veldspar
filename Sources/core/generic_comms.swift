@@ -27,112 +27,16 @@ import Dispatch
 
 public class Comms {
     
-    public class func getAsync(url: String, parameters: [String:String]?, success:@escaping (Data?) -> (), failure:@escaping () -> ())  {
-        
-        let client = Client().onError { (err) in
-            failure()
-        }
-        
-        client.get(url: url).query(query: parameters ?? [:]).end(done: { (res) in
-            
-            success(res.data)
-            
-        }) { (err) in
-
-            failure()
-            
-        }
-        
-    }
-    
-    public class func get(url: String, parameters: [String:String]?) -> Data?  {
-        
-        var encodedParams: [String] = []
-        for p in parameters ?? [:] {
-            let value = "\(p.key)=\(p.value)".addingPercentEncoding(withAllowedCharacters: CharacterSet.urlQueryAllowed)
-            encodedParams.append(value!)
-        }
-        
-        let client = Client().onError { (err) in
-            
-        }
-        
-        // this is an async call, so we want to block and use it as a sync call
-        var response: Data?
-        let waitSemaphore: DispatchSemaphore = DispatchSemaphore(value: 0)
-        
-        client.get(url: url).query(query: parameters ?? [:]).end(done: { (res) in
-            
-            if res.basicStatus == .ok {
-                response = res.data
-            }
-            
-            waitSemaphore.signal()
-            
-        }) { (err) in
-            
-            waitSemaphore.signal()
-            
-        }
-        
-         waitSemaphore.wait()
-        
-        return response
-        
-    }
-    
     public class func request(method: String, parameters: [String:String]?) -> Data? {
         
-        return get(url:"http://\(Config.SeedNodes[0])/\(method)", parameters:parameters)
-        
-    }
-    
-    public class func requestAsync(method: String, parameters: [String:String]?, success:@escaping (Data?) -> (), error:@escaping () -> ()) {
-        
-        getAsync(url:"http://\(Config.SeedNodes[0])/\(method)", parameters:parameters, success: success, failure: error)
-        
-    }
-    
-    public class func requestJSON(method: String, parameters: [String:String]?) -> [String:Any]? {
-        
         var encodedParams: [String] = []
         for p in parameters ?? [:] {
             let value = "\(p.key)=\(p.value)".addingPercentEncoding(withAllowedCharacters: CharacterSet.urlQueryAllowed)
             encodedParams.append(value!)
         }
         
-        let client = Client().onError { (err) in
-            
-        }
+        return try? String(contentsOf: URL(string:"http://\(Config.SeedNodes[0])/\(method)?\(encodedParams.joined(separator: "&"))")! , encoding: .ascii).data(using: .ascii)!
         
-        // this is an async call, so we want to block and use it as a sync call
-        var response: [String:Any]?
-        let waitSemaphore: DispatchSemaphore = DispatchSemaphore(value: 0)
-        
-        client.get(url: "http://\(Config.SeedNodes[0])/\(method)").query(query: parameters ?? [:]).end(done: { (res) in
-            
-            if res.basicStatus == .ok {
-                if res.data != nil {
-                    do {
-                        response = try JSONSerialization.jsonObject(with: res.data!, options: []) as? [String: Any]
-                    } catch {
-                        
-                    }
-                }
-            }
-            
-            waitSemaphore.signal()
-            
-        }) { (err) in
-            
-            waitSemaphore.signal()
-            
-        }
-        
-        waitSemaphore.wait()
-        
-        return response
-
     }
     
     public class func blockAtHeight(height: Int) -> Block {
@@ -152,16 +56,23 @@ public class Comms {
     }
     
     public class func requestHeight() -> Int? {
-    
-        let response = requestJSON(method: "blockchain/currentheight", parameters: nil)
-        if response != nil {
+        
+        let method = "blockchain/currentheight"
+        let responseData = try? String(contentsOf: URL(string:"http://\(Config.SeedNodes[0])/\(method)")! , encoding: .ascii).data(using: .ascii)!
+        
+        if responseData != nil {
             
-            if response!["height"] != nil {
+            let response = try? JSONSerialization.jsonObject(with: responseData!, options: []) as! [String: Any]
+            if response != nil {
                 
-                for v in response! {
-                    if v.key == "height" {
-                        return v.value as? Int
+                if response!["height"] != nil {
+                    
+                    for v in response! {
+                        if v.key == "height" {
+                            return v.value as? Int
+                        }
                     }
+                    
                 }
                 
             }

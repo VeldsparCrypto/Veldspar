@@ -54,7 +54,7 @@ class BlockChain {
     
     func height() -> Int {
         
-        var count: Int = 0
+        var count: Int = -1
         
         stats_lock.mutex {
             if current_height != nil {
@@ -62,14 +62,14 @@ class BlockChain {
             }
         }
         
-        if count != 0 {
+        if count != -1 {
             return count
         }
         
         blockchain_lock.mutex {
             
             // query the database to find the highest block there is
-            count = Database.CurrentHeight() ?? 0
+            count = Database.CurrentHeight() ?? -1
             stats_lock.mutex {
                 current_height = Int(count)
             }
@@ -81,13 +81,13 @@ class BlockChain {
         
     }
     
-    func blockAtHeight(_ height: Int) -> Block? {
+    func blockAtHeight(_ height: Int, includeTransactions: Bool) -> Block? {
         
         var block: Block? = nil
         
         blockchain_lock.mutex {
             // query database
-            block = Database.BlockAtHeight(height)
+            block = Database.BlockAtHeight(height, includeTransactions: includeTransactions)
         }
         
         return block
@@ -125,18 +125,14 @@ class BlockChain {
         
     }
     
-    func oreSeeds() -> [Block] {
-        
-        var retValue: [Block] = []
+    func setTransactionStateForHeight(height: Int, state: LedgerTransactionState) {
         
         blockchain_lock.mutex {
-            retValue = Database.OreBlocks()
-            
+            Database.SetTransactionStateForHeight(height: height, state: state)
         }
         
-        return retValue
-        
     }
+
     
     // ledger functions
     
@@ -159,13 +155,11 @@ class BlockChain {
         
     }
     
-    func registerToken(tokenString: String, address: String, block: Int) throws -> Bool {
+    func registerToken(tokenString: String, address: String, bean: String, block: Int) throws -> Bool {
         
         var returnValue = false
         var token = tokenString
         var t: Token?
-        
-        let start = Date().timeIntervalSince1970
         
         // first off, check that the token is essentially valid in construction
         // 0-1-32-00018467-00043A62-0006F243
@@ -177,6 +171,10 @@ class BlockChain {
         do {
             t = try Token(token)
         } catch {
+            throw BlockchainErrors.InvalidToken
+        }
+        
+        if !t!.validateFind(bean: bean) {
             throw BlockchainErrors.InvalidToken
         }
         

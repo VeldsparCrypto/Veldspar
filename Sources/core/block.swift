@@ -32,7 +32,6 @@ public struct Block : Codable {
     public var rejections: Int?
 
     // block contents
-    public var oreSeed: String?
     public var transactions: [Ledger]?
     
     public init() {

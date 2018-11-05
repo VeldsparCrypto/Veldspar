@@ -31,7 +31,6 @@ print("---------------------------")
 print("\(Config.CurrencyName) Daemon v\(Config.Version)")
 print("---------------------------")
 
-var cacheSize = 128*1024
 var isGenesis = false
 let args: [String] = CommandLine.arguments
 
@@ -50,51 +49,54 @@ if args.count > 1 {
             // setup the blockchain with an empty block starting the generation of Ore
             isGenesis = true
         }
-        if arg.lowercased() == "--cache64" {
-            cacheSize = 64*1024
-        }
-        if arg.lowercased() == "--cache128" {
-            cacheSize = 128*1024
-        }
-        if arg.lowercased() == "--cache256" {
-            cacheSize = 256*1024
-        }
-        if arg.lowercased() == "--cache512" {
-            cacheSize = 512*1024
-        }
-        if arg.lowercased() == "--cache768" {
-            cacheSize = 768*1024
-        }
-        if arg.lowercased() == "--cache1024" {
-            cacheSize = 1024*1024
-        }
     }
 }
 
 let ore = Ore(Config.GenesisID, height: 0)
-
 let v3Beans = AlgorithmSHA512AppendV0.beans()
+var settings = Settings()
+if FileManager.default.fileExists(atPath: "veldspar.settings") {
+    let settingsData: Data? = try? Data(contentsOf: URL(fileURLWithPath: "veldspar.settings"))
+    if settingsData != nil {
+        let newSettings = try? JSONDecoder().decode(Settings.self, from: settingsData!)
+        if newSettings != nil {
+            settings = newSettings!
+        }
+    }
+}
+
+// write out the settings file again, which will add any new keys and their default values
+let encoder = JSONEncoder()
+encoder.outputFormatting = [.prettyPrinted]
+try? encoder.encode(settings).write(to: URL(fileURLWithPath: "veldspar.settings"))
+
 
 // open the database connection
 Database.Initialize()
 
 let logger = Logger()
-print("Database(s) opened (blockchain, pending, log)")
+print("Database(s) opened")
 var blockchain = BlockChain()
 
 if isGenesis {
-    if blockchain.blockAtHeight(0) != nil {
+    if blockchain.blockAtHeight(0, includeTransactions: false) != nil {
         print("Genesis block has already been created, exiting.")
         exit(0)
     }
     
     var firstBlock = Block()
     firstBlock.height = 0
-    firstBlock.oreSeed = Config.GenesisID
     firstBlock.transactions = []
     firstBlock.hash = firstBlock.GenerateHashForBlock(previousHash: "")
     if(!Database.WriteBlock(firstBlock)) {
         print("Unable to write initial genesis block into the blockchain.")
+        exit(0)
+    }
+    print("genesis block created, please restart daemon without `--genesis` flag.")
+    exit(0)
+} else {
+    if blockchain.height() == -1 {
+        print("no genesis block found, please create one")
         exit(0)
     }
 }
@@ -102,18 +104,14 @@ if isGenesis {
 print("Blockchain created, currently at height \(blockchain.height())")
 
 Execute.background {
-    for i in 0...Int(blockchain.height()) {
-        BlockMaker.export_block(i)
-    }
-}
-    
-Execute.background {
     // endlessly run the main process loop
-    BlockMaker.Loop()
-}
-
-Execute.background {
-    process_registrations()
+    if settings.blockchain_produce_blocks {
+        logger.log(level: .Info, log: "Block maker started")
+        BlockMaker.Loop()
+    } else {
+        // retrieve blocks from the cache service and wite them into the local blockchain
+        logger.log(level: .Info, log: "Node not configured to make blocks, so synchronising blocks with network instead")
+    }
 }
 
 // now start the webserver and block

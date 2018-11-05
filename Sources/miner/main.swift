@@ -138,42 +138,22 @@ for _ in 1...threads {
             statsLock.mutex {
                 hashes += 1
             }
-            if t.value() > 0 {
-                print("Found token! @\(Date()) Ore:\(height) method:\(method.rawValue) value:\(Float(t.value()) / Float(Config.DenominationDivider))")
+            if t.value() > 0 && t.foundBean() != nil {
+                
+                print("Found token! @\(Date()) Ore:\(height) method:\(method.rawValue) value:\(Float(t.value()) / Float(Config.DenominationDivider)) bean:\(t.foundBean()!.toHexString())")
                 print("Token Address: " + t.tokenStringId())
                 
-                /*UTokenRegistration.Register(token: t.tokenStringId(), address: walletAddress!, nodeAddress: nodeAddress,success: ({ data in
-                    
-                    if data == nil {
-                        return
-                    }
-                    
-                    // we have a valid response
-                    let resObject: RPC_Register_Repsonse? = try? JSONDecoder().decode(RPC_Register_Repsonse.self, from: data!)
-                    if resObject != nil {
-                        
-                        // check for failure
-                        if resObject?.success == false {
-                            
-                            print("Token registration unsuccessful, token already registered :(, or invalid token.")
-                            return  // specific, communication was fine, but registration was unsuccessful
-                        }
-                        
-                        // successfully written, return the height at which it was placed
-                        print("Token successfully registered with \(Config.CurrencyName) node.")
-                        
+                let r = TokenRegistration.Register(token: t.tokenStringId(), address: walletAddress!, beanHex: t.foundBean()!.toHexString())
+                if r != nil {
+                    if r!.success! {
+                        print("Token registration successful.")
                     } else {
-                        
                         print("Token registration unsuccessful, token already registered :(, or invalid token.")
-                        
                     }
-                    
-                }), error: {
-                    
-                    print("Token registration unsuccessful, token already registered :(, or invalid token.")
-                    
-                })
-                */
+                }
+                else {
+                    print("Token registration unsuccessful, \(Config.CurrencyName) node is not responding or request has timed out.")
+                }
                 
             }
         }

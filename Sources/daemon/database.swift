@@ -29,8 +29,8 @@ let db = SWSQLite(path: "\(NSHomeDirectory())/.\(Config.CurrencyName)", filename
 class Database {
     
     class func Initialize() {
-        db.create(Block(), pk: "height", auto: false)
-        db.create(Ledger(), pk: "id", auto: true)
+        db.create(Block(), pk: "height", auto: false, indexes:[])
+        db.create(Ledger(), pk: "id", auto: true, indexes:["address","height"])
         // db.create(Node.self, pk: "id", auto: true)
     }
     
@@ -82,6 +82,15 @@ class Database {
         return false
         
     }
+    
+    class func SetTransactionStateForHeight(height: Int, state: LedgerTransactionState) {
+        
+        let result = db.query(sql: "UPDATE Ledger SET state = ? WHERE height = ?", params: [state.rawValue, height])
+        if result.error != nil {
+            return
+        }
+        
+    }
 
     class func CurrentHeight() -> Int? {
         
@@ -105,7 +114,7 @@ class Database {
 
     }
     
-    class func BlockAtHeight(_ height: Int) -> Block? {
+    class func BlockAtHeight(_ height: Int, includeTransactions: Bool) -> Block? {
         
         let blocks = db.query(Block(), sql: "SELECT * FROM Block WHERE height = ? LIMIT 1", params: [height])
         
@@ -114,7 +123,12 @@ class Database {
         }
         
         var block = blocks.first!
-        block.transactions = LedgersForHeight(height)
+        if includeTransactions {
+            block.transactions = LedgersForHeight(height)
+        } else {
+            block.transactions = []
+        }
+        
         
         return block
         
@@ -124,12 +138,6 @@ class Database {
         
         return db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE height = ? ORDER BY address", params: [height])
 
-    }
-    
-    class func OreBlocks() -> [Block] {
-    
-        return db.query(Block(), sql: "SELECT * FROM block WHERE oreSeed IS NOT NULL", params: [])
-        
     }
     
 }

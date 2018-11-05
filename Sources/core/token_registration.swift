@@ -24,9 +24,18 @@ import Foundation
 
 public class TokenRegistration {
     
-    public class func Register(token: String, address: String, nodeAddress: String, success:@escaping (Data?) -> (), error:@escaping () -> ()) {
+    public class func Register(token: String, address: String, beanHex: String) -> RPC_Register_Repsonse? {
         
-        Comms.requestAsync(method: "token/register", parameters: ["token":token, "address":address], success: success, error: error)
+        let response = Comms.request(method: "token/register", parameters: ["token" : token, "address" : address, "bean" : beanHex])
+        if response != nil  {
+            let r = try? JSONDecoder().decode(RPC_Register_Repsonse.self, from: response!)
+            if r != nil {
+                return r
+            }
+        }
+        
+        
+        return nil
         
     }
     

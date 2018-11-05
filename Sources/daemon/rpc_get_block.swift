@@ -27,7 +27,7 @@ class RPCGetBlock {
     
     class func action(_ height: Int) -> Block? {
         
-        return blockchain.blockAtHeight(height)
+        return blockchain.blockAtHeight(height, includeTransactions: true)
         
     }
     

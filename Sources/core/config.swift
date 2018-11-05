@@ -24,11 +24,11 @@ import Foundation
 
 public class Config {
     
-    public static let Version = "0.0.9"
+    public static let Version = "0.1.0"
     public static let CurrencyName = "Veldspar"
     public static let CurrencyNetworkAddress = "VE"
     public static let GenesisID = "0fcbb8951fd052764f71a634b02361448386c5b0f70eadb716cc0f3f"
-    public static let BlockchainStartDate = 1536847796000
+    public static let BlockchainStartDate = 1541424200000
     
     public static let MagicByte = UInt8(255)
     
@@ -46,9 +46,6 @@ public class Config {
     // size of the ore segment in megabytes - 1mb gives posibilities of 1.169e^57 combinations @ address size of 8
     public static let OreSize = 1
     
-    // release schedule of an ore segment
-    public static let OreReleasePoint = 250000 // 250000 = approximately 2 blocks per year
-    
     public static let TokenSegmentSize = 64
     
     // number of addresses within the block that makes up a token address, exponentially increses ore payload
@@ -56,5 +53,8 @@ public class Config {
     
     // seed nodes
     public static let SeedNodes: [String] = ["127.0.0.1:14242"]
+    
+    // cache urls
+    public static let BlockDataCache: [String] = ["http://blocks.veldspar.co"]
     
 }

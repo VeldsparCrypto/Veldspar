@@ -108,6 +108,18 @@ public class Token {
         return cachedValue!
         
     }
+    
+    public func foundBean() -> Data? {
+    
+        return AlgorithmManager().foundBean(token: self)
+        
+    }
+    
+    public func validateFind(bean: String) -> Bool {
+        
+        return AlgorithmManager().validate(token: self, bean: bean)
+        
+    }
 
     public class func valueFromId(_ token: String) -> Int {
         
