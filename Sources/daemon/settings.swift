@@ -43,5 +43,7 @@ class Settings : Codable {
     var database_connection_string: String? = nil
     var database_connection_username: String? = nil
     var database_connection_password: String? = nil
+    var debug_mirror_requests: Bool? = false
+    var debug_mirror_target: String? = nil
     
 }

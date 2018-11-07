@@ -27,7 +27,8 @@ public struct Block : Codable {
     
     // block variables
     public var height: Int?
-    public var hash: String?
+    public var hash: Data?
+    public var checkpoint: Data?
     public var confirms: Int?
     public var rejections: Int?
 
@@ -38,15 +39,17 @@ public struct Block : Codable {
         
     }
     
-    public func GenerateHashForBlock(previousHash: String) -> String {
+    public func GenerateHashForBlock(previousHash: Data) -> Data {
         
-        // the hash is based on, the previous hash or "" for the genesis and all of the transaction summary data
-        var data = "\(self.height ?? 0)\(previousHash)\(self.height ?? 0)"
+        var newHash = Data()
+        newHash.append(previousHash)
+        newHash.append(contentsOf: height!.toHex().bytes)
+        
         for t in self.transactions ?? [] {
-            data += t.checksum()
+            newHash.append(t.hash!)
         }
         
-        return data.CryptoHash()
+        return newHash.sha224()
         
     }
     

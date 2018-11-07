@@ -87,7 +87,7 @@ if isGenesis {
     var firstBlock = Block()
     firstBlock.height = 0
     firstBlock.transactions = []
-    firstBlock.hash = firstBlock.GenerateHashForBlock(previousHash: "")
+    firstBlock.hash = firstBlock.GenerateHashForBlock(previousHash: Data())
     if(!Database.WriteBlock(firstBlock)) {
         print("Unable to write initial genesis block into the blockchain.")
         exit(0)

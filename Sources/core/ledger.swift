@@ -43,26 +43,32 @@ public struct Ledger : Codable {
     public var id: Int?
     public var op: Int?
     public var date: UInt64?
-    public var transaction_ref: String?
-    public var destination: String?
+    public var transaction_id: Data?
+    public var destination: Data?
     public var ore: Int?
     public var address: Data?
-    public var auth: String?
     public var height: Int?
     public var algorithm: Int?
     public var value: Int?
     public var state: Int?
-    public var source_node: String?
-    public var hash: String?
-    
-    // indexes
-    
+    public var hash: Data?
     
     public init() {
     }
     
-    public func checksum() -> String {
-        return "\(date ?? 0)\(transaction_ref ?? "")\(destination ?? "")\(auth ?? "")\(height ?? 0)\(algorithm ?? 0)\(ore ?? 0)\(address?.base64EncodedString() ?? ""))".md5()
+    public func checksum() -> Data {
+        
+        var newChecksum = Data()
+        newChecksum.append(contentsOf: date!.toHex().bytes)
+        newChecksum.append(transaction_id!)
+        newChecksum.append(destination!)
+        newChecksum.append(contentsOf: height!.toHex().bytes)
+        newChecksum.append(contentsOf: algorithm!.toHex().bytes)
+        newChecksum.append(contentsOf: ore!.toHex().bytes)
+        newChecksum.append(address!)
+        
+        return Data(bytes: newChecksum.bytes.sha224())
+
     }
     
     public func token() -> Token? {

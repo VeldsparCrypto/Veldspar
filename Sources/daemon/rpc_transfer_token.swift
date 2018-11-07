@@ -23,66 +23,66 @@
 import Foundation
 import VeldsparCore
 
-class RPCTransferToken {
+class ActionTransfer {
     
-    class func action(_ payload: [String:Any?]) throws -> [String:Any?] {
+    class func action(_ jsonBody: String) throws -> String {
         
-        if payload["token"] == nil {
+        let decoder = JSONDecoder()
+        decoder.dataDecodingStrategy = .base64
+        
+        let request = try? decoder.decode(TransferRequest.self, from: jsonBody.data(using: .ascii)!)
+        if request == nil {
             throw RPCErrors.InvalidRequest
         }
         
-        if payload["address"] == nil {
+        let transferRequest = request!
+        
+        if transferRequest.source_address == nil || transferRequest.destination_address == nil || transferRequest.tokens.count == 0 {
             throw RPCErrors.InvalidRequest
         }
         
-        if payload["auth"] == nil {
+        if transferRequest.hash == nil || transferRequest.totalValue == nil {
             throw RPCErrors.InvalidRequest
         }
         
-        if payload["reference"] == nil {
+        let timeDiff = (Int64(Date().timeIntervalSince1970 * 1000) - Int64(transferRequest.transferDate!))
+        let maxTimeDiff = 60
+        if timeDiff > (maxTimeDiff*1000) || timeDiff < ((maxTimeDiff*1000) * -1) {
+            // check for request being more than `maxTimeDiff` out
             throw RPCErrors.InvalidRequest
         }
         
-        // setup the variables
-        
-        let token = payload["token"] as! String
-        let address = payload["address"] as! String
-        let auth = payload["auth"] as! String
-        let reference = payload["reference"] as! String
         let block = blockchain.height() + Config.TransactionMaturityLevel
         
-        // get the current ownership details of the token
-        let ownership = blockchain.tokenOwnership(token: token)
-        if ownership.count == 0 { // not a registered token
+        // check the crypto signatures of this request
+        if transferRequest.hash! != Crypto.makeTransactionIdentifier(
+                                            src: transferRequest.source_address!,
+                                            dest: transferRequest.destination_address!,
+                                            timestamp: Int(transferRequest.transferDate!), tokens:
+                                            transferRequest.tokens) {
             throw RPCErrors.InvalidRequest
         }
         
-        // check that it doesn't have an outstanding transfer request
-        if ownership[0].state! == LedgerTransactionState.Pending.rawValue {
+        // now check the digital signature against the originating address
+        if !Crypto.isSigned(transferRequest.hash!, signature_bytes: transferRequest.auth!, public_address: transferRequest.source_address!) {
             throw RPCErrors.InvalidRequest
         }
         
-        let current = ownership[0]
+        // so the request is valid, now to make sure the tokens are owned by the requester and they are free to be transfered
         
-        // check that the request has the authority to transfer the token by testing the public key signature
-        let transferSignature = Crypto.makeTransactionIdentifier(src: current.destination!, dest: address, token: token)
-        if Crypto.isSigned(transferSignature, signature: auth, address: current.destination!) {
-            // signatures match, time to add this to the pending chain
+        // we ask the data layer to check that every single one of the tokens one-by-one, then transfer.  A boolean is returned to indicate success or failure.
+        
+        if blockchain.transferOwnership(request: transferRequest) {
             
-            if blockchain.transferToken(token: token, address: address, block: block, auth: auth, reference: reference) {
-                
-                return ["success" : true, "token" : token, "block" : block]
-                
-            } else {
-                
-                throw RPCErrors.InvalidRequest
-                
-            }
-            
+            // distribute this transfer to other nodes
             
         } else {
+            
             throw RPCErrors.InvalidRequest
+            
         }
+        
+        
         
         
         

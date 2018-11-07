@@ -33,8 +33,7 @@ public class TokenRegistration {
                 return r
             }
         }
-        
-        
+
         return nil
         
     }

@@ -136,6 +136,26 @@ class BlockChain {
     
     // ledger functions
     
+    func transferOwnership(request: TransferRequest) -> Bool {
+        
+        var retValue = true
+        
+        blockchain_lock.mutex {
+            if Database.VerifyOwnership(tokens: request.tokens, address: request.source_address!) {
+                // now get the data layer to insert new transfer records
+                
+                
+                
+            } else {
+                // failed the verify
+                retValue = false
+            }
+        }
+        
+        return retValue
+        
+    }
+    
     func tokenOwnership(token: String) -> [Ledger] {
         
         var l: [Ledger] = []
@@ -207,10 +227,10 @@ class BlockChain {
             l.height = block
             l.algorithm = t.algorithm.rawValue
             l.date = consensusTime()
-            l.destination = address
+            l.destination = Crypto.strAddressToData(address: address)
             l.ore = t.oreHeight
             l.state = LedgerTransactionState.Pending.rawValue
-            l.transaction_ref = UUID().uuidString.CryptoHash()
+            l.transaction_id = Data(bytes: UUID().uuidString.bytes.sha224())
             l.value = t.value()
             
             blockchain_lock.mutex {

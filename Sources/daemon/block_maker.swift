@@ -68,7 +68,7 @@ class BlockMaker {
                             newBlock.transactions!.append(l)
                         }
                         
-                        newBlock.hash = newBlock.GenerateHashForBlock(previousHash: previousBlock?.hash ?? "")
+                        newBlock.hash = newBlock.GenerateHashForBlock(previousHash: previousBlock?.hash ?? Data())
                         newBlock.transactions = []
                         //TODO: call out to other nodes and wait for their hash results to come back, then set the confirms
                         

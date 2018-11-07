@@ -59,6 +59,11 @@ public class Keys {
 
 public class Crypto {
     
+    public class func isSigned(_ value: Data, signature_bytes: Data, public_address: String) -> Bool {
+        let address = String(public_address.suffix(public_address.count-Config.CurrencyNetworkAddress.count))
+        return Verify(address.base58DecodedData!.bytes, value.bytes, signature_bytes.bytes)
+    }
+    
     public class func isSigned(_ value: String, signature_bytes: [byte], public_key_bytes: [byte]) -> Bool {
         return Verify(public_key_bytes, value.bytes, signature_bytes)
     }
@@ -71,8 +76,25 @@ public class Crypto {
         return isSigned(value ,signature: signature, public_key: String(address.suffix(address.count-Config.CurrencyNetworkAddress.count)))
     }
     
-    public class func makeTransactionIdentifier(src: String, dest: String, token: String) -> String {
-        return "\(src)\(dest)\(token)".base58EncodedString
+    public class func strAddressToData(address: String) -> Data {
+        let address = String(address.suffix(address.count-Config.CurrencyNetworkAddress.count))
+        return address.base58DecodedData!
+    }
+    
+    public class func makeTransactionIdentifier(src: String, dest: String, timestamp: Int, tokens: [TransferToken]) -> Data? {
+        
+        var d = Data()
+        d.append(contentsOf: src.bytes)
+        d.append(contentsOf: dest.bytes)
+        d.append(contentsOf: timestamp.toHex().lowercased().bytes)
+        
+        for t in tokens {   
+            d.append(t.address!)
+            d.append(contentsOf: t.ore!.toHex().lowercased().bytes)
+        }
+        
+        return d.sha224()
+        
     }
     
 }

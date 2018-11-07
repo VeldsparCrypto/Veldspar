@@ -29,9 +29,11 @@ let db = SWSQLite(path: "\(NSHomeDirectory())/.\(Config.CurrencyName)", filename
 class Database {
     
     class func Initialize() {
+        
         db.create(Block(), pk: "height", auto: false, indexes:[])
-        db.create(Ledger(), pk: "id", auto: true, indexes:["address","height"])
-        // db.create(Node.self, pk: "id", auto: true)
+        db.create(Ledger(), pk: "id", auto: true, indexes:["address,ore","height"])
+        //db.create(PeeringNode(), pk: "id", auto: true)
+        
     }
     
     class func DeleteBlock(_ block: VeldsparCore.Block) -> Bool {
@@ -105,6 +107,39 @@ class Database {
         }
         
         return nil;
+    }
+    
+    class func VerifyOwnership(tokens: [TransferToken], address: String) -> Bool {
+        
+        var retValue = true
+        
+        for t in tokens {
+            
+            let r = db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE address = ? AND ore = ? ORDER BY date DESC LIMIT 1", params: [t.address!, t.ore!])
+            
+            // check for no-token
+            if r.count == 0 {
+                retValue = false
+                break
+            }
+            
+            // check for incorrect owner
+            if r[0].destination! != Crypto.strAddressToData(address: address) {
+                retValue = false
+                break
+            }
+            
+        }
+        
+        return retValue
+        
+    }
+    
+    class func CommitTransferToBlockchain(_ transfer: TransferRequest) -> Bool {
+        
+        
+        return true
+        
     }
     
     class func TokenOwnershipRecords(ore: Int, address: Data) -> [Ledger] {

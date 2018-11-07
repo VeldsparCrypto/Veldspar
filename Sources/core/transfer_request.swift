@@ -22,42 +22,29 @@
 
 import Foundation
 
-public class RPCTransferToken: Codable {
+public struct TransferToken : Codable {
     
-    public var sourceAddress: String
-    public var tokenId: String
-    public var destinationAddress: String
-    public var hash: String
-    public var auth: String
-    
-    init(seed: [UInt8], src: String, id: String, dest: String) {
-        
-        sourceAddress = src
-        tokenId = id
-        destinationAddress = dest
-        hash = Crypto.makeTransactionIdentifier(src: sourceAddress, dest: destinationAddress, token: tokenId)
-        auth = Keys(seed).sign(hash)
-        
-    }
-    
-    init(src: String, id: String, dest: String, hash: String, auth: String) {
-        
-        self.sourceAddress = src
-        self.tokenId = id
-        self.destinationAddress = dest
-        self.hash = hash
-        self.auth = auth
-        
-    }
+    public var address: Data?
+    public var ore: Int?
+
+    init() {}
     
 }
 
-public class RPCTransferObject : Codable {
+public class TransferRequest : Codable {
     
+    public var source_address: String?
+    public var destination_address: String?
     public var transferId: String?
-    public var tokens: [RPCTransferToken] = []
+    public var tokens: [TransferToken] = []
+    public var hash: Data?
+    public var auth: Data?
     public var transferDate: UInt64?
     public var totalValue: UInt64?
     public var extendedData: [String:String] = [:]
+    init(){}
+    
+//    hash = Crypto.makeTransactionIdentifier(src: sourceAddress, dest: destinationAddress, token: tokenId)
+//    auth = Keys(seed).sign(hash)
     
 }
