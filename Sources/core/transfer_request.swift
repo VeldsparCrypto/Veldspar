@@ -41,6 +41,7 @@ public class TransferRequest : Codable {
     public var auth: Data?
     public var transferDate: UInt64?
     public var totalValue: UInt64?
+    public var targetHeight: Int?
     public var extendedData: [String:String] = [:]
     init(){}
     

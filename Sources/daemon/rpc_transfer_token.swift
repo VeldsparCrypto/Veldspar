@@ -52,7 +52,9 @@ class ActionTransfer {
             throw RPCErrors.InvalidRequest
         }
         
-        let block = blockchain.height() + Config.TransactionMaturityLevel
+        if transferRequest.targetHeight == nil {
+            transferRequest.targetHeight = (blockchain.height() + Config.TransactionMaturityLevel)
+        }
         
         // check the crypto signatures of this request
         if transferRequest.hash! != Crypto.makeTransactionIdentifier(
@@ -76,15 +78,14 @@ class ActionTransfer {
             
             // distribute this transfer to other nodes
             
+            
         } else {
             
             throw RPCErrors.InvalidRequest
             
         }
         
-        
-        
-        
+        return ""
         
     }
     
