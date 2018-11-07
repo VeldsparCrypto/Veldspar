@@ -24,7 +24,7 @@ import Foundation
 import SWSQLite
 import VeldsparCore
 
-let db = SWSQLite(path: "\(NSHomeDirectory())/.\(Config.CurrencyName)", filename: "\(Config.CurrencyName).db")
+let db = SWSQLite(path: "./", filename: "\(Config.CurrencyName).db")
 
 class Database {
     

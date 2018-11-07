@@ -232,6 +232,7 @@ class BlockChain {
             l.state = LedgerTransactionState.Pending.rawValue
             l.transaction_id = Data(bytes: UUID().uuidString.bytes.sha224())
             l.value = t.value()
+            l.hash = l.checksum()
             
             blockchain_lock.mutex {
                 if Database.WriteLedger(l) == true {

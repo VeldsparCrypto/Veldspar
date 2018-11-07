@@ -127,50 +127,65 @@ func WalletLoop() {
     
     while true {
         
-        var delay = 30.0
+        var delay = 10.0
         
         walletLock.mutex {
             
             // fetch the current height
             if walletOpen && wallet != nil {
                 
-                let currentH = Int(Comms.requestHeight() ?? 0)
+                let nwHeight = try? String(contentsOf: URL(string:"\(Config.BlockDataCache[0])/current.height")! , encoding: .ascii)
+                let currentH = Int(nwHeight ?? "0", radix: 10)!
                 
                 if wallet!.height() < currentH {
                     
                     let nextHeight = wallet!.height() + 1
-                    let block = Comms.blockAtHeight(height: nextHeight)
                     
-                    var totalAdded = 0
-                    var totalSpent = 0
-                    
-                    for l in block.transactions ?? [] {
+                    let blockData = try? String(contentsOf: URL(string:"\(Config.BlockDataCache[0])/\(nextHeight).block")! , encoding: .ascii).data(using: .ascii)!
+                    if blockData != nil {
                         
-                        totalAdded += wallet?.addTokenIfOwned(l) ?? 0
-                        totalSpent += wallet?.removeTokenIfOwned(l) ?? 0
+                        let b = try? JSONDecoder().decode(Block.self, from: blockData!)
+                        if b != nil {
+                            let block = b!
+                            var totalAdded = 0
+                            var totalSpent = 0
+                            
+                            for l in block.transactions ?? [] {
+                                
+                                totalAdded += wallet?.addTokenIfOwned(l) ?? 0
+                                totalSpent += wallet?.removeTokenIfOwned(l) ?? 0
+                                
+                            }
+                            
+                            print("processing block \(block.height!) of \(currentH)")
+                            
+                            if totalAdded > 0 || totalSpent > 0 {
+                                
+                                print("\((Float(totalAdded) / Float(Config.DenominationDivider))) \(Config.CurrencyName) added to wallet.")
+                                print("Value of spent tokens: \((Float(totalSpent) / Float(Config.DenominationDivider)))")
+                                print("--------------------------")
+                                print("Current balance: \(wallet!.balance())")
+                                
+                            }
+                            
+                            if block.height != nil {
+                                wallet?.setHeight(Int(block.height!))
+                            }
+                            
+                            delay = 0.0
+                            
+                        } else {
+                            
+                            delay = 10.0
+                            
+                        }
                         
                     }
                     
-                    print("processing block \(block.height!) of \(currentH)")
-                    
-                    if totalAdded > 0 || totalSpent > 0 {
-                        
-                        print("\((Float(totalAdded) / Float(Config.DenominationDivider))) \(Config.CurrencyName) added to wallet.")
-                        print("Value of spent tokens: \((Float(totalSpent) / Float(Config.DenominationDivider)))")
-                        print("--------------------------")
-                        print("Current balance: \(wallet!.balance())")
-                        
-                    }
-                    
-                    if block.height != nil {
-                        wallet?.setHeight(Int(block.height!))
-                    }
-                    
-                    delay = 0.0
                     
                 } else {
                     
-                    delay = 30.0
+                    delay = 60.0
                     
                 }
                 

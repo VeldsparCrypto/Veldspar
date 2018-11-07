@@ -98,25 +98,30 @@ class BlockMaker {
         
         do {
             
-            var filePath = ""
-            filePath = "\(NSHomeDirectory())/.\(Config.CurrencyName)/cache/\(height).block"
+            try? FileManager.default.createDirectory(atPath: "./cache/blocks", withIntermediateDirectories: true, attributes: [:])
+            let filePath = "./cache/blocks/\(height).block"
             
-            // check to see if there is a local cache file
-            if !FileManager.default.fileExists(atPath: URL(fileURLWithPath: filePath).absoluteString) {
-                
-                if let block: Block = RPCGetBlock.action(height) {
-                    let encodedData = try String(bytes: JSONEncoder().encode(block), encoding: .ascii)
-                    if encodedData != nil {
-                        try encodedData!.write(to: URL(fileURLWithPath: filePath), atomically: true, encoding: .ascii)
-                    }
-                }
-                
-                
+            let block = blockchain.blockAtHeight(height, includeTransactions: true)
+            let e = JSONEncoder()
+            let d = try? e.encode(block)
+            
+            if d != nil {
+                try d!.write(to: URL(fileURLWithPath: filePath))
             }
             
         } catch {
             
             print(error)
+            
+        }
+        
+        do {
+            
+            // export the block height object
+            let filePath = "./cache/blocks/current.height"
+            try "\(height)".write(to: URL(fileURLWithPath: filePath), atomically: true, encoding: .ascii)
+
+        } catch {
             
         }
         

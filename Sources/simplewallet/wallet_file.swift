@@ -302,24 +302,24 @@ class WalletFile {
         
     }
     
-    func balance() -> Int {
+    func balance() -> Double {
         
         let results = db.query(sql: "SELECT SUM(value) as totalValue FROM Ledger;", params: [])
         if results.error == nil && results.results.count > 0 {
             for r in results.results {
-                return r["totalValue"]!.asInt() ?? 0
+                return Double((r["totalValue"]!.asInt() ?? 0) / Config.DenominationDivider)
             }
         }
         return 0
         
     }
     
-    func balance(address: String) -> Int {
+    func balance(address: String) -> Double {
         
         let results = db.query(sql: "SELECT SUM(value) as totalValue FROM Ledger WHERE destination = ?", params: [Crypto.strAddressToData(address: address)])
         if results.error == nil && results.results.count > 0 {
             for r in results.results {
-                return r["totalValue"]!.asInt()!
+                return Double((r["totalValue"]!.asInt() ?? 0) / Config.DenominationDivider)
             }
         }
         return 0
