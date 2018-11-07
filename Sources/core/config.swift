@@ -48,6 +48,12 @@ public class Config {
     
     public static let TokenSegmentSize = 64
     
+    // the network transfer fee in raw units
+    public static let NetworkFee = 5 // 0.05
+    
+    // the community fund address where the network fee ends up.  Some will be burnt, some will be used to pay community members for tasks, some will be used as a money exchange system.
+    public static let CommunityAddress: String? = nil
+    
     // number of addresses within the block that makes up a token address, exponentially increses ore payload
     public static let TokenAddressSize = 3
     

@@ -208,6 +208,22 @@ class WalletFile {
         
     }
     
+    func addressesBytes() -> [Data] {
+        
+        var retValue: [Data] = []
+        let results = db.query(sql: "SELECT addressId FROM address", params: [])
+        if results.error == nil && results.results.count > 0 {
+            
+            for r in results.results {
+                retValue.append(Crypto.strAddressToData(address: r["addressId"]!.asString()!))
+            }
+            
+        }
+        
+        return retValue
+        
+    }
+    
     func seedForAddress(_ address: String) -> String? {
         
         let results = db.query(sql: "SELECT seed FROM address WHERE addressId = ?", params: [address])
@@ -258,21 +274,12 @@ class WalletFile {
         
     }
     
-    func addTokenIfOwned(_ token: String, owner: String, transactionId: String) -> Int {
+    func addTokenIfOwned(_ token: Ledger) -> Int {
         
-        if addresses().contains(owner) {
+        if addressesBytes().contains(token.destination!) {
             
-            // token (tokenId TEXT PRIMARY KEY, address TEXT, value INTEGER, usedInTransaction TEXT)
-            
-            do {
-                let v = try Token(token)
-                if v.value() > 0 {
-                    _ = db.execute(sql: "INSERT OR REPLACE INTO token (tokenId, address, value, transactionId) VALUES (?,?,?,?)", params: [token, owner, Int(v.value()), transactionId])
-                    return Token.valueFromId(token)
-                }
-            } catch {
-                
-            }
+            _ = db.put(token)
+            return token.value!
             
         }
         
@@ -280,24 +287,24 @@ class WalletFile {
         
     }
     
-    func removeTokenIfOwned(_ token: String, newOwner: String) -> Int {
+    func removeTokenIfOwned(_ token: Ledger) -> Int {
         
-        if !addresses().contains(newOwner) {
+        if !addressesBytes().contains(token.destination!) {
             
-            if db.query(sql: "SELECT tokenId FROM token WHERE tokenId = ?", params: [token]).results.count > 0 {
-                _ = db.execute(sql: "DELETE FROM token WHERE tokenId = ?", params: [token])
-                return Token.valueFromId(token)
+            if db.query(sql: "SELECT address FROM Ledger WHERE address = ? AND ore = ?", params: [token.address!, token.ore!]).results.count > 0 {
+                _ = db.execute(sql: "DELETE FROM Ledger WHERE address = ? AND ore = ?", params: [token.address!, token.ore!])
+                return token.value!
             }
             
         }
-        
+
         return 0
         
     }
     
     func balance() -> Int {
         
-        let results = db.query(sql: "SELECT SUM(value) as totalValue FROM token;", params: [])
+        let results = db.query(sql: "SELECT SUM(value) as totalValue FROM Ledger;", params: [])
         if results.error == nil && results.results.count > 0 {
             for r in results.results {
                 return r["totalValue"]!.asInt() ?? 0
@@ -309,7 +316,7 @@ class WalletFile {
     
     func balance(address: String) -> Int {
         
-        let results = db.query(sql: "SELECT SUM(value) as totalValue FROM token WHERE address = ?", params: [address])
+        let results = db.query(sql: "SELECT SUM(value) as totalValue FROM Ledger WHERE destination = ?", params: [Crypto.strAddressToData(address: address)])
         if results.error == nil && results.results.count > 0 {
             for r in results.results {
                 return r["totalValue"]!.asInt()!
