@@ -136,16 +136,15 @@ class BlockChain {
     
     // ledger functions
     
-    func commitLedgerItems(tokens: [Ledger], failIfAny: Bool) {
+    func commitLedgerItems(tokens: [Ledger], failIfAny: Bool) -> Bool {
         
             var retValue = true
             
             blockchain_lock.mutex {
                 
-                if Database.VerifyOwnership(tokens: request.tokens) {
-                    // now get the data layer to insert new transfer records
+                if Database.CommitLedger(ledgers: tokens, failAll: failIfAny) {
                     
-                    
+                    retValue = true
                     
                 } else {
                     // failed the verify
@@ -166,7 +165,7 @@ class BlockChain {
             let t = try Token(token)
 
             blockchain_lock.mutex {
-                l = Database.TokenOwnershipRecords(ore: t.oreHeight, address: t.address)
+                l = Database.TokenOwnershipRecord(ore: t.oreHeight, address: t.address)
             }
 
         } catch {
@@ -203,7 +202,8 @@ class BlockChain {
         // now go and lookup existence in the database
         var ownership: [Ledger] = []
         blockchain_lock.mutex {
-            ownership = Database.TokenOwnershipRecords(ore: t!.oreHeight, address: t!.address)
+            
+            ownership = Database.TokenOwnershipRecord(ore: t!.oreHeight, address: t!.address)
         }
         
         if ownership.count == 0 {
@@ -233,11 +233,12 @@ class BlockChain {
             l.ore = t.oreHeight
             l.state = LedgerTransactionState.Pending.rawValue
             l.transaction_id = Data(bytes: UUID().uuidString.bytes.sha224())
+            l.source = Crypto.strAddressToData(address: address)
             l.value = t.value()
             l.hash = l.checksum()
             
             blockchain_lock.mutex {
-                if Database.WriteLedger(l) == true {
+                if Database.CommitLedger(ledgers: [l], failAll: true) == true {
                     logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: Int) -> Bool' call to 'Database.WritePendingLedger()' succeeded, token written.")
                     returnValue = true
                 } else {

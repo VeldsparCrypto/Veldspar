@@ -51,15 +51,13 @@ class RecieveTransfer {
         let estimatedTarget = (blockchain.height() + Config.TransactionMaturityLevel)
         
         var tokens = tr.tokens
-        for t in tokens {
-            t.height = estimatedTarget
+        for i in 0...tokens.count-1 {
+            tokens[i].height = estimatedTarget
         }
-        
-        // so the request is valid, now to make sure the tokens are owned by the requester and they are free to be transfered
         
         // we ask the data layer to check that every single one of the tokens one-by-one, then transfer.  A boolean is returned to indicate success or failure.
         
-        if blockchain.transferOwnership(request: transferRequest) {
+        if blockchain.commitLedgerItems(tokens: tokens, failIfAny: true) {
             
             // distribute this transfer to other nodes
             
