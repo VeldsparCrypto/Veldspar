@@ -31,9 +31,9 @@ public class AlgorithmSHA512AppendV1: AlgorithmProtocol {
     
     public static let seed = "BoyBellSproutMouse".bytes.sha512()
     public static let distribution: [Int] = [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,5,5,5,5,5,5,5,5,5,5,5,5,10,10,10,10,10,10,10,10,10,20,20,20,20,20,20,20,20,20,50,50,50,50,50,50,50,100,100,100,100,100,100,100,500,500,500,500,500,500,1000,1000,1000,2000,2000,2000,5000]
-    public static let rounds = 36000
-    public static let window = UInt8(16)
-    public static let seedSize = 5
+    public static let rounds = 32000
+    public static let window = UInt8(8)
+    public static let seedSize = 6
     public static var cache: [Data:Int]?
     static var lock: Mutex = Mutex()
     

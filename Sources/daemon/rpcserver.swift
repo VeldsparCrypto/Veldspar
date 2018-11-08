@@ -71,9 +71,21 @@ class RPCHandler {
                     return .forbidden
                 }
                 
-                let r = "{\"height\" : \(blockchain.height())}"
-                logger.log(level: .Info, log: "(RPC) '\(request.path)'")
-                return .ok(.jsonString(r))
+                let filePath = "./cache/blocks/current.height"
+                
+                // check to see if there is a local cache file, if not generate a block
+                let r = try? Data(contentsOf: URL(fileURLWithPath: filePath))
+                if r != nil {
+                    
+                    return .ok(.jsonData(r!))
+                    
+                } else {
+                    
+                    let r = "{\"height\" : \(blockchain.height())}"
+                    logger.log(level: .Info, log: "(RPC) '\(request.path)'")
+                    return .ok(.jsonString(r))
+                    
+                }
                 
             case "/blockchain/block":
                 
@@ -88,17 +100,33 @@ class RPCHandler {
                     }
                 }
                 
-                let filePath = "\(NSHomeDirectory())/.\(Config.CurrencyName)/cache/\(height).block"
+                let filePath = "./cache/blocks/\(height).block"
                 
-                // check to see if there is a local cache file
-                if FileManager.default.fileExists(atPath: filePath) {
+                // check to see if there is a local cache file, if not generate a block
+                let r = try? Data(contentsOf: URL(fileURLWithPath: filePath))
+                if r != nil {
                     
-                    let r = try? String(contentsOf: URL(fileURLWithPath: filePath), encoding: .ascii)
-                    return .ok(.jsonString(r ?? ""))
+                    return .ok(.jsonData(r!))
                     
                 } else {
                     
-                    return .notFound
+                    let block = blockchain.blockAtHeight(height, includeTransactions: true)
+                    if block != nil {
+                        
+                        let d = try? JSONEncoder().encode(block!)
+                        if d != nil {
+                            
+                            return .ok(.jsonData(d!))
+                            
+                        } else {
+                            
+                            return .notFound
+                            
+                        }
+                        
+                    } else {
+                        return .notFound
+                    }
                     
                 }
                 

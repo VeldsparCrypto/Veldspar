@@ -31,6 +31,7 @@ class Settings : Codable {
     var network_distribute_transactions: Bool = false
     var network_accept_transactions: Bool = true
     var network_accept_registrations: Bool = false
+    var network_port: Int = 14242
     var rpc_allow_block: Bool = true
     var rpc_allow_height: Bool = true
     var rpc_allow_timestamp: Bool = true

@@ -17,7 +17,7 @@ let package = Package(
         .package(url: "https://github.com/krzyzanowskim/CryptoSwift.git", .exact("0.12.0")),
         .package(url: "https://github.com/VeldsparCrypto/Ed25519.git", .exact("0.0.1")),
         .package(url: "https://github.com/VeldsparCrypto/SWSQLite.git", .exact("1.0.20")),
-        .package(url: "https://github.com/VeldsparCrypto/swifter.git", .exact("1.4.7")),
+        .package(url: "https://github.com/VeldsparCrypto/swifter.git", .exact("1.4.8")),
         .package(url: "https://github.com/VeldsparCrypto/SwiftClient.git", .exact("3.0.5")),
         ],
     targets: [

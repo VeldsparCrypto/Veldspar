@@ -24,8 +24,11 @@ import Foundation
 
 public struct TransferToken : Codable {
     
-    public var address: Data?
+    public var source_address: String?
+    public var ore_address: Data?
     public var ore: Int?
+    public var auth: Data?
+    public var transaction_id: Data?
 
     init() {}
     
@@ -33,19 +36,7 @@ public struct TransferToken : Codable {
 
 public class TransferRequest : Codable {
     
-    public var source_address: String?
-    public var destination_address: String?
-    public var transferId: String?
-    public var tokens: [TransferToken] = []
-    public var hash: Data?
-    public var auth: Data?
-    public var transferDate: UInt64?
-    public var totalValue: UInt64?
-    public var targetHeight: Int?
-    public var extendedData: [String:String] = [:]
+    public var tokens: [Ledger] = []
     init(){}
-    
-//    hash = Crypto.makeTransactionIdentifier(src: sourceAddress, dest: destinationAddress, token: tokenId)
-//    auth = Keys(seed).sign(hash)
     
 }

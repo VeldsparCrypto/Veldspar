@@ -103,3 +103,62 @@ In the case where a node becomes outnumbered in it’s resolution of a block, it
 * v0.3.x - Quorum introduced, seed nodes no longer authoritive unless 50/50 decision requires adjudication.
 * v0.4.x - Introduce ledger compaction, only allocation and previous allocation required to be kept past a certain point.
 
+# Installation:
+
+## Currently these instructions are for Ubuntu 18.04 only:
+
+### Pre-requisits
+
+The following modules:
+clang,libicu-dev,sqlite3,libsqlite3-dev
+
+```
+#linux-swift-install
+sudo apt-get -y update
+sudo apt-get -y upgrade
+sudo apt-get -y install clang libicu-dev sqlite3 libsqlite3-dev uuid-dev
+```
+
+
+
+Swift 4.1.3 from swift.org.
+https://swift.org/builds/swift-4.2.1-release/ubuntu1804/swift-4.2.1-RELEASE/swift-4.2.1-RELEASE-ubuntu18.04.tar.gz
+
+The following script downloads Swift and jams it into /usr.  Best done on a sandbox VM.  
+
+PERFORM AS SU/ROOT
+```
+cd ~/
+wget https://swift.org/builds/swift-4.2.1-release/ubuntu1804/swift-4.2.1-RELEASE/swift-4.2.1-RELEASE-ubuntu18.04.tar.gz
+tar -xvf swift-4.2.1-RELEASE-ubuntu18.04.tar.gz
+cd swift-4.2.1-RELEASE-ubuntu18.04
+sudo cp -R usr/* /usr
+cd ~/
+rm -rf swift-4.2.1-RELEASE-ubuntu18.04
+rm swift-4.2.1-RELEASE-ubuntu18.04.tar.gz
+```
+
+PERFORM AS NORMAL USER
+Clone Veldspar, build it, and copy it into the ~/.Veldspar directory.
+```
+cd ~/
+git clone https://github.com/VeldsparCrypto/Veldspar.git
+cd Veldspar
+
+swift build -c release
+mkdir ~/.Veldspar
+
+cd .build
+cd release
+
+cp veldspard ~/.Veldspar/veldspard
+cp miner ~/.Veldspar/miner
+cp simplewallet ~/.Veldspar/simplewallet
+
+mkdir ~/.Veldspar/cache
+mkdir ~/.Veldspar/cache/blocks
+
+
+```
+
+

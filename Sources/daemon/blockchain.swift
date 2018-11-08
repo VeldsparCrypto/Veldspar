@@ -136,24 +136,26 @@ class BlockChain {
     
     // ledger functions
     
-    func transferOwnership(request: TransferRequest) -> Bool {
+    func commitLedgerItems(tokens: [Ledger], failIfAny: Bool) {
         
-        var retValue = true
-        
-        blockchain_lock.mutex {
-            if Database.VerifyOwnership(tokens: request.tokens, address: request.source_address!) {
-                // now get the data layer to insert new transfer records
+            var retValue = true
+            
+            blockchain_lock.mutex {
                 
+                if Database.VerifyOwnership(tokens: request.tokens) {
+                    // now get the data layer to insert new transfer records
+                    
+                    
+                    
+                } else {
+                    // failed the verify
+                    retValue = false
+                }
                 
-                
-            } else {
-                // failed the verify
-                retValue = false
             }
-        }
-        
-        return retValue
-        
+            
+            return retValue
+
     }
     
     func tokenOwnership(token: String) -> [Ledger] {

@@ -39,7 +39,7 @@ public class Comms {
         
     }
     
-    public class func blockAtHeight(height: Int) -> Block {
+    public class func blockAtHeight(height: Int) -> Block? {
         
         let blockData = Comms.request(method: "blockchain/block", parameters: ["height" : "\(height)"])
         if blockData != nil {
@@ -51,7 +51,23 @@ public class Comms {
             
         }
         
-        return Block()
+        return nil
+        
+    }
+    
+    public class func hashForBlock(height: Int) -> Data? {
+        
+        let blockData = Comms.request(method: "blockchain/blockhash", parameters: ["height" : "\(height)"])
+        if blockData != nil {
+            
+            let b = try? JSONDecoder().decode(BlockHashObject.self, from: blockData!)
+            if b != nil {
+                return b?.hash
+            }
+            
+        }
+        
+        return nil
         
     }
     
@@ -62,18 +78,10 @@ public class Comms {
         
         if responseData != nil {
             
-            let response = try? JSONSerialization.jsonObject(with: responseData!, options: []) as! [String: Any]
+            let response = try? JSONDecoder().decode(CurrentHeightObject.self, from: responseData!)
             if response != nil {
                 
-                if response!["height"] != nil {
-                    
-                    for v in response! {
-                        if v.key == "height" {
-                            return v.value as? Int
-                        }
-                    }
-                    
-                }
+                return response?.height!
                 
             }
             

@@ -44,6 +44,7 @@ public struct Ledger : Codable {
     public var op: Int?
     public var date: UInt64?
     public var transaction_id: Data?
+    public var transaction_ref: Data?
     public var destination: Data?
     public var ore: Int?
     public var address: Data?
@@ -52,6 +53,8 @@ public struct Ledger : Codable {
     public var value: Int?
     public var state: Int?
     public var hash: Data?
+    public var source: Data?
+    public var auth: Data?
     
     public init() {
     }
@@ -66,9 +69,38 @@ public struct Ledger : Codable {
         newChecksum.append(contentsOf: algorithm!.toHex().bytes)
         newChecksum.append(contentsOf: ore!.toHex().bytes)
         newChecksum.append(address!)
-        
+        newChecksum.append(source ?? Data())
+        newChecksum.append(auth ?? Data())
         return Data(bytes: newChecksum.bytes.sha224())
 
+    }
+    
+    private func signatureHash() -> Data {
+        
+        var newChecksum = Data()
+        newChecksum.append(contentsOf: date!.toHex().bytes)
+        newChecksum.append(transaction_id!)
+        newChecksum.append(destination!)
+        newChecksum.append(contentsOf: algorithm!.toHex().bytes)
+        newChecksum.append(contentsOf: ore!.toHex().bytes)
+        newChecksum.append(address!)
+        newChecksum.append(source ?? Data())
+        return Data(bytes: newChecksum.bytes.sha224())
+        
+    }
+    
+    private mutating func sign(seed: Data) {
+        
+        let key = Keys(seed.bytes as [UInt8])
+        hash = signatureHash()
+        auth = key.sign(hash!)
+        
+    }
+    
+    public func verifySignature() -> Bool {
+        
+        return Crypto.isSigned(hash ?? Data(), signature_bytes: auth ?? Data(), public_key: source ?? Data())
+        
     }
     
     public func token() -> Token? {

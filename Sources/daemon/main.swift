@@ -32,6 +32,8 @@ print("\(Config.CurrencyName) Daemon v\(Config.Version)")
 print("---------------------------")
 
 var isGenesis = false
+var isTestNet = false
+var isLocal = false
 let args: [String] = CommandLine.arguments
 
 if args.count > 1 {
@@ -48,6 +50,12 @@ if args.count > 1 {
         if arg.lowercased() == "--genesis" {
             // setup the blockchain with an empty block starting the generation of Ore
             isGenesis = true
+        }
+        if arg.lowercased() == "--testnet" {
+            isTestNet = true
+        }
+        if arg.lowercased() == "--local" {
+            isLocal = true
         }
     }
 }
@@ -94,11 +102,14 @@ if isGenesis {
     }
     print("genesis block created, please restart daemon without `--genesis` flag.")
     exit(0)
-} else {
-    if blockchain.height() == -1 {
-        print("no genesis block found, please create one")
-        exit(0)
-    }
+} 
+
+if isTestNet {
+    print("")
+    print("********************************************")
+    print("** WARNING: RUNNING IN TESTNET MODE       **")
+    print("********************************************")
+    print("")
 }
 
 print("Blockchain created, currently at height \(blockchain.height())")

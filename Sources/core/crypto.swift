@@ -45,19 +45,23 @@ public class Keys {
         return "\(Config.CurrencyNetworkAddress)\(public_key.base58EncodedString)"
     }
     
-    public func sign(_ value: String) -> String {
+    public func sign(_ value: Data) -> Data {
         
-        return Sign(private_key, value.bytes).base58EncodedString
+        return Data(bytes: Sign(private_key, value.bytes))
         
     }
     
-    public func isSigned(_ value: String, signature: String) -> Bool {
-        return Verify(public_key, value.bytes, (signature.base58DecodedData ?? Data()).bytes)
+    public func isSigned(_ value: Data, signature: Data) -> Bool {
+        return Verify(public_key, value.bytes, signature.bytes)
     }
     
 }
 
 public class Crypto {
+    
+    public class func isSigned(_ value: Data, signature_bytes: Data, public_key: Data) -> Bool {
+        return Verify(public_key.bytes, value.bytes, signature_bytes.bytes)
+    }
     
     public class func isSigned(_ value: Data, signature_bytes: Data, public_address: String) -> Bool {
         let address = String(public_address.suffix(public_address.count-Config.CurrencyNetworkAddress.count))
@@ -81,17 +85,14 @@ public class Crypto {
         return address.base58DecodedData!
     }
     
-    public class func makeTransactionIdentifier(src: String, dest: String, timestamp: Int, tokens: [TransferToken]) -> Data? {
+    public class func makeTransactionIdentifier(dest: String, timestamp: Int, token: TransferToken) -> Data? {
         
         var d = Data()
-        d.append(contentsOf: src.bytes)
+        d.append(contentsOf: token.source_address!.bytes)
         d.append(contentsOf: dest.bytes)
         d.append(contentsOf: timestamp.toHex().lowercased().bytes)
-        
-        for t in tokens {   
-            d.append(t.address!)
-            d.append(contentsOf: t.ore!.toHex().lowercased().bytes)
-        }
+        d.append(token.ore_address!)
+        d.append(contentsOf: token.ore!.toHex().lowercased().bytes)
         
         return d.sha224()
         

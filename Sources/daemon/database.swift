@@ -31,8 +31,8 @@ class Database {
     class func Initialize() {
         
         db.create(Block(), pk: "height", auto: false, indexes:[])
-        db.create(Ledger(), pk: "id", auto: true, indexes:["address,ore","height"])
-        //db.create(PeeringNode(), pk: "id", auto: true)
+        db.create(Ledger(), pk: "id", auto: true, indexes:["address,date DESC","height,address","transaction_id"])
+        db.create(PeeringNode(), pk: "id", auto: true, indexes: ["uuid"])
         
     }
     
@@ -109,24 +109,55 @@ class Database {
         return nil;
     }
     
-    class func VerifyOwnership(tokens: [TransferToken], address: String) -> Bool {
+    class func CommitLedger(ledgers: [Ledger], failAll: Bool) -> Bool {
+        
+        // after many different versions, I have decided that digital signature checking and auority checkign will be done here.  This will allow the data layer to atomically verify the state of the transactions and roll back if invalid transactions are attempted.
         
         var retValue = true
         
-        for t in tokens {
+        _ = db.execute(sql: "BEGIN TRANSACTION", params: [])
+        
+        // work out which kind of transaction this is
+        for l in ledgers {
             
-            let r = db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE address = ? AND ore = ? ORDER BY date DESC LIMIT 1", params: [t.address!, t.ore!])
-            
-            // check for no-token
-            if r.count == 0 {
-                retValue = false
-                break
+            if l.source == l.destination && TokenOwnershipRecord(ore: l.ore!, address: l.address!).count == 0 {
+                
+                // this is a new registration, so it can be committed right away
+                _ = db.put(l)
+                
+            } else if l.source != l.destination && l.verifySignature() {
+                
+                // get the current ownership record for this token
+                let current = TokenOwnershipRecord(ore: l.ore!, address: l.address!)
+                if current.count == 0 {
+                    retValue = false
+                } else {
+                    
+                    if current[0].destination != l.source {
+                        retValue = false
+                    } else {
+                        
+                        // so the signature is correct, the last destination is this source so we can commit this transaction now.
+                        _ = db.put(l)
+                        
+                    }
+                    
+                }
+                
             }
             
-            // check for incorrect owner
-            if r[0].destination! != Crypto.strAddressToData(address: address) {
-                retValue = false
-                break
+        }
+        
+        if retValue {
+            
+            _ = db.execute(sql: "COMMIT TRANSACTION;", params: [])
+            
+        } else {
+            
+            if failAll {
+                _ = db.execute(sql: "ROLLBACK TRANSACTION;", params: [])
+            } else {
+                _ = db.execute(sql: "COMMIT TRANSACTION;", params: [])
             }
             
         }
@@ -135,23 +166,16 @@ class Database {
         
     }
     
-    class func CommitTransferToBlockchain(_ transfer: TransferRequest) -> Bool {
-        
-        
-        return true
-        
-    }
-    
-    class func TokenOwnershipRecords(ore: Int, address: Data) -> [Ledger] {
+    class func TokenOwnershipRecord(ore: Int, address: Data) -> [Ledger] {
     
         // get the last ten items, recent->oldest.  Uses status to determine pending and current.
-        return db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE ore = ? AND address = ? ORDER BY date DESC LIMIT 10", params: [ore, address])
+        return db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE ore = ? AND address = ? ORDER BY date DESC LIMIT 1", params: [ore, address])
 
     }
     
     class func BlockAtHeight(_ height: Int, includeTransactions: Bool) -> Block? {
         
-        let blocks = db.query(Block(), sql: "SELECT * FROM Block WHERE height = ? LIMIT 1", params: [height])
+        let blocks = db.query(Block(), sql: "SELECT * FROM Block WHERE height = ? ORDER BY address LIMIT 1", params: [height])
         
         if blocks.count == 0 {
             return nil

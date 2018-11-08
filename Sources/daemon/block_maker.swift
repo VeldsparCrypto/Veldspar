@@ -115,14 +115,13 @@ class BlockMaker {
             
         }
         
-        do {
-            
-            // export the block height object
-            let filePath = "./cache/blocks/current.height"
-            try "\(height)".write(to: URL(fileURLWithPath: filePath), atomically: true, encoding: .ascii)
-
-        } catch {
-            
+        // export the block height object
+        let filePath = "./cache/blocks/current.height"
+        var newHeightObject = CurrentHeightObject()
+        newHeightObject.height = blockchain.height()
+        let d = try? JSONEncoder().encode(newHeightObject)
+        if d != nil {
+            try? d!.write(to: URL(fileURLWithPath: filePath))
         }
         
         
