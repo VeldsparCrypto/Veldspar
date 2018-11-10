@@ -31,7 +31,7 @@ class Database {
     class func Initialize() {
         
         db.create(Block(), pk: "height", auto: false, indexes:[])
-        db.create(Ledger(), pk: "id", auto: true, indexes:["address,date DESC","height,address","transaction_id"])
+        db.create(Ledger(), pk: "id", auto: true, indexes:["address,date DESC","height,address","transaction_id","transaction_id"])
         db.create(PeeringNode(), pk: "id", auto: true, indexes: ["uuid"])
         
     }
@@ -93,7 +93,7 @@ class Database {
         }
         
     }
-
+    
     class func CurrentHeight() -> Int? {
         
         let result = db.query(sql: "SELECT height FROM Block ORDER BY height DESC LIMIT 1", params: [])
@@ -120,33 +120,47 @@ class Database {
         // work out which kind of transaction this is
         for l in ledgers {
             
-            if l.source == l.destination && TokenOwnershipRecord(ore: l.ore!, address: l.address!).count == 0 {
+            if l.checksum() == l.hash {
                 
-                // this is a new registration, so it can be committed right away
-                _ = db.put(l)
-                
-            } else if l.source != l.destination && l.verifySignature() {
-                
-                // get the current ownership record for this token
-                let current = TokenOwnershipRecord(ore: l.ore!, address: l.address!)
-                if current.count == 0 {
-                    retValue = false
-                } else {
+                // record has not been tampered with, now check to see if we already have it in the data store
+                if db.query(sql: "SELECT NULL FROM Ledger WHERE transaction_id = ? LIMIT 1", params: [l.transaction_id]).results.count == 0 {
                     
-                    if current[0].destination != l.source {
-                        retValue = false
-                    } else {
+                    if l.source == l.destination && TokenOwnershipRecord(ore: l.ore!, address: l.address!).count == 0 {
                         
-                        // so the signature is correct, the last destination is this source so we can commit this transaction now.
+                        // this is a new registration, so it can be committed right away
                         _ = db.put(l)
                         
+                    } else if l.source != l.destination && l.verifySignature() {
+                        
+                        // get the current ownership record for this token
+                        let current = TokenOwnershipRecord(ore: l.ore!, address: l.address!)
+                        if current.count == 0 {
+                            retValue = false
+                        } else {
+                            
+                            if current[0].destination != l.source {
+                                retValue = false
+                            } else {
+                                
+                                // so the signature is correct, the last destination is this source so we can commit this transaction now.
+                                _ = db.put(l)
+                                
+                            }
+                            
+                        }
+                        
                     }
+                    
+                } else {
+                    
+                    // record already exists, no action taken
                     
                 }
                 
             }
             
         }
+        
         
         if retValue {
             
@@ -167,10 +181,10 @@ class Database {
     }
     
     class func TokenOwnershipRecord(ore: Int, address: Data) -> [Ledger] {
-    
+        
         // get the last ten items, recent->oldest.  Uses status to determine pending and current.
         return db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE ore = ? AND address = ? ORDER BY date DESC LIMIT 1", params: [ore, address])
-
+        
     }
     
     class func BlockAtHeight(_ height: Int, includeTransactions: Bool) -> Block? {
@@ -196,7 +210,7 @@ class Database {
     class func LedgersForHeight(_ height: Int) -> [Ledger] {
         
         return db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE height = ? ORDER BY address", params: [height])
-
+        
     }
     
 }

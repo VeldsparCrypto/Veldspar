@@ -24,7 +24,6 @@ import Foundation
 
 class Settings : Codable {
     
-    var node_id: String = UUID().uuidString.CryptoHash()
     var blockchain_export_data: Bool = false
     var blockchain_export_data_path: String = "./cache/blocks"
     var blockchain_produce_blocks: Bool = false

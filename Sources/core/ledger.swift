@@ -38,7 +38,7 @@ public enum LedgerTransactionState : Int {
     
 }
 
-public struct Ledger : Codable {
+public class Ledger : Codable {
 
     public var id: Int?
     public var op: Int?
@@ -89,7 +89,7 @@ public struct Ledger : Codable {
         
     }
     
-    private mutating func sign(seed: Data) {
+    private func sign(seed: Data) {
         
         let key = Keys(seed.bytes as [UInt8])
         hash = signatureHash()

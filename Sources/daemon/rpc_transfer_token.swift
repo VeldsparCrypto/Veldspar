@@ -50,14 +50,20 @@ class RecieveTransfer {
         
         let estimatedTarget = (blockchain.height() + Config.TransactionMaturityLevel)
         
-        var tokens = tr.tokens
-        for i in 0...tokens.count-1 {
-            tokens[i].height = estimatedTarget
+        for t in tr.tokens {
+            t.height = estimatedTarget
+        }
+        
+        // if this is the entry point into the system for this transaction, then we need to allocate ids
+        for t in tr.tokens {
+            if t.transaction_id == nil {
+                t.transaction_id = Data(bytes:UUID().uuidString.bytes.sha224())
+            }
         }
         
         // we ask the data layer to check that every single one of the tokens one-by-one, then transfer.  A boolean is returned to indicate success or failure.
         
-        if blockchain.commitLedgerItems(tokens: tokens, failIfAny: true) {
+        if blockchain.commitLedgerItems(tokens: tr.tokens, failIfAny: true) {
             
             // distribute this transfer to other nodes
             
