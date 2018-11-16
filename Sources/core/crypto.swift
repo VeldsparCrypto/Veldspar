@@ -85,17 +85,4 @@ public class Crypto {
         return address.base58DecodedData!
     }
     
-    public class func makeTransactionIdentifier(dest: String, timestamp: Int, token: TransferToken) -> Data? {
-        
-        var d = Data()
-        d.append(contentsOf: token.source_address!.bytes)
-        d.append(contentsOf: dest.bytes)
-        d.append(contentsOf: timestamp.toHex().lowercased().bytes)
-        d.append(token.ore_address!)
-        d.append(contentsOf: token.ore!.toHex().lowercased().bytes)
-        
-        return d.sha224()
-        
-    }
-    
 }

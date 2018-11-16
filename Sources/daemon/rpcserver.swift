@@ -132,10 +132,6 @@ class RPCHandler {
                 
             case "/token/register":
                 
-                if !settings.network_accept_transactions {
-                    return .forbidden
-                }
-                
                 var token = ""
                 var address = ""
                 var bean = ""
@@ -156,6 +152,57 @@ class RPCHandler {
                 // try response.setBody(json: )
                 let r = try RPCRegisterToken.action(["token" : token, "address" : address, "bean" : bean], host: request.address)
                 return .ok(.json(r))
+                
+            case "/announce":
+                
+                var nodeId = ""
+                var port = ""
+                for p in request.queryParams {
+                    if p.0.lowercased() == "nodeid" {
+                        nodeId = p.1
+                    }
+                    if p.0.lowercased() == "port" {
+                        port = p.1
+                    }
+                }
+                
+                logger.log(level: .Warning, log: "(RPC) '\(request.path)' nodeId='\(nodeId)'")
+                
+                var node = PeeringNode()
+                node.address = "\(request.address!):\(port)"
+                node.uuid = nodeId
+                node.visible = Comms.basicRequest(address: node.address ?? "", method: "/info/timestamp", parameters: [:]) != nil
+                node.failures = 0
+                blockchain.putNode(node)
+                
+                logger.log(level: .Debug, log: "Registering node (\(nodeId) on port \(port) form IP \(request.address ?? "UNKNOWN")")
+                
+                return .ok(.jsonData(try JSONEncoder().encode(GenericResponse(key: "node", value: "registered"))))
+                
+            case "/nodes":
+                
+                logger.log(level: .Warning, log: "(RPC) '\(request.path)'")
+                
+                let nodes = blockchain.nodes()
+                let nodeResponse = NodeListResponse()
+                nodeResponse.nodes = nodes
+                return .ok(.jsonData(try JSONEncoder().encode(nodeResponse)))
+                
+            case "/pending":
+                
+                logger.log(level: .Warning, log: "(RPC) '\(request.path)'")
+                
+                let nodes = blockchain.nodes()
+                let nodeResponse = NodeListResponse()
+                nodeResponse.nodes = nodes
+                return .ok(.jsonData(try JSONEncoder().encode(nodeResponse)))
+                
+            case "/token/transfer":
+                
+                let jsonBody = String(bytes: request.body, encoding: .ascii)
+                logger.log(level: .Warning, log: "(RPC) '\(request.path)', body : '\(jsonBody!)'")
+                let r = try RecieveTransfer.action(jsonBody!)
+                return .ok(.jsonString(r))
                 
             default:
                 return .notFound

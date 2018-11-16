@@ -60,8 +60,6 @@ public class Config {
     // seed nodes
     public static let SeedNodes: [String] = ["primary.veldspar.co:14242"]
     public static let TestNetNodes: [String] = ["testnet.veldspar.co:14242"]
-    
-    // cache urls
-    public static let BlockDataCache: [String] = ["http://blocks.veldspar.co"]
+
     
 }

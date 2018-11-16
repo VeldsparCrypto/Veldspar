@@ -32,7 +32,8 @@ class Database {
         
         db.create(Block(), pk: "height", auto: false, indexes:[])
         db.create(Ledger(), pk: "id", auto: true, indexes:["address,date DESC","height,address","transaction_id","transaction_id"])
-        db.create(PeeringNode(), pk: "id", auto: true, indexes: ["uuid"])
+        db.create(PeeringNode(), pk: "uuid", auto: false, indexes: [])
+        db.create(NodeInstance(), pk: "nodeId", auto: false, indexes: [])
         
     }
     
@@ -111,7 +112,7 @@ class Database {
     
     class func CommitLedger(ledgers: [Ledger], failAll: Bool) -> Bool {
         
-        // after many different versions, I have decided that digital signature checking and auority checkign will be done here.  This will allow the data layer to atomically verify the state of the transactions and roll back if invalid transactions are attempted.
+        // after many different versions, I have decided that digital signature checking and authority checking will be done here.  This will allow the data layer to atomically verify the state of the transactions and roll back if invalid transactions are attempted.
         
         var retValue = true
         
@@ -127,8 +128,20 @@ class Database {
                     
                     if l.source == l.destination && TokenOwnershipRecord(ore: l.ore!, address: l.address!).count == 0 {
                         
-                        // this is a new registration, so it can be committed right away
-                        _ = db.put(l)
+                        // this is a new registration, so it can be committed right away.  But only after we have validated that it is a valid token to be registered
+                        if l.bean != nil {
+                            let t = Token(oreHeight: l.ore!, address: l.address!, algorithm: AlgorithmType.init(rawValue: l.algorithm!)!);
+                            if t.validateFind(bean: l.bean!) && t.value(bean:l.bean!) != 0 {
+                                
+                                _ = db.put(l)
+                                
+                            } else {
+                                retValue = false
+                            }
+                            
+                        } else {
+                            retValue = false
+                        }
                         
                     } else if l.source != l.destination && l.verifySignature() {
                         
@@ -207,9 +220,29 @@ class Database {
         
     }
     
+    class func PendingLedgers(_ tidemark: Int, height: Int) -> [Ledger] {
+        
+        return db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE id > ? AND height >= ? ORDER BY id LIMIT 1000", params: [tidemark, height])
+        
+    }
+    
     class func LedgersForHeight(_ height: Int) -> [Ledger] {
         
         return db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE height = ? ORDER BY address", params: [height])
+        
+    }
+    
+    class func PeeringNodes() -> [PeeringNode] {
+        
+        return db.query(PeeringNode(), sql: "SELECT * FROM PeeringNode", params: [])
+        
+    }
+    
+    class func WritePeeringNodes(nodes: [PeeringNode]) {
+        
+        for p in nodes {
+            _ = db.put(p)
+        }
         
     }
     

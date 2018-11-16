@@ -22,9 +22,10 @@
 
 import Foundation
 
-public struct NodeInstance : Codable {
+public struct Pending : Codable {
     
-    public var nodeId: String?
-    init(){}
+    var nodeId: String?
+    var transactions : [Ledger] = []
+    init() {}
     
 }

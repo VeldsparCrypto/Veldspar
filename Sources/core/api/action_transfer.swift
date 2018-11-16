@@ -22,15 +22,10 @@
 
 import Foundation
 
-public struct TransferToken : Codable {
+public class TransferResponse : Codable {
     
-    public var source_address: String?
-    public var ore_address: Data?
-    public var ore: Int?
-    public var auth: Data?
-    public var transaction_id: Data?
-
-    init() {}
+    public var success: Bool?
+    public var target: Int?
     
 }
 

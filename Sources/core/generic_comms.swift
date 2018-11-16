@@ -27,6 +27,18 @@ import Dispatch
 
 public class Comms {
     
+    public class func basicRequest(address: String, method: String, parameters: [String:String]? ) -> Data? {
+        
+        var encodedParams: [String] = []
+        for p in parameters ?? [:] {
+            let value = "\(p.key)=\(p.value)".addingPercentEncoding(withAllowedCharacters: CharacterSet.urlQueryAllowed)
+            encodedParams.append(value!)
+        }
+        
+        return try? Data(contentsOf: URL(string:"http://\(address)/\(method)?\(encodedParams.joined(separator: "&"))")!)
+        
+    }
+    
     public class func request(method: String, parameters: [String:String]?) -> Data? {
         
         var encodedParams: [String] = []
@@ -60,7 +72,7 @@ public class Comms {
         let blockData = Comms.request(method: "blockchain/blockhash", parameters: ["height" : "\(height)"])
         if blockData != nil {
             
-            let b = try? JSONDecoder().decode(BlockHashObject.self, from: blockData!)
+            let b = try? JSONDecoder().decode(BlockHash.self, from: blockData!)
             if b != nil {
                 return b?.hash
             }
@@ -68,6 +80,48 @@ public class Comms {
         }
         
         return nil
+        
+    }
+    
+    public class func announce(nodeId: String, port: Int) -> Bool {
+        
+        let blockData = Comms.request(method: "blockchain/blockhash", parameters: ["nodeId" : nodeId, "port" : "\(port)"])
+        if blockData != nil {
+            return true
+        }
+        return false
+        
+    }
+    
+    public class func nodes() -> NodeListResponse {
+        
+        let blockData = Comms.request(method: "nodes", parameters: [:])
+        if blockData != nil {
+            
+            let b = try? JSONDecoder().decode(NodeListResponse.self, from: blockData!)
+            if b != nil {
+                return b!
+            }
+            
+        }
+        
+        return NodeListResponse()
+        
+    }
+    
+    public class func pending(height: Int, tidemark: Int) -> Pending {
+        
+        let blockData = Comms.request(method: "pending", parameters: ["height":"\(height)", "tidemark" : "\(tidemark)"])
+        if blockData != nil {
+            
+            let b = try? JSONDecoder().decode(Pending.self, from: blockData!)
+            if b != nil {
+                return b!
+            }
+            
+        }
+        
+        return Pending()
         
     }
     

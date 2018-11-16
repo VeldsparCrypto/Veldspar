@@ -33,6 +33,7 @@ public protocol AlgorithmProtocol {
     func deprecated(height: UInt) -> Bool
     func hash(token: Token) -> [UInt8]
     func value(token: Token) -> Int
+    func value(token: Token, bean: Data) -> Int
     func workload(token: Token) -> Workload
     func validateFind(token: Token, bean: Data) -> Bool
     func foundBean(token: Token) -> Data?
@@ -150,6 +151,21 @@ public class AlgorithmManager {
         
     }
     
+    public func value(token: Token, bean: Data) -> Int {
+        
+        var value: Int = 0
+        
+        lock.mutex {
+            if token.algorithm.rawValue < self.implementations.count {
+                let imp = self.implementations[Int(token.algorithm.rawValue)]
+                value = imp.value(token: token)
+            }
+        }
+        
+        return value
+        
+    }
+    
     public func foundBean(token: Token) -> Data? {
         
         var value: Data? = nil
@@ -165,14 +181,14 @@ public class AlgorithmManager {
         
     }
     
-    public func validate(token: Token, bean: String) -> Bool {
+    public func validate(token: Token, bean: Data) -> Bool {
         
         var retValue: Bool = false
         
         lock.mutex {
             if token.algorithm.rawValue < self.implementations.count {
                 let imp = self.implementations[Int(token.algorithm.rawValue)]
-                retValue = imp.validateFind(token: token, bean: bean.hexToData)
+                retValue = imp.validateFind(token: token, bean: bean)
             }
         }
         

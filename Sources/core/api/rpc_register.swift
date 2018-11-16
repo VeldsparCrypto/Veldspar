@@ -20,11 +20,24 @@
 //    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //    SOFTWARE.
 
+
 import Foundation
 
-public struct NodeInstance : Codable {
+public class RegisterRequest : Codable {
     
-    public var nodeId: String?
-    init(){}
+    public var token: String?
+    public var claimant: String?
+    public init() {}
+    
+}
+
+public class RegisterRepsonse : Codable {
+    
+    public var success: Bool?
+    public var error: String?
+    public var token: String?
+    public var block: Int?
+    
+    public init() {}
     
 }

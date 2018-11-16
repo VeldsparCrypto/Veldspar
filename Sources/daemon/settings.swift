@@ -26,16 +26,12 @@ class Settings : Codable {
     
     var blockchain_export_data: Bool = false
     var blockchain_export_data_path: String = "./cache/blocks"
-    var blockchain_produce_blocks: Bool = false
-    var network_distribute_transactions: Bool = false
-    var network_accept_transactions: Bool = true
-    var network_accept_registrations: Bool = false
     var network_port: Int = 14242
     var rpc_allow_block: Bool = true
     var rpc_allow_height: Bool = true
     var rpc_allow_timestamp: Bool = true
     var rpc_allow_pending: Bool = true
-    var rpc_allow_transfer: Bool = false
+    var rpc_allow_transfer: Bool = true
     var rpc_ban_invalid_requests: Bool = true
     var rpc_ban_invalid_limit: Int = 10
     var database_service_type: String = "SQLITE"

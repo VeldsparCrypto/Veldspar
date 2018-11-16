@@ -114,15 +114,25 @@ if isTestNet {
 
 print("Blockchain created, currently at height \(blockchain.height())")
 
+// check to see if we have generated a node identifier yet
+if db.query(NodeInstance(), sql: "SELECT * FROM NodeInstance", params: []).count == 0 {
+    var n = NodeInstance()
+    n.nodeId = UUID().uuidString.lowercased()
+    _ = db.put(n)
+}
+
+let thisNode = db.query(NodeInstance(), sql: "SELECT * FROM NodeInstance", params: [])[0]
+
+_ = Comms.request(method: "announce", parameters: ["nodeId" : "\(thisNode.nodeId!)"])
+
+Execute.background {
+    
+}
+
 Execute.background {
     // endlessly run the main process loop
-    if settings.blockchain_produce_blocks {
-        logger.log(level: .Info, log: "Block maker started")
-        BlockMaker.Loop()
-    } else {
-        // retrieve blocks from the cache service and wite them into the local blockchain
-        logger.log(level: .Info, log: "Node not configured to make blocks, so synchronising blocks with network instead")
-    }
+    logger.log(level: .Info, log: "Block maker started")
+    BlockMaker.Loop()
 }
 
 // now start the webserver and block

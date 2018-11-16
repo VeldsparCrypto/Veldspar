@@ -44,6 +44,34 @@ class BlockChain {
         
     }
     
+    func nodes() -> [PeeringNode] {
+        
+        var retValue: [PeeringNode] = []
+        
+        blockchain_lock.mutex {
+            retValue = Database.PeeringNodes()
+        }
+        
+        return retValue
+        
+    }
+    
+    func putNodes(_ nodes: [PeeringNode]) {
+        
+        blockchain_lock.mutex {
+            Database.WritePeeringNodes(nodes: nodes)
+        }
+        
+    }
+    
+    func putNode(_ node: PeeringNode) {
+        
+        blockchain_lock.mutex {
+            Database.WritePeeringNodes(nodes: [node])
+        }
+        
+    }
+    
     func setNewHeight(_ newHeight: Int) {
         
         stats_lock.mutex {
@@ -195,8 +223,40 @@ class BlockChain {
             throw BlockchainErrors.InvalidToken
         }
         
-        if !t!.validateFind(bean: bean) {
-            throw BlockchainErrors.InvalidToken
+        if AlgorithmManager.sharedInstance().depricated(type: t!.algorithm, height: UInt(t!.oreHeight)) {
+            logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: Int) -> Bool' was of deprecated method.")
+            throw BlockchainErrors.InvalidAlgo
+        }
+        
+        
+        
+        // create the ledger
+        let l = Ledger()
+        l.op = LedgerOPType.RegisterToken.rawValue
+        l.address = t!.address
+        l.height = block
+        l.algorithm = t!.algorithm.rawValue
+        l.date = consensusTime()
+        l.destination = Crypto.strAddressToData(address: address)
+        l.ore = t!.oreHeight
+        l.state = LedgerTransactionState.Pending.rawValue
+        l.transaction_id = Data(bytes: UUID().uuidString.bytes.sha224())
+        l.source = Crypto.strAddressToData(address: address)
+        l.value = t!.value()
+        l.bean = bean.hexToData
+        l.hash = l.checksum()
+        
+        var success = false;
+        
+        // the atomicity & validity of the ledger will be checked by the data layer upon submission
+        blockchain_lock.mutex {
+            success = Database.CommitLedger(ledgers: [l], failAll: true)
+        }
+        
+        if success {
+            
+        } else {
+            
         }
         
         // now go and lookup existence in the database
@@ -210,10 +270,7 @@ class BlockChain {
             
             let t = try Token(token)
             
-            if AlgorithmManager.sharedInstance().depricated(type: t.algorithm, height: UInt(t.oreHeight)) {
-                logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: Int) -> Bool' was of deprecated method.")
-                throw BlockchainErrors.InvalidAlgo
-            }
+            
             
             if t.value() == 0 {
                 logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: Int) -> Bool' was invalid and has no value.")
@@ -223,19 +280,7 @@ class BlockChain {
             // update the token's id
             token = t.tokenStringId()
             
-            var l = Ledger()
-            l.op = LedgerOPType.RegisterToken.rawValue
-            l.address = t.address
-            l.height = block
-            l.algorithm = t.algorithm.rawValue
-            l.date = consensusTime()
-            l.destination = Crypto.strAddressToData(address: address)
-            l.ore = t.oreHeight
-            l.state = LedgerTransactionState.Pending.rawValue
-            l.transaction_id = Data(bytes: UUID().uuidString.bytes.sha224())
-            l.source = Crypto.strAddressToData(address: address)
-            l.value = t.value()
-            l.hash = l.checksum()
+            
             
             blockchain_lock.mutex {
                 if Database.CommitLedger(ledgers: [l], failAll: true) == true {
