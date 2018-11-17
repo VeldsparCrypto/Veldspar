@@ -12,13 +12,30 @@ class NodeSync {
     
     class func SyncNodes() {
         
+        var nodes = Config.SeedNodes
+        if isTestNet {
+            nodes = Config.TestNetNodes
+        }
+        
         while true {
             
-            for s in Config.SeedNodes {
+            for s in nodes {
                 
-                let d = Comms.basicRequest(address: s, method: "nodes", parameters: [:])
-                
+                let d = comms.basicRequest(address: s, method: "nodes", parameters: [:])
+                if d != nil {
+                    do {
+                        
+                        let currentNodes = try JSONDecoder().decode(NodeListResponse.self, from: d!)
+                        blockchain.putNodes(currentNodes.nodes)
+                        
+                    } catch {}
+                }
             }
+            
+            // clean up stale nodes
+            blockchain.purgeStaleNodes()
+            
+            Thread.sleep(forTimeInterval: 60)
             
         }
         

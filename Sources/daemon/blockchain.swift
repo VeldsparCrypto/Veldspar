@@ -64,6 +64,15 @@ class BlockChain {
         
     }
     
+    func purgeStaleNodes() {
+        
+        blockchain_lock.mutex {
+            let max = UInt64(Date().timeIntervalSince1970 * 1000) - 120000
+            _ = db.execute(sql: "DELETE FROM PeeringNode WHERE lastcomm < ?", params: [max])
+        }
+        
+    }
+    
     func putNode(_ node: PeeringNode) {
         
         blockchain_lock.mutex {
@@ -255,47 +264,21 @@ class BlockChain {
         
         if success {
             
+            logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: Int) -> Bool' call to 'Database.WritePendingLedger()' succeeded, token written.")
+            return true
+            
         } else {
             
-        }
-        
-        // now go and lookup existence in the database
-        var ownership: [Ledger] = []
-        blockchain_lock.mutex {
-            
-            ownership = Database.TokenOwnershipRecord(ore: t!.oreHeight, address: t!.address)
-        }
-        
-        if ownership.count == 0 {
-            
-            let t = try Token(token)
-            
-            
-            
-            if t.value() == 0 {
-                logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: Int) -> Bool' was invalid and has no value.")
+            if t!.value() == 0 {
+                logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken() -> Bool' was invalid and has no value.")
                 throw BlockchainErrors.TokenHasNoValue
             }
             
-            // update the token's id
-            token = t.tokenStringId()
-            
-            
-            
-            blockchain_lock.mutex {
-                if Database.CommitLedger(ledgers: [l], failAll: true) == true {
-                    logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: Int) -> Bool' call to 'Database.WritePendingLedger()' succeeded, token written.")
-                    returnValue = true
-                } else {
-                    logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: Int) -> Bool' call to 'Database.WritePendingLedger()' failed.")
-            }
-            }
-            
-        } else {
             logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: Int) -> Bool' this token exists already in blockchain.db")
+            
         }
-
-        return returnValue
+        
+        return false
         
     }
     

@@ -24,6 +24,7 @@ import Foundation
 
 public struct BlockHash : Codable {
     
+    public var ready: Bool?
     public var nodeId: String?
     public var height: Int?
     public var hash: Data?

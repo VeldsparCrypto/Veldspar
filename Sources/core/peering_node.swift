@@ -27,9 +27,8 @@ public struct PeeringNode : Codable {
     public var uuid: String?
     public var address: String?
     public var speed: Int?
-    public var failures: Int?
+    public var lastcomm: UInt64?
     public var tidemark: Int?
-    public var visible: Bool?
     
     public init() {}
     

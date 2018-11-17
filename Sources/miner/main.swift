@@ -35,9 +35,8 @@ var miningMethods: [AlgorithmType] = [AlgorithmType.SHA512_AppendV0]
 var walletAddress: String?
 var cacheLock = Mutex()
 var threads = 4
-
+var isTestnet = false
 let args: [String] = CommandLine.arguments
-
 let statsLock: Mutex = Mutex()
 var hashes: Int = 0
 var matches: Int = 0
@@ -57,6 +56,9 @@ if args.count > 1 {
         }
         if arg.lowercased() == "--debug" {
             debug_on = true
+        }
+        if arg.lowercased() == "--testnet" {
+            isTestnet = true
         }
         if arg.lowercased() == "--address" {
             
@@ -81,6 +83,10 @@ if args.count > 1 {
         }
         
     }
+}
+
+if isTestnet {
+    nodeAddress = Config.TestNetNodes[0]
 }
 
 print("---------------------------")

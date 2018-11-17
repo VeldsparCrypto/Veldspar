@@ -29,7 +29,7 @@ class BlockSync {
         
         while true {
             
-            if blockchain.height() < Comms.requestHeight() ?? -1 {
+            if blockchain.height() < comms.requestHeight() ?? -1 {
                 
             }
             

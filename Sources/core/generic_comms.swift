@@ -27,7 +27,13 @@ import Dispatch
 
 public class Comms {
     
-    public class func basicRequest(address: String, method: String, parameters: [String:String]? ) -> Data? {
+    var isTestnet: Bool = false
+    
+    public init(testnet: Bool) {
+        isTestnet = testnet
+    }
+    
+    public func basicRequest(address: String, method: String, parameters: [String:String]? ) -> Data? {
         
         var encodedParams: [String] = []
         for p in parameters ?? [:] {
@@ -39,7 +45,7 @@ public class Comms {
         
     }
     
-    public class func request(method: String, parameters: [String:String]?) -> Data? {
+    public func request(method: String, parameters: [String:String]?) -> Data? {
         
         var encodedParams: [String] = []
         for p in parameters ?? [:] {
@@ -47,13 +53,18 @@ public class Comms {
             encodedParams.append(value!)
         }
         
-        return try? String(contentsOf: URL(string:"http://\(Config.SeedNodes[0])/\(method)?\(encodedParams.joined(separator: "&"))")! , encoding: .ascii).data(using: .ascii)!
+        var node = Config.SeedNodes[0]
+        if isTestnet {
+            node = Config.TestNetNodes[0]
+        }
+        
+        return try? String(contentsOf: URL(string:"http://\(node)/\(method)?\(encodedParams.joined(separator: "&"))")! , encoding: .ascii).data(using: .ascii)!
         
     }
     
-    public class func blockAtHeight(height: Int) -> Block? {
+    public func blockAtHeight(height: Int) -> Block? {
         
-        let blockData = Comms.request(method: "blockchain/block", parameters: ["height" : "\(height)"])
+        let blockData = request(method: "block", parameters: ["height" : "\(height)"])
         if blockData != nil {
             
             let b = try? JSONDecoder().decode(Block.self, from: blockData!)
@@ -67,14 +78,14 @@ public class Comms {
         
     }
     
-    public class func hashForBlock(height: Int) -> Data? {
+    public func hashForBlock(address: String, height: Int) -> BlockHash? {
         
-        let blockData = Comms.request(method: "blockchain/blockhash", parameters: ["height" : "\(height)"])
+        let blockData = basicRequest(address: address, method: "blockhash", parameters: ["height" : "\(height)"])
         if blockData != nil {
             
             let b = try? JSONDecoder().decode(BlockHash.self, from: blockData!)
             if b != nil {
-                return b?.hash
+                return b!
             }
             
         }
@@ -83,9 +94,19 @@ public class Comms {
         
     }
     
-    public class func announce(nodeId: String, port: Int) -> Bool {
+    public func hashForBlock(height: Int) -> BlockHash? {
         
-        let blockData = Comms.request(method: "blockchain/blockhash", parameters: ["nodeId" : nodeId, "port" : "\(port)"])
+        var node = Config.SeedNodes[0]
+        if isTestnet {
+            node = Config.TestNetNodes[0]
+        }
+        return hashForBlock(address: node, height: height)
+        
+    }
+    
+    public func announce(nodeId: String, port: Int) -> Bool {
+        
+        let blockData = request(method: "announce", parameters: ["nodeId" : nodeId, "port" : "\(port)"])
         if blockData != nil {
             return true
         }
@@ -93,9 +114,9 @@ public class Comms {
         
     }
     
-    public class func nodes() -> NodeListResponse {
+    public func nodes() -> NodeListResponse {
         
-        let blockData = Comms.request(method: "nodes", parameters: [:])
+        let blockData = request(method: "nodes", parameters: [:])
         if blockData != nil {
             
             let b = try? JSONDecoder().decode(NodeListResponse.self, from: blockData!)
@@ -109,26 +130,44 @@ public class Comms {
         
     }
     
-    public class func pending(height: Int, tidemark: Int) -> Pending {
+    public func pending(height: Int, tidemark: Int) -> Ledgers {
         
-        let blockData = Comms.request(method: "pending", parameters: ["height":"\(height)", "tidemark" : "\(tidemark)"])
+        let blockData = request(method: "pending", parameters: ["height":"\(height)", "tidemark" : "\(tidemark)"])
         if blockData != nil {
             
-            let b = try? JSONDecoder().decode(Pending.self, from: blockData!)
+            let b = try? JSONDecoder().decode(Ledgers.self, from: blockData!)
             if b != nil {
                 return b!
             }
             
         }
         
-        return Pending()
+        return Ledgers()
         
     }
     
-    public class func requestHeight() -> Int? {
+    public func Register(token: String, address: String, beanHex: String) -> RegisterRepsonse? {
         
-        let method = "blockchain/currentheight"
-        let responseData = try? String(contentsOf: URL(string:"http://\(Config.SeedNodes[0])/\(method)")! , encoding: .ascii).data(using: .ascii)!
+        let response = request(method: "register", parameters: ["token" : token, "address" : address, "bean" : beanHex])
+        if response != nil  {
+            let r = try? JSONDecoder().decode(RegisterRepsonse.self, from: response!)
+            if r != nil {
+                return r
+            }
+        }
+        
+        return nil
+        
+    }
+    
+    public func requestHeight() -> Int? {
+        
+        let method = "currentheight"
+        var node = Config.SeedNodes[0]
+        if isTestnet {
+            node = Config.TestNetNodes[0]
+        }
+        let responseData = try? String(contentsOf: URL(string:"http://\(node)/\(method)")! , encoding: .ascii).data(using: .ascii)!
         
         if responseData != nil {
             

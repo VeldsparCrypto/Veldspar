@@ -57,7 +57,7 @@ class RPCHandler {
                 logger.log(level: .Warning, log: "(RPC) '\(request.path)'")
                 return .ok(.html(r))
                 
-            case "/info/timestamp":
+            case "/timestamp":
                 
                 if !settings.rpc_allow_timestamp {
                     return .forbidden
@@ -65,7 +65,7 @@ class RPCHandler {
                 
                 return .ok(.jsonString("{\"timestamp\" : \(consensusTime())}"))
                 
-            case "/blockchain/currentheight":
+            case "/currentheight":
                 
                 if !settings.rpc_allow_height {
                     return .forbidden
@@ -87,7 +87,7 @@ class RPCHandler {
                     
                 }
                 
-            case "/blockchain/block":
+            case "/block":
                 
                 if !settings.rpc_allow_block {
                     return .forbidden
@@ -130,7 +130,7 @@ class RPCHandler {
                     
                 }
                 
-            case "/token/register":
+            case "/register":
                 
                 var token = ""
                 var address = ""
@@ -153,6 +153,26 @@ class RPCHandler {
                 let r = try RPCRegisterToken.action(["token" : token, "address" : address, "bean" : bean], host: request.address)
                 return .ok(.json(r))
                 
+            case "/int":
+                
+                if request.method != "POST" {
+                    throw RPCErrors.InvalidRequest
+                }
+                
+                if request.body.count < 2 {
+                    throw RPCErrors.InvalidRequest
+                }
+                
+                // decode the ledgers object
+                let l = try JSONDecoder().decode(Ledgers.self, from: Data(bytes: request.body))
+                
+                logger.log(level: .Warning, log: "(RPC) '\(request.path)', received \(l.transactions.count) transactions from node '\(l.source_nodeId!)'")
+                
+                // throw these ledgers to the blockchain as they will be verified later on
+                _ = blockchain.commitLedgerItems(tokens: l.transactions, failIfAny: false)
+                
+                return .ok(.jsonData(try JSONEncoder().encode(GenericResponse(key: "received", value: "ok"))))
+                
             case "/announce":
                 
                 var nodeId = ""
@@ -171,11 +191,13 @@ class RPCHandler {
                 var node = PeeringNode()
                 node.address = "\(request.address!):\(port)"
                 node.uuid = nodeId
-                node.visible = Comms.basicRequest(address: node.address ?? "", method: "/info/timestamp", parameters: [:]) != nil
-                node.failures = 0
-                blockchain.putNode(node)
-                
-                logger.log(level: .Debug, log: "Registering node (\(nodeId) on port \(port) form IP \(request.address ?? "UNKNOWN")")
+                node.lastcomm = UInt64(Date().timeIntervalSince1970 * 1000)
+                if comms.basicRequest(address: node.address ?? "", method: "/timestamp", parameters: [:]) != nil {
+                    blockchain.putNode(node)
+                    logger.log(level: .Debug, log: "Registering node (\(nodeId) on port \(port) form IP \(request.address ?? "UNKNOWN")")
+                } else {
+                    logger.log(level: .Debug, log: "Registering node (\(nodeId) on port \(port) form IP \(request.address ?? "UNKNOWN") failed, not reachable.")
+                }
                 
                 return .ok(.jsonData(try JSONEncoder().encode(GenericResponse(key: "node", value: "registered"))))
                 
@@ -188,16 +210,51 @@ class RPCHandler {
                 nodeResponse.nodes = nodes
                 return .ok(.jsonData(try JSONEncoder().encode(nodeResponse)))
                 
-            case "/pending":
+            case "/blockhash":
                 
                 logger.log(level: .Warning, log: "(RPC) '\(request.path)'")
                 
-                let nodes = blockchain.nodes()
-                let nodeResponse = NodeListResponse()
-                nodeResponse.nodes = nodes
-                return .ok(.jsonData(try JSONEncoder().encode(nodeResponse)))
+                var height = 0
+                for p in request.queryParams {
+                    if p.0 == "height" {
+                        height = Int(p.1) ?? 0
+                    }
+                }
                 
-            case "/token/transfer":
+                var blockHash = BlockHash()
+                let block = blockchain.blockAtHeight(height, includeTransactions: false)
+                if block != nil && block?.hash != nil {
+                    
+                    blockHash.ready = true
+                    blockHash.height = height
+                    blockHash.hash = block?.hash
+                    blockHash.nodeId = thisNode.nodeId
+                    
+                } else {
+                    
+                    blockHash.ready = false
+                    
+                }
+                
+                return .ok(.jsonData(try JSONEncoder().encode(blockHash)))
+                
+            case "/ledgers":
+                
+                var height = 0
+                for p in request.queryParams {
+                    if p.0 == "height" {
+                        height = Int(p.1) ?? 0
+                    }
+                }
+                
+                logger.log(level: .Warning, log: "(RPC) '\(request.path)'")
+                let ledgers = Ledgers()
+                let transactions = blockchain.LedgersForBlock(height)
+                ledgers.source_nodeId = thisNode.nodeId
+                ledgers.transactions = transactions
+                return .ok(.jsonData(try JSONEncoder().encode(ledgers)))
+                
+            case "/transfer":
                 
                 let jsonBody = String(bytes: request.body, encoding: .ascii)
                 logger.log(level: .Warning, log: "(RPC) '\(request.path)', body : '\(jsonBody!)'")

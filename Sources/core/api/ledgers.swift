@@ -22,20 +22,12 @@
 
 import Foundation
 
-public class TokenRegistration {
+public class Ledgers : Codable {
     
-    public class func Register(token: String, address: String, beanHex: String) -> RegisterRepsonse? {
-        
-        let response = Comms.request(method: "token/register", parameters: ["token" : token, "address" : address, "bean" : beanHex])
-        if response != nil  {
-            let r = try? JSONDecoder().decode(RegisterRepsonse.self, from: response!)
-            if r != nil {
-                return r
-            }
-        }
-
-        return nil
-        
-    }
+    public var broadcastId: String?
+    public var visitedNodes: [String] = []
+    public var source_nodeId: String?
+    public var transactions : [Ledger] = []
+    public init() {}
     
 }

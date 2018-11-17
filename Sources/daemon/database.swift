@@ -202,7 +202,7 @@ class Database {
     
     class func BlockAtHeight(_ height: Int, includeTransactions: Bool) -> Block? {
         
-        let blocks = db.query(Block(), sql: "SELECT * FROM Block WHERE height = ? ORDER BY address LIMIT 1", params: [height])
+        let blocks = db.query(Block(), sql: "SELECT * FROM Block WHERE height = ? LIMIT 1", params: [height])
         
         if blocks.count == 0 {
             return nil

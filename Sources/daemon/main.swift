@@ -26,6 +26,7 @@ import Swifter
 
 // defaults
 var port: Int = 14242
+var comms = Comms(testnet: false)
 
 print("---------------------------")
 print("\(Config.CurrencyName) Daemon v\(Config.Version)")
@@ -110,6 +111,7 @@ if isTestNet {
     print("** WARNING: RUNNING IN TESTNET MODE       **")
     print("********************************************")
     print("")
+    comms = Comms(testnet: true)
 }
 
 print("Blockchain created, currently at height \(blockchain.height())")
@@ -122,17 +124,36 @@ if db.query(NodeInstance(), sql: "SELECT * FROM NodeInstance", params: []).count
 }
 
 let thisNode = db.query(NodeInstance(), sql: "SELECT * FROM NodeInstance", params: [])[0]
-
-_ = Comms.request(method: "announce", parameters: ["nodeId" : "\(thisNode.nodeId!)"])
+let broadcaster = Broadcaster()
 
 Execute.background {
+    
+    logger.log(level: .Info, log: "Node announcer service started")
+    while true {
+        _ = comms.request(method: "announce", parameters: ["nodeid" : "\(thisNode.nodeId!)", "port" : "\(settings.network_port)"])
+        Thread.sleep(forTimeInterval: 30)
+    }
     
 }
 
 Execute.background {
     // endlessly run the main process loop
-    logger.log(level: .Info, log: "Block maker started")
+    logger.log(level: .Info, log: "Block formation service started")
     BlockMaker.Loop()
+}
+
+Execute.background {
+    // endlessly sync node peer records
+    if !settings.isSeedNode {
+        logger.log(level: .Info, log: "Node swarm service started")
+        NodeSync.SyncNodes()
+    }
+}
+
+Execute.background {
+    // broadcast transaction data to all visible nodes
+    logger.log(level: .Info, log: "Transaction broadcaster service started")
+    broadcaster.broadcast()
 }
 
 // now start the webserver and block
