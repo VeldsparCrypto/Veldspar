@@ -31,7 +31,7 @@ class Database {
     class func Initialize() {
         
         db.create(Block(), pk: "height", auto: false, indexes:[])
-        db.create(Ledger(), pk: "id", auto: true, indexes:["address,date DESC","height,address","transaction_id","transaction_id"])
+        db.create(Ledger(), pk: "id", auto: true, indexes:["address,date","height,address","transaction_id"])
         db.create(PeeringNode(), pk: "uuid", auto: false, indexes: [])
         db.create(NodeInstance(), pk: "nodeId", auto: false, indexes: [])
         

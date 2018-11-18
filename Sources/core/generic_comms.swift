@@ -52,10 +52,12 @@ public class Comms {
             let value = "\(p.key)=\(p.value)".addingPercentEncoding(withAllowedCharacters: CharacterSet.urlQueryAllowed)
             encodedParams.append(value!)
         }
-        
-        var node = Config.SeedNodes[0]
+
+        var node = "127.0.0.1:14242"
         if isTestnet {
             node = Config.TestNetNodes[0]
+        } else {
+            node = Config.SeedNodes[0]
         }
         
         return try? String(contentsOf: URL(string:"http://\(node)/\(method)?\(encodedParams.joined(separator: "&"))")! , encoding: .ascii).data(using: .ascii)!
@@ -96,9 +98,11 @@ public class Comms {
     
     public func hashForBlock(height: Int) -> BlockHash? {
         
-        var node = Config.SeedNodes[0]
+        var node = "127.0.0.1:14242"
         if isTestnet {
             node = Config.TestNetNodes[0]
+        } else {
+            node = Config.SeedNodes[0]
         }
         return hashForBlock(address: node, height: height)
         
@@ -163,9 +167,11 @@ public class Comms {
     public func requestHeight() -> Int? {
         
         let method = "currentheight"
-        var node = Config.SeedNodes[0]
+        var node = "127.0.0.1:14242"
         if isTestnet {
             node = Config.TestNetNodes[0]
+        } else {
+            node = Config.SeedNodes[0]
         }
         let responseData = try? String(contentsOf: URL(string:"http://\(node)/\(method)")! , encoding: .ascii).data(using: .ascii)!
         
