@@ -29,7 +29,7 @@ srandom(UInt32(time(nil)))
 #endif
 
 // defaults
-var nodeAddress: String = Config.SeedNodes[0]
+var nodeAddress: String = "127.0.0.1:14242"
 var oreBlocks: [Int:Ore] = [:]
 var miningMethods: [AlgorithmType] = [AlgorithmType.SHA512_AppendV0]
 var walletAddress: String?
@@ -70,6 +70,16 @@ if args.count > 1 {
             }
             
         }
+        if arg.lowercased() == "--node" {
+            
+            if i+1 < args.count {
+                
+                let add = args[i+1]
+                nodeAddress = add
+                
+            }
+            
+        }
         
         if arg.lowercased() == "--threads" {
             
@@ -88,6 +98,9 @@ if args.count > 1 {
 if isTestnet {
     nodeAddress = Config.TestNetNodes[0]
 }
+
+let comms = Comms(testnet: isTestnet)
+
 
 print("---------------------------")
 print("\(Config.CurrencyName) Miner v\(Config.Version)")
@@ -149,7 +162,7 @@ for _ in 1...threads {
                 print("Found token! @\(Date()) Ore:\(height) method:\(method.rawValue) value:\(Float(t.value()) / Float(Config.DenominationDivider)) bean:\(t.foundBean()!.toHexString())")
                 print("Token Address: " + t.tokenStringId())
                 
-                let r = TokenRegistration.Register(token: t.tokenStringId(), address: walletAddress!, beanHex: t.foundBean()!.toHexString())
+                let r = comms.Register(token: t.tokenStringId(), address: walletAddress!, beanHex: t.foundBean()!.toHexString())
                 if r != nil {
                     if r!.success! {
                         print("Token registration successful.")

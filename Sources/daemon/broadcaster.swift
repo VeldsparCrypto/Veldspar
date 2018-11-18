@@ -52,51 +52,57 @@ class Broadcaster {
                 newBroadcast.broadcastId = UUID().uuidString.lowercased().replacingOccurrences(of: "-", with: "").sha224()
                 self.lock.mutex {
                     let ledgers = self.outstandingLedgers.prefix(100000)
-                    self.outstandingLedgers.removeFirst(100000)
+                    self.outstandingLedgers.removeFirst(ledgers.count)
                     newBroadcast.transactions.append(contentsOf: ledgers)
                     newBroadcast.source_nodeId = thisNode.nodeId
                     newBroadcast.visitedNodes.append(thisNode.nodeId!)
                 }
                 
-                // now we can throw this broadcast to all the nodes on the network which can be reached.
-                do {
+                if newBroadcast.transactions.count > 0 {
                     
-                    let jsonData = try JSONEncoder().encode(newBroadcast)
-                    
-                    if !settings.isSeedNode {
-                        // send this to the seed nodes first
-                        var seedNodes = Config.SeedNodes
-                        if isTestNet {
-                            seedNodes = Config.TestNetNodes
+                    // now we can throw this broadcast to all the nodes on the network which can be reached.
+                    do {
+                        
+                        let jsonData = try JSONEncoder().encode(newBroadcast)
+                        
+                        if !settings.isSeedNode {
+                            // send this to the seed nodes first
+                            var seedNodes = Config.SeedNodes
+                            if isTestNet {
+                                seedNodes = Config.TestNetNodes
+                            }
+                            for n in seedNodes {
+                                Execute.background {
+                                    self.HTTPPostJSON(url: "http://\(n)/int", data: jsonData) { (err, result) in
+                                        if(err != nil){
+                                            return
+                                        }
+                                    }
+                                }
+                            }
                         }
-                        for n in seedNodes {
+                        
+                        // now distribute to the wider community.
+                        
+                        for n in nodes {
+                            
                             Execute.background {
-                                self.HTTPPostJSON(url: "http://\(n)/int", data: jsonData) { (err, result) in
+                                self.HTTPPostJSON(url: "http://\(n.address!)/int", data: jsonData) { (err, result) in
                                     if(err != nil){
                                         return
                                     }
                                 }
                             }
-                        }
-                    }
-                    
-                    for n in nodes {
-                        
-                        Execute.background {
-                            self.HTTPPostJSON(url: "http://\(n.address!)/int", data: jsonData) { (err, result) in
-                                if(err != nil){
-                                    return
-                                }
-                            }
+                            
                         }
                         
+                        
+                    } catch {
+                        
                     }
-                    
-                    
-                } catch {
                     
                 }
-                
+
                 Thread.sleep(forTimeInterval: 1)
                 
             }

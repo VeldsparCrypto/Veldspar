@@ -35,6 +35,8 @@ var currentFilename: String?
 var walletOpen = false
 var wallet: WalletFile?
 let walletLock = Mutex()
+var node = "127.0.0.1:14242"
+var isTestNet = false
 
 // the choice switch
 
@@ -70,6 +72,9 @@ if args.count > 1 {
         if arg.lowercased() == "--debug" {
             debug_on = true
         }
+        if arg.lowercased() == "--testnet" {
+            isTestNet = true
+        }
         if arg.lowercased() == "--walletfile" {
             
             if i+1 < args.count {
@@ -87,6 +92,17 @@ if args.count > 1 {
                 
                 let t = args[i+1]
                 currentPassword = t
+                
+            }
+            
+        }
+        
+        if arg.lowercased() == "--node" {
+            
+            if i+1 < args.count {
+                
+                let t = args[i+1]
+                node = t
                 
             }
             
@@ -134,14 +150,14 @@ func WalletLoop() {
             // fetch the current height
             if walletOpen && wallet != nil {
                 
-                let nwHeight = try? String(contentsOf: URL(string:"\(Config.BlockDataCache[0])/current.height")! , encoding: .ascii)
+                let nwHeight = try? String(contentsOf: URL(string:"http://\(node)/currentheight")! , encoding: .ascii)
                 let currentH = Int(nwHeight ?? "0", radix: 10)!
                 
                 if wallet!.height() < currentH {
                     
                     let nextHeight = wallet!.height() + 1
                     
-                    let blockData = try? String(contentsOf: URL(string:"\(Config.BlockDataCache[0])/\(nextHeight).block")! , encoding: .ascii).data(using: .ascii)!
+                    let blockData = try? String(contentsOf: URL(string:"http://\(node)/block?height=\(nextHeight)")! , encoding: .ascii).data(using: .ascii)!
                     if blockData != nil {
                         
                         let b = try? JSONDecoder().decode(Block.self, from: blockData!)
