@@ -109,13 +109,23 @@ print("---------------------------")
 print("Connecting to server \(nodeAddress)")
 // connect to the server, download the ore seeds and the allowed methods & algos
 
-oreBlocks[0] = Ore(Config.GenesisID, height: 0)
-
-if oreBlocks.keys.count == 0 {
-    // no ore :(
-    print("Unable to download ORE from the server located at '\(nodeAddress)', can't continue as cache is also empty.  Please try again later.")
-    exit(0)
+if isTestNet {
+    print("")
+    print("********************************************")
+    print("** WARNING: RUNNING IN TESTNET MODE       **")
+    print("********************************************")
+    print("")
+    comms = Comms(testnet: true)
 }
+
+// test the connection to the node address
+let testd = try? Data(contentsOf: URL(string: "http://\(nodeAddress)/")!)
+if testd == nil {
+    print("Unable to communicate with \(Config.CurrencyName) node @ '\(nodeAddress)'.\nPlease make sure the node is running, and that the port is open on the firewall.\n\nAlternatively, you can use the public node available at public.veldspar.co:14242\n\nTo use another node, please use the command 'miner --node public.veldspar.co --address <- YOUR WALLET ADDRESS HERE ->'")
+}
+
+// generate the ore
+oreBlocks[0] = Ore(Config.GenesisID, height: 0)
 
 if walletAddress == nil {
     print("No target wallet address specified, please run the miner with '--address <your wallet id>'")
