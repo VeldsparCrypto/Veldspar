@@ -43,7 +43,7 @@ class BlockMaker {
         
         while true {
             
-            autoreleasepool {
+             {
                 
                 let currentTime = consensusTime()
                 if currentTime > Config.BlockchainStartDate {

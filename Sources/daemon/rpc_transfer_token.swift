@@ -35,7 +35,7 @@ class RecieveTransfer {
             throw RPCErrors.InvalidRequest
         }
         
-        var tr = request!
+        let tr = request!
         
         if tr.tokens.count == 0 {
             throw RPCErrors.InvalidRequest
@@ -62,7 +62,6 @@ class RecieveTransfer {
         }
         
         // we ask the data layer to check that every single one of the tokens one-by-one, then transfer.  A boolean is returned to indicate success or failure.
-        
         if blockchain.commitLedgerItems(tokens: tr.tokens, failIfAny: true) {
             
             // distribute this transfer to other nodes

@@ -296,36 +296,5 @@ class BlockChain {
         
     }
     
-    func transferToken(token: String, address: String, block: Int, auth: String, reference: String) -> Bool {
-        
-        let returnValue = false
-        
-//        // validate the token
-//        do {
-//            let t = try Token(address)
-//            if t.value() == 0 {
-//                return false
-//            }
-//        } catch {
-//            return false
-//        }
-//
-//        lock.mutex {
-//
-//            if Database.TokenOwnershipRecord(token) == nil && Database.TokenPendingRecord(token) == nil {
-//
-//                let l = Ledger(op: .ChangeOwner, token: token, ref: reference, address: address, auth: auth, block: block)
-//                if Database.WritePendingLedger(l) == true {
-//                    returnValue = true
-//                }
-//
-//            }
-//
-//        }
-        
-        return returnValue
-        
-    }
-    
     
 }

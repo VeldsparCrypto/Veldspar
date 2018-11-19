@@ -62,7 +62,7 @@ class Broadcaster {
             
             while true {
                 
-                autoreleasepool {
+                {
                     
                     // grab the nodes
                     let nodes = blockchain.nodes()

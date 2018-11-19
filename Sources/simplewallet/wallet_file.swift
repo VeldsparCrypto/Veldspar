@@ -326,5 +326,57 @@ class WalletFile {
         
     }
     
+    func suitableArrayOfTokensForValue(_ value: Int) -> [Ledger] {
+        
+        var returnTokens:[Ledger] = []
+        let current_denominations = db.query(sql: "SELECT id,value FROM Ledger GROUP BY value ORDER BY value DESC", params: [])
+        var denominations: [(id:Int,value:Int)] = []
+        for r in current_denominations.results {
+            let id = r["id"]!.asInt()!
+            let value = r["value"]!.asInt()!
+            for _ in 1...current_denominations.results.count {
+                denominations.append((id,value))
+            }
+        }
+        
+        var attempts = 10
+        while true {
+            
+            // repeatedly shuffle until a payment combo appears
+            denominations.randomised()
+            
+            // now we want to randomly select tokens from the available stock
+            var remaining = value
+            for t in denominations {
+                
+                if t.value <= remaining {
+                    
+                    let token = db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE id = ?", params: [t.id])
+                    if token.count > 0 {
+                        returnTokens.append(token[0])
+                        remaining -= t.value
+                    }
+                    
+                }
+                
+            }
+            
+            if remaining == 0 {
+                break
+            }
+            
+            attempts -= 1
+            
+            if attempts == 0 {
+                // return nothing
+                return []
+            }
+            
+        }
+        
+        return returnTokens
+        
+    }
+    
     
 }

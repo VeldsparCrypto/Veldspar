@@ -385,7 +385,10 @@ while true {
             case "p":
                 print("feature not implemented yet")
             case "t":
-                print("feature not implemented yet")
+                
+                // transfer tokens to anotehr address
+                
+                
             case "c": // create new
                 
                 let uuid = UUID().uuidString.lowercased() + "-" + UUID().uuidString.lowercased()
