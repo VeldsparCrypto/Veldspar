@@ -343,7 +343,7 @@ class WalletFile {
         while true {
             
             // repeatedly shuffle until a payment combo appears
-            denominations.randomised()
+            denominations.shuffled()
             
             // now we want to randomly select tokens from the available stock
             var remaining = value

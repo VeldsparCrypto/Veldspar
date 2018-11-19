@@ -326,9 +326,11 @@ extension String {
     
 }
 
+#if swift(>=4.2)
+#else
 public extension MutableCollection {
     /// Shuffles the contents of this collection.
-    mutating func randomised() {
+    mutating func shuffle() {
         let c = count
         guard c > 1 else { return }
         
@@ -343,11 +345,11 @@ public extension MutableCollection {
 
 public extension Sequence {
     /// Returns an array with the contents of this sequence, shuffled.
-    func randomised() -> [Element] {
+    func shuffled() -> [Element] {
         var result = Array(self)
-        result.randomised()
+        result.shuffle()
         return result
     }
 }
-
+#endif
 
