@@ -19,11 +19,12 @@ let package = Package(
         .package(url: "https://github.com/VeldsparCrypto/SWSQLite.git", .exact("1.0.20")),
         .package(url: "https://github.com/VeldsparCrypto/swifter.git", .exact("1.4.8")),
         .package(url: "https://github.com/VeldsparCrypto/SwiftClient.git", .exact("3.0.5")),
+        .package(url: "https://github.com/onevcat/Rainbow.git", .exact("3.0.0")),
         ],
     targets: [
         .target(
             name: "veldspard",
-            dependencies: ["CryptoSwift","Swifter","Swifter","SwiftClient","VeldsparCore","Ed25519","SWSQLite"],
+            dependencies: ["CryptoSwift","Swifter","Swifter","SwiftClient","VeldsparCore","Ed25519","SWSQLite","Rainbow"],
             path: "./Sources/daemon"),
         .target(
             name: "miner",

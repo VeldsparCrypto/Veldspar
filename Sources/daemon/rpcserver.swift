@@ -54,7 +54,7 @@ class RPCHandler {
             case "/":
                 
                 let r = "\(Config.CurrencyName) Daemon \(Config.Version)"
-                logger.log(level: .Warning, log: "(RPC) '\(request.path)'")
+                logger.log(level: .Debug, log: "(RPC) '\(request.path)'")
                 return .ok(.html(r))
                 
             case "/timestamp":
@@ -82,7 +82,7 @@ class RPCHandler {
                 } else {
                     
                     let r = "{\"height\" : \(blockchain.height())}"
-                    logger.log(level: .Info, log: "(RPC) '\(request.path)'")
+                    logger.log(level: .Debug, log: "(RPC) '\(request.path)'")
                     return .ok(.jsonString(r))
                     
                 }
@@ -147,7 +147,7 @@ class RPCHandler {
                     }
                 }
                 
-                logger.log(level: .Warning, log: "(RPC) '\(request.path)' token='\(token)' address='\(address)'")
+                logger.log(level: .Debug, log: "(RPC) '\(request.path)' token='\(token)' address='\(address)'")
                 
                 // try response.setBody(json: )
                 let r = try RPCRegisterToken.action(["token" : token, "address" : address, "bean" : bean], host: request.address)
@@ -166,7 +166,7 @@ class RPCHandler {
                 // decode the ledgers object
                 let l = try JSONDecoder().decode(Ledgers.self, from: Data(bytes: request.body))
                 
-                logger.log(level: .Warning, log: "(RPC) '\(request.path)', received \(l.transactions.count) transactions from node '\(l.source_nodeId!)'")
+                logger.log(level: .Debug, log: "(RPC) '\(request.path)', received \(l.transactions.count) transactions from node '\(l.source_nodeId!)'")
                 
                 // throw these ledgers to the blockchain as they will be verified later on
                 _ = blockchain.commitLedgerItems(tokens: l.transactions, failIfAny: false)
@@ -186,7 +186,7 @@ class RPCHandler {
                     }
                 }
                 
-                logger.log(level: .Warning, log: "(RPC) '\(request.path)' nodeId='\(nodeId)'")
+                logger.log(level: .Debug, log: "(RPC) '\(request.path)' nodeId='\(nodeId)'")
                 
                 var node = PeeringNode()
                 node.address = "\(request.address!):\(port)"
@@ -203,7 +203,7 @@ class RPCHandler {
                 
             case "/nodes":
                 
-                logger.log(level: .Warning, log: "(RPC) '\(request.path)'")
+                logger.log(level: .Debug, log: "(RPC) '\(request.path)'")
                 
                 let nodes = blockchain.nodes()
                 let nodeResponse = NodeListResponse()
@@ -212,7 +212,7 @@ class RPCHandler {
                 
             case "/blockhash":
                 
-                logger.log(level: .Warning, log: "(RPC) '\(request.path)'")
+                logger.log(level: .Debug, log: "(RPC) '\(request.path)'")
                 
                 var height = -1
                 for p in request.queryParams {
@@ -247,7 +247,7 @@ class RPCHandler {
                     }
                 }
                 
-                logger.log(level: .Info, log: "(RPC) '\(request.path)'")
+                logger.log(level: .Debug, log: "(RPC) '\(request.path)'")
                 let ledgers = Ledgers()
                 let transactions = blockchain.LedgersForBlock(height)
                 ledgers.source_nodeId = thisNode.nodeId
@@ -257,7 +257,7 @@ class RPCHandler {
             case "/transfer":
                 
                 let jsonBody = String(bytes: request.body, encoding: .ascii)
-                logger.log(level: .Info, log: "(RPC) '\(request.path)', body : '\(jsonBody!)'")
+                logger.log(level: .Debug, log: "(RPC) '\(request.path)', body : '\(jsonBody!)'")
                 let r = try RecieveTransfer.action(jsonBody!)
                 return .ok(.jsonString(r))
                 

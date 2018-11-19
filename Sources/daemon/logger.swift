@@ -23,6 +23,7 @@
 import Foundation
 import VeldsparCore
 import SWSQLite
+import Rainbow
 
 public enum LogType: String {
     case Info =     "INFO"
@@ -35,12 +36,45 @@ public enum LogType: String {
 public class Logger {
     
     private var lock: Mutex = Mutex()
+    private var isDebug: Bool
+    private var fileHandle: FileHandle
+    
+    public init(debug: Bool) {
+        isDebug = debug
+        if !FileManager.default.fileExists(atPath: "\(Config.CurrencyName).log") {
+            try? "".write(toFile: "\(Config.CurrencyName).log", atomically: true, encoding: .ascii)
+        }
+        fileHandle = FileHandle(forWritingAtPath: "\(Config.CurrencyName).log")!
+    }
+    
     public func log( level: LogType, log: String) {
+        
+        if level == .Debug && isDebug == false {
+            return
+        }
+        
+        var outString = "[\(Date())] "
+        let fileString = "[\(Date())] [\(level)] \(log)\n"
+        
+        switch level {
+        case .Debug:
+            outString += "[\(level)] \(log)".blue
+        case .Info:
+            outString += "[\(level)] \(log)"
+        case .Error:
+            outString += "[\(level)] \(log)".red
+        case .Warning:
+            outString += "[\(level)] \(log)".yellow
+        default:
+            outString += "[\(level)] \(log)"
+        }
         
         lock.mutex {
             
             // write out to the logfile and print out to the screen.
-            print("[\(Date())] [\(level)] \(log)")
+            print(outString)
+            _ = fileHandle.seekToEndOfFile()
+            fileHandle.write(fileString.data(using: .ascii)!)
             
         }
         

@@ -245,7 +245,7 @@ class BlockChain {
         }
         
         if AlgorithmManager.sharedInstance().depricated(type: t!.algorithm, height: UInt(t!.oreHeight)) {
-            logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: Int) -> Bool' was of deprecated method.")
+            logger.log(level: .Debug, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: Int) -> Bool' was of deprecated method.")
             throw BlockchainErrors.InvalidAlgo
         }
         
@@ -274,7 +274,7 @@ class BlockChain {
         
         if success {
             
-            logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: Int) -> Bool' call to 'Database.WritePendingLedger()' succeeded, token written.")
+            logger.log(level: .Info, log: "Token submitted with address '\(l.address!.toHexString())' succeeded, token written.")
             
             // now broadcast this transaction to the connected nodes
             broadcaster.add([l])
@@ -284,11 +284,11 @@ class BlockChain {
         } else {
             
             if t!.value() == 0 {
-                logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken() -> Bool' was invalid and has no value.")
+                logger.log(level: .Debug, log: "Token submitted with address '\(l.address!.toHexString())' was invalid and has no value.")
                 throw BlockchainErrors.TokenHasNoValue
             }
             
-            logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: Int) -> Bool' this token exists already in blockchain.db")
+            logger.log(level: .Debug, log: "Token submitted with address '\(l.address!.toHexString())' failed, this token exists already in blockchain.db")
             
         }
         

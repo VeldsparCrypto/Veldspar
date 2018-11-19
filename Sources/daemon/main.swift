@@ -27,10 +27,6 @@ import Swifter
 // defaults
 var port: Int = 14242
 
-print("---------------------------")
-print("\(Config.CurrencyName) Daemon v\(Config.Version)")
-print("---------------------------")
-
 var isGenesis = false
 var isTestNet = false
 var isLocal = false
@@ -39,9 +35,14 @@ let args: [String] = CommandLine.arguments
 if args.count > 1 {
     for arg in args {
         if arg.lowercased() == "--help" {
+            print("---------------------------")
+            print("\(Config.CurrencyName) Daemon v\(Config.Version)")
+            print("---------------------------")
+            print("")
             print("\(Config.CurrencyName) - v\(Config.Version)")
             print("-----   COMMANDS -------")
             print("--debug          : enables debug output to console")
+            print("--testnet        : connects this node to the testnet")
             exit(0)
         }
         if arg.lowercased() == "--debug" {
@@ -53,9 +54,6 @@ if args.count > 1 {
         }
         if arg.lowercased() == "--testnet" {
             isTestNet = true
-        }
-        if arg.lowercased() == "--local" {
-            isLocal = true
         }
     }
 }
@@ -90,13 +88,18 @@ try? encoder.encode(settings).write(to: URL(fileURLWithPath: "veldspar.settings"
 // open the database connection
 Database.Initialize()
 
-let logger = Logger()
+let logger = Logger(debug: debug_on)
+
+logger.log(level: .Info, log: "---------------------------")
+logger.log(level: .Info, log: "\(Config.CurrencyName) Daemon v\(Config.Version)")
+logger.log(level: .Info, log: "---------------------------")
+
 logger.log(level: .Info, log: "Database(s) opened")
 var blockchain = BlockChain()
 
 if isGenesis {
     if blockchain.blockAtHeight(0, includeTransactions: false) != nil {
-        print("Genesis block has already been created, exiting.")
+        logger.log(level: .Info, log: "Genesis block has already been created, exiting.")
         exit(0)
     }
     
@@ -105,22 +108,22 @@ if isGenesis {
     firstBlock.transactions = []
     firstBlock.hash = firstBlock.GenerateHashForBlock(previousHash: Data())
     if(!Database.WriteBlock(firstBlock)) {
-        print("Unable to write initial genesis block into the blockchain.")
+        logger.log(level: .Info, log: "Unable to write initial genesis block into the blockchain.")
         exit(0)
     }
-    print("genesis block created, please restart daemon without `--genesis` flag.")
+    logger.log(level: .Info, log: "genesis block created, please restart daemon without `--genesis` flag.")
     exit(0)
 } 
 
 if isTestNet {
-    print("")
-    print("********************************************")
-    print("** WARNING: RUNNING IN TESTNET MODE       **")
-    print("********************************************")
-    print("")
+    logger.log(level: .Info, log: "")
+    logger.log(level: .Info, log: "********************************************")
+    logger.log(level: .Info, log: "** WARNING: RUNNING IN TESTNET MODE       **")
+    logger.log(level: .Info, log: "********************************************")
+    logger.log(level: .Info, log: "")
 }
 
-print("Blockchain exists, currently at height \(blockchain.height())")
+logger.log(level: .Info, log: "Blockchain exists, currently at height \(blockchain.height())")
 
 // check to see if we have generated a node identifier yet
 if db.query(NodeInstance(), sql: "SELECT * FROM NodeInstance", params: []).count == 0 {
