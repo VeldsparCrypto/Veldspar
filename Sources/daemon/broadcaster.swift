@@ -13,6 +13,7 @@ class Broadcaster {
     var lock = Mutex()
     var isBroadcasting = false
     private var outstandingLedgers: [Ledger] = []
+    private var outstandingSeedLedgers: [String:[Ledgers]] = [:]
     
     //Method just to execute request, assuming the response type is string (and not file)
     func HTTPsendRequest(request: URLRequest,
@@ -58,6 +59,42 @@ class Broadcaster {
                     newBroadcast.visitedNodes.append(thisNode.nodeId!)
                 }
                 
+                var outstandingBroadcasts = false
+                self.lock.mutex {
+                    
+                    var copyOutstanding = self.outstandingSeedLedgers
+                    self.outstandingSeedLedgers = [:]
+                    
+                    for s in copyOutstanding {
+                        if s.value.count > 0 {
+                            
+                            Execute.background {
+                                for l in s.value {
+                                    
+                                    let jsonData = try? JSONEncoder().encode(l)
+                                    if jsonData != nil {
+                                        self.HTTPPostJSON(url: "http://\(s.key)/int", data: jsonData!) { (err, result) in
+                                            if(err != nil) {
+                                                // do nothing, because we are leaving the outstanding transactions in place
+                                                self.lock.mutex {
+                                                    // it failed, add the outstanding object back in again
+                                                    if self.outstandingSeedLedgers[s.key] == nil {
+                                                        self.outstandingSeedLedgers[s.key] = []
+                                                    }
+                                                    self.outstandingSeedLedgers[s.key]!.append(l)
+                                                }
+                                            } else {
+                                                logger.log(level: .Info, log: "Sent delayed intra-node-transfer to seed node '\(s.key)' with id '\(l.broadcastId!)'.")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
+                        }
+                    }
+                }
+                
                 if newBroadcast.transactions.count > 0 {
                     
                     // now we can throw this broadcast to all the nodes on the network which can be reached.
@@ -72,9 +109,17 @@ class Broadcaster {
                                 seedNodes = Config.TestNetNodes
                             }
                             for n in seedNodes {
+                                
                                 Execute.background {
                                     self.HTTPPostJSON(url: "http://\(n)/int", data: jsonData) { (err, result) in
-                                        if(err != nil){
+                                        if(err != nil) {
+                                            // this errored so we need to store these transactions until the seed node is ready to receive them again, the seed node will not create blocks for a minute until all the nodes have had time to send their outstanding transactions to the seed.  It will then start to produce blocks again
+                                            self.lock.mutex {
+                                                if self.outstandingSeedLedgers[n] == nil {
+                                                    self.outstandingSeedLedgers[n] = []
+                                                }
+                                                self.outstandingSeedLedgers[n]?.append(newBroadcast)
+                                            }
                                             return
                                         }
                                     }

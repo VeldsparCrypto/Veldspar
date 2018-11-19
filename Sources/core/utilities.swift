@@ -40,8 +40,8 @@ public func debug(_ output: String) {
     }
 }
 
-public func consensusTime() -> UInt64 {
-    return UInt64(Date().timeIntervalSince1970 * 1000)
+public func consensusTime() -> Int {
+    return Int(UInt64(Date().timeIntervalSince1970 * 1000))
 }
 
 public extension Array where Element == UInt8 {

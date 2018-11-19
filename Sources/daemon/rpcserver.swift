@@ -214,7 +214,7 @@ class RPCHandler {
                 
                 logger.log(level: .Warning, log: "(RPC) '\(request.path)'")
                 
-                var height = 0
+                var height = -1
                 for p in request.queryParams {
                     if p.0 == "height" {
                         height = Int(p.1) ?? 0
@@ -240,14 +240,14 @@ class RPCHandler {
                 
             case "/ledgers":
                 
-                var height = 0
+                var height = -1
                 for p in request.queryParams {
                     if p.0 == "height" {
                         height = Int(p.1) ?? 0
                     }
                 }
                 
-                logger.log(level: .Warning, log: "(RPC) '\(request.path)'")
+                logger.log(level: .Info, log: "(RPC) '\(request.path)'")
                 let ledgers = Ledgers()
                 let transactions = blockchain.LedgersForBlock(height)
                 ledgers.source_nodeId = thisNode.nodeId
@@ -257,7 +257,7 @@ class RPCHandler {
             case "/transfer":
                 
                 let jsonBody = String(bytes: request.body, encoding: .ascii)
-                logger.log(level: .Warning, log: "(RPC) '\(request.path)', body : '\(jsonBody!)'")
+                logger.log(level: .Info, log: "(RPC) '\(request.path)', body : '\(jsonBody!)'")
                 let r = try RecieveTransfer.action(jsonBody!)
                 return .ok(.jsonString(r))
                 

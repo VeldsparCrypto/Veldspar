@@ -27,10 +27,10 @@ import Dispatch
 
 public class Comms {
     
-    var isTestnet: Bool = false
+    var node: String
     
-    public init(testnet: Bool) {
-        isTestnet = testnet
+    public init(endpoint: String) {
+        node = endpoint
     }
     
     public func basicRequest(address: String, method: String, parameters: [String:String]? ) -> Data? {
@@ -51,13 +51,6 @@ public class Comms {
         for p in parameters ?? [:] {
             let value = "\(p.key)=\(p.value)".addingPercentEncoding(withAllowedCharacters: CharacterSet.urlQueryAllowed)
             encodedParams.append(value!)
-        }
-
-        var node = "127.0.0.1:14242"
-        if isTestnet {
-            node = Config.TestNetNodes[0]
-        } else {
-            node = Config.SeedNodes[0]
         }
         
         return try? String(contentsOf: URL(string:"http://\(node)/\(method)?\(encodedParams.joined(separator: "&"))")! , encoding: .ascii).data(using: .ascii)!
@@ -99,11 +92,6 @@ public class Comms {
     public func hashForBlock(height: Int) -> BlockHash? {
         
         var node = "127.0.0.1:14242"
-        if isTestnet {
-            node = Config.TestNetNodes[0]
-        } else {
-            node = Config.SeedNodes[0]
-        }
         return hashForBlock(address: node, height: height)
         
     }
@@ -167,12 +155,6 @@ public class Comms {
     public func requestHeight() -> Int? {
         
         let method = "currentheight"
-        var node = "127.0.0.1:14242"
-        if isTestnet {
-            node = Config.TestNetNodes[0]
-        } else {
-            node = Config.SeedNodes[0]
-        }
         let responseData = try? String(contentsOf: URL(string:"http://\(node)/\(method)")! , encoding: .ascii).data(using: .ascii)!
         
         if responseData != nil {

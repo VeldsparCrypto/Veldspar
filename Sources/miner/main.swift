@@ -99,7 +99,7 @@ if isTestnet {
     nodeAddress = Config.TestNetNodes[0]
 }
 
-var comms = Comms(testnet: isTestnet)
+var comms = Comms(endpoint: nodeAddress)
 
 
 print("---------------------------")

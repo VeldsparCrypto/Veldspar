@@ -26,7 +26,6 @@ import Swifter
 
 // defaults
 var port: Int = 14242
-var comms = Comms(testnet: false)
 
 print("---------------------------")
 print("\(Config.CurrencyName) Daemon v\(Config.Version)")
@@ -61,6 +60,14 @@ if args.count > 1 {
     }
 }
 
+var endpointAddress: String?
+if isTestNet {
+    endpointAddress = Config.TestNetNodes[0]
+} else {
+    endpointAddress = Config.SeedNodes[0]
+}
+var comms = Comms(endpoint: endpointAddress!)
+
 let ore = Ore(Config.GenesisID, height: 0)
 let v3Beans = AlgorithmSHA512AppendV0.beans()
 var settings = Settings()
@@ -84,7 +91,7 @@ try? encoder.encode(settings).write(to: URL(fileURLWithPath: "veldspar.settings"
 Database.Initialize()
 
 let logger = Logger()
-print("Database(s) opened")
+logger.log(level: .Info, log: "Database(s) opened")
 var blockchain = BlockChain()
 
 if isGenesis {
@@ -111,10 +118,9 @@ if isTestNet {
     print("** WARNING: RUNNING IN TESTNET MODE       **")
     print("********************************************")
     print("")
-    comms = Comms(testnet: true)
 }
 
-print("Blockchain created, currently at height \(blockchain.height())")
+print("Blockchain exists, currently at height \(blockchain.height())")
 
 // check to see if we have generated a node identifier yet
 if db.query(NodeInstance(), sql: "SELECT * FROM NodeInstance", params: []).count == 0 {
@@ -125,6 +131,38 @@ if db.query(NodeInstance(), sql: "SELECT * FROM NodeInstance", params: []).count
 
 let thisNode = db.query(NodeInstance(), sql: "SELECT * FROM NodeInstance", params: [])[0]
 let broadcaster = Broadcaster()
+
+// initialisation complete, now we need to work out if we are behind and then play catchup with the network
+if !settings.isSeedNode && (BlockMaker.currentNetworkBlockHeight() - blockchain.height()) > 1 {
+    
+    // we are more than the current block +1 out, so we need to play catch-up before starting the webserver and services.
+    
+    logger.log(level: .Warning, log: "This node is behind the network, playing catchup until up-to-date.")
+    
+    while blockchain.height() < BlockMaker.currentNetworkBlockHeight() {
+        
+        let b = comms.blockAtHeight(height: blockchain.height()+1)
+        if b != nil {
+            
+            // we have a block, commit it into the datastore
+            _ = blockchain.addBlock(b!)
+            logger.log(level: .Info, log: "Downloaded block \(b!.height!) with hash \(b!.hash!.toHexString()) from network.")
+            
+        } else {
+            
+            logger.log(level: .Warning, log: "Unable to sync with the network, waiting 30s until network is available.")
+            Thread.sleep(forTimeInterval: 30.0)
+            
+        }
+        
+    }
+    
+} else if settings.isSeedNode {
+    
+    // we need to catch up as quickly as possible with any of the transactions we may have missed from the registered nodes
+    
+    
+}
 
 Execute.background {
     

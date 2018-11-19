@@ -36,7 +36,7 @@ class Settings : Codable {
     var rpc_ban_invalid_requests: Bool = true
     var rpc_ban_invalid_limit: Int = 10
     var database_service_type: String = "SQLITE"
-    var database_cache_size: Int = 8
+    var database_cache_size_mb: Int = 64
     var database_connection_string: String? = nil
     var database_connection_username: String? = nil
     var database_connection_password: String? = nil

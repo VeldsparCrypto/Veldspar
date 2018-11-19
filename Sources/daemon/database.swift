@@ -34,6 +34,7 @@ class Database {
         db.create(Ledger(), pk: "id", auto: true, indexes:["address,date","height,address","transaction_id"])
         db.create(PeeringNode(), pk: "uuid", auto: false, indexes: [])
         db.create(NodeInstance(), pk: "nodeId", auto: false, indexes: [])
+        _ = db.execute(sql: "PRAGMA cache_size = -\(settings.database_cache_size_mb * 1024)", params: [])
         
     }
     
@@ -44,6 +45,19 @@ class Database {
         }
         
         if db.execute(sql: "DELETE FROM Ledger WHERE height = ?;", params: [block.height]).error != nil {
+            return false
+        }
+        
+        return true
+    }
+    
+    class func DeleteBlock(_ height: Int) -> Bool {
+        
+        if db.execute(sql: "DELETE FROM Block WHERE height = ?;", params: [height]).error != nil {
+            return false
+        }
+        
+        if db.execute(sql: "DELETE FROM Ledger WHERE height = ?;", params: [height]).error != nil {
             return false
         }
         

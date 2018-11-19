@@ -22,7 +22,7 @@
 
 import Foundation
 
-public struct PeeringNode : Codable {
+public class PeeringNode : Codable {
     
     public var uuid: String?
     public var address: String?

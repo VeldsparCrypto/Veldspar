@@ -118,6 +118,18 @@ class BlockChain {
         
     }
     
+    func removeBlockAtHeight(_ height: Int) -> Bool {
+        
+        var ret = false;
+        
+        blockchain_lock.mutex {
+            ret = Database.DeleteBlock(height)
+        }
+        
+        return ret
+        
+    }
+    
     func blockAtHeight(_ height: Int, includeTransactions: Bool) -> Block? {
         
         var block: Block? = nil
@@ -237,15 +249,13 @@ class BlockChain {
             throw BlockchainErrors.InvalidAlgo
         }
         
-        
-        
         // create the ledger
         let l = Ledger()
         l.op = LedgerOPType.RegisterToken.rawValue
         l.address = t!.address
         l.height = block
         l.algorithm = t!.algorithm.rawValue
-        l.date = consensusTime()
+        l.date = UInt64(consensusTime())
         l.destination = Crypto.strAddressToData(address: address)
         l.ore = t!.oreHeight
         l.state = LedgerTransactionState.Pending.rawValue
@@ -265,6 +275,10 @@ class BlockChain {
         if success {
             
             logger.log(level: .Warning, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: Int) -> Bool' call to 'Database.WritePendingLedger()' succeeded, token written.")
+            
+            // now broadcast this transaction to the connected nodes
+            broadcaster.add([l])
+            
             return true
             
         } else {

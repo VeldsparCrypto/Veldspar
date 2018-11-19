@@ -32,6 +32,16 @@ class NodeSync {
                 }
             }
             
+            // now update our local reachability records
+            for n in blockchain.nodes() {
+                
+                if comms.basicRequest(address: n.address!, method:"timestamp" , parameters: [:]) != nil {
+                    n.lastcomm = UInt64(Date().timeIntervalSince1970 * 1000)
+                    blockchain.putNode(n)
+                }
+                
+            }
+            
             // clean up stale nodes
             blockchain.purgeStaleNodes()
             

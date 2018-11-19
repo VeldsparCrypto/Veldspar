@@ -27,15 +27,27 @@ import VeldsparCore
 
 class BlockMaker {
     
+    class func currentNetworkBlockHeight() -> Int {
+        let currentTime = consensusTime()
+        return Int((currentTime - Config.BlockchainStartDate) / (Config.BlockTime * 1000))
+    }
+    
     class func Loop() {
+        
+        // sleep for 2 minutes, waiting for nodes to transmit the missing transactions to the server before producing a block
+        if settings.isSeedNode {
+            logger.log(level: .Warning, log: "Waiting for other nodes to send outstanding transactions before continuing to produce blocks.")
+            Thread.sleep(forTimeInterval: 120)
+            logger.log(level: .Warning, log: "Updates recieved, starting the production of blocks.")
+        }
         
         while true {
             
             let currentTime = consensusTime()
-            if UInt64(currentTime) > UInt64(Config.BlockchainStartDate) {
+            if currentTime > Config.BlockchainStartDate {
                 
                 // get the current height, and work out which block should be created and when
-                let blockHeightForTime = ((currentTime - UInt64(Config.BlockchainStartDate)) / UInt64(Config.BlockTime * 1000))
+                let blockHeightForTime = currentNetworkBlockHeight()
                 
                 if blockchain.height() < blockHeightForTime {
                     
@@ -87,7 +99,8 @@ class BlockMaker {
                                                 
                                             }
                                         } else {
-                                            // do nothing
+                                            // seed block is not ready yet, do nothing, because we will re-try after a delay
+                                            
                                         }
                                     } else {
                                         // timeout, or error.  Do nothing, because it will be covered in a retry
@@ -96,8 +109,8 @@ class BlockMaker {
                                 if responses == 1.0 {
                                     break
                                 }
-                                if attempts == 30 {
-                                    logger.log(level: .Error, log: "Unable to communicate with network for 15 mins, exiting as impossible to verify block image.")
+                                if attempts == 120 {
+                                    logger.log(level: .Error, log: "Unable to communicate with network for 60 mins, exiting as impossible to verify block image.")
                                     exit(1)
                                 }
                                 attempts += 1
@@ -126,10 +139,11 @@ class BlockMaker {
                                 }
                                 
                                 // we have the authoritive block data, so poop-can the current block data and re-write it with the new.
+                                _ = blockchain.removeBlockAtHeight(index)
                                 
-                                logger.log(level: .Info, log: "Block signature verification passed, committing block \(index) into blockchain with signature \(newBlock.hash!.toHexString().lowercased())")
+                                logger.log(level: .Info, log: "Block signature verification passed, committing block \(index) into blockchain with signature \(authoritiveBlock!.hash!.toHexString().lowercased())")
                                 
-                                if blockchain.addBlock(newBlock) {
+                                if blockchain.addBlock(authoritiveBlock!) {
                                     blockchain.setTransactionStateForHeight(height: index, state: .Verified)
                                 } else {
                                     break
