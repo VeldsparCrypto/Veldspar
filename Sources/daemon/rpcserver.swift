@@ -166,10 +166,10 @@ class RPCHandler {
                 // decode the ledgers object
                 let l = try JSONDecoder().decode(Ledgers.self, from: Data(bytes: request.body))
                 
-                logger.log(level: .Debug, log: "(RPC) '\(request.path)', received \(l.transactions.count) transactions from node '\(l.source_nodeId!)'")
-                
                 // throw these ledgers to the blockchain as they will be verified later on
                 _ = blockchain.commitLedgerItems(tokens: l.transactions, failIfAny: false)
+                
+                logger.log(level: .Info, log: "(RPC) '\(request.path)', received \(l.transactions.count) transactions from node '\(l.source_nodeId!)'")
                 
                 return .ok(.jsonData(try JSONEncoder().encode(GenericResponse(key: "received", value: "ok"))))
                 
@@ -194,9 +194,9 @@ class RPCHandler {
                 node.lastcomm = UInt64(Date().timeIntervalSince1970 * 1000)
                 if comms.basicRequest(address: node.address ?? "", method: "/timestamp", parameters: [:]) != nil {
                     blockchain.putNode(node)
-                    logger.log(level: .Debug, log: "Registering node (\(nodeId) on port \(port) form IP \(request.address ?? "UNKNOWN")")
+                    logger.log(level: .Info, log: "Registering node (\(nodeId) on port \(port) form IP \(request.address ?? "UNKNOWN")")
                 } else {
-                    logger.log(level: .Debug, log: "Registering node (\(nodeId) on port \(port) form IP \(request.address ?? "UNKNOWN") failed, not reachable.")
+                    logger.log(level: .Info, log: "Registering node (\(nodeId) on port \(port) form IP \(request.address ?? "UNKNOWN") failed, not reachable.")
                 }
                 
                 return .ok(.jsonData(try JSONEncoder().encode(GenericResponse(key: "node", value: "registered"))))
