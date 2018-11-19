@@ -150,63 +150,64 @@ func WalletLoop() {
             // fetch the current height
             if walletOpen && wallet != nil {
                 
-                let nwHeight = try? String(contentsOf: URL(string:"http://\(node)/currentheight")! , encoding: .ascii)
-                let currentH = Int(nwHeight ?? "0", radix: 10)!
-                
-                if wallet!.height() < currentH {
+                let nwHeight = try? Data(contentsOf: URL(string:"http://\(node)/currentheight")!)
+                if nwHeight != nil {
+                    let height = try? JSONDecoder().decode(CurrentHeightObject.self, from: nwHeight!)
                     
-                    let nextHeight = wallet!.height() + 1
-                    
-                    let blockData = try? String(contentsOf: URL(string:"http://\(node)/block?height=\(nextHeight)")! , encoding: .ascii).data(using: .ascii)!
-                    if blockData != nil {
+                    if wallet!.height() < height!.height! {
                         
-                        let b = try? JSONDecoder().decode(Block.self, from: blockData!)
-                        if b != nil {
-                            let block = b!
-                            var totalAdded = 0
-                            var totalSpent = 0
+                        let nextHeight = wallet!.height() + 1
+                        
+                        let blockData = try? Data(contentsOf: URL(string:"http://\(node)/block?height=\(nextHeight)")!)
+                        if blockData != nil {
                             
-                            for l in block.transactions ?? [] {
+                            let b = try? JSONDecoder().decode(Block.self, from: blockData!)
+                            if b != nil {
+                                let block = b!
+                                var totalAdded = 0
+                                var totalSpent = 0
                                 
-                                totalAdded += wallet?.addTokenIfOwned(l) ?? 0
-                                totalSpent += wallet?.removeTokenIfOwned(l) ?? 0
+                                for l in block.transactions ?? [] {
+                                    
+                                    totalAdded += wallet?.addTokenIfOwned(l) ?? 0
+                                    totalSpent += wallet?.removeTokenIfOwned(l) ?? 0
+                                    
+                                }
+                                
+                                print("processing block \(block.height!) of \(height!.height!)")
+                                
+                                if totalAdded > 0 || totalSpent > 0 {
+                                    
+                                    print("\((Float(totalAdded) / Float(Config.DenominationDivider))) \(Config.CurrencyName) added to wallet.")
+                                    print("Value of spent tokens: \((Float(totalSpent) / Float(Config.DenominationDivider)))")
+                                    print("--------------------------")
+                                    print("Current balance: \(wallet!.balance())")
+                                    
+                                }
+                                
+                                if block.height != nil {
+                                    wallet?.setHeight(Int(block.height!))
+                                }
+                                
+                                delay = 0.0
+                                
+                            } else {
+                                
+                                delay = 10.0
                                 
                             }
-                            
-                            print("processing block \(block.height!) of \(currentH)")
-                            
-                            if totalAdded > 0 || totalSpent > 0 {
-                                
-                                print("\((Float(totalAdded) / Float(Config.DenominationDivider))) \(Config.CurrencyName) added to wallet.")
-                                print("Value of spent tokens: \((Float(totalSpent) / Float(Config.DenominationDivider)))")
-                                print("--------------------------")
-                                print("Current balance: \(wallet!.balance())")
-                                
-                            }
-                            
-                            if block.height != nil {
-                                wallet?.setHeight(Int(block.height!))
-                            }
-                            
-                            delay = 0.0
-                            
-                        } else {
-                            
-                            delay = 10.0
                             
                         }
                         
+                        
+                    } else {
+                        
+                        delay = 60.0
+                        
                     }
                     
-                    
-                } else {
-                    
-                    delay = 60.0
-                    
                 }
-                
-                
-                
+
             }
         }
         Thread.sleep(forTimeInterval: delay)
@@ -311,7 +312,7 @@ while true {
                 }
                 
             case "r":
-
+                
                 print("seed uuid ? (e.g. '82B27DE0-0FA8-4D86-9C7B-ACAA5424AC0F-82B27DE0-0FA8-4D86-9C7B-ACAA5424AC0F')")
                 let uuid = readLine()
                 if uuid == nil || uuid!.count < 36 {
@@ -386,7 +387,7 @@ while true {
             case "t":
                 print("feature not implemented yet")
             case "c": // create new
-            
+                
                 let uuid = UUID().uuidString.lowercased() + "-" + UUID().uuidString.lowercased()
                 let address = try? wallet!.addExistingAddress(uuid)
                 print("")
@@ -503,7 +504,7 @@ while true {
                     for w in wallet!.addresses() {
                         print("seed for address \(w) is \(wallet!.seedForAddress(w) ?? "")")
                     }
-
+                    
                 }
             case "h":
                 ShowOpenedMenu()
