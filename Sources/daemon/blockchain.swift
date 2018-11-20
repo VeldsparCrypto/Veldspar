@@ -155,6 +155,18 @@ class BlockChain {
         
     }
     
+    func HashForBlock(_ height: Int) -> Data {
+        
+        var ledgerHashes: [Data] = []
+        
+        blockchain_lock.mutex {
+            ledgerHashes = Database.HashsForHeight(height)
+        }
+        
+        return Data(ledgerHashes.joined())
+        
+    }
+    
     func addBlock(_ block:Block) -> Bool {
         
         var retValue = false

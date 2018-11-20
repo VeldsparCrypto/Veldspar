@@ -39,18 +39,4 @@ public struct Block : Codable {
         
     }
     
-    public func GenerateHashForBlock(previousHash: Data) -> Data {
-        
-        var newHash = Data()
-        newHash.append(previousHash)
-        newHash.append(contentsOf: height!.toHex().bytes)
-        
-        for t in self.transactions ?? [] {
-            newHash.append(t.hash!)
-        }
-        
-        return newHash.sha224()
-        
-    }
-    
 }

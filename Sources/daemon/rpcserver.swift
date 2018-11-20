@@ -194,9 +194,9 @@ class RPCHandler {
                 node.lastcomm = UInt64(Date().timeIntervalSince1970 * 1000)
                 if comms.basicRequest(address: node.address ?? "", method: "/timestamp", parameters: [:]) != nil {
                     blockchain.putNode(node)
-                    logger.log(level: .Info, log: "Registering node (\(nodeId) on port \(port) form IP \(request.address ?? "UNKNOWN")")
+                    logger.log(level: .Info, log: "Registering node (\(nodeId) on port \(port) from IP \(request.address ?? "UNKNOWN")")
                 } else {
-                    logger.log(level: .Info, log: "Registering node (\(nodeId) on port \(port) form IP \(request.address ?? "UNKNOWN") failed, not reachable.")
+                    logger.log(level: .Info, log: "Registering node (\(nodeId) on port \(port) from IP \(request.address ?? "UNKNOWN") failed, not reachable.")
                 }
                 
                 return .ok(.jsonData(try JSONEncoder().encode(GenericResponse(key: "node", value: "registered"))))
