@@ -326,14 +326,6 @@ extension String {
     
 }
 
-#if os(Linux)
-import SwiftGlibc
-
-public func arc4random_uniform(_ max: UInt32) -> Int32 {
-    return (SwiftGlibc.rand() % Int32(max-1))
-}
-#endif
-
 #if swift(>=4.2)
 #else
 public extension MutableCollection {
@@ -344,7 +336,7 @@ public extension MutableCollection {
         
         for (firstUnshuffled, unshuffledCount) in zip(indices, stride(from: c, to: 1, by: -1)) {
             // Change `Int` in the next line to `IndexDistance` in < Swift 4.1
-            let d: Int = Int(arc4random_uniform(UInt32(unshuffledCount)))
+            let d: Int = numericCast(arc4random_uniform(numericCast(unshuffledCount)))
             let i = index(firstUnshuffled, offsetBy: d)
             swapAt(firstUnshuffled, i)
         }
