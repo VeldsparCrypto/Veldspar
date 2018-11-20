@@ -59,7 +59,7 @@ public extension Array where Element == UInt8 {
     }
 }
 
-extension String {
+public extension String {
     public func CryptoHash() -> String {
         switch Config.DefaultHashType {
         case .sha224:
@@ -76,7 +76,7 @@ extension String {
     }
 }
 
-extension UInt64 {
+public extension UInt64 {
     private func rawBytes() -> [UInt8] {
         let totalBytes = MemoryLayout<UInt64>.size
         var value = self
@@ -92,7 +92,7 @@ extension UInt64 {
     }
 }
 
-extension Int {
+public extension Int {
     private func rawBytes() -> [UInt8] {
         let totalBytes = MemoryLayout<UInt32>.size
         var value = UInt32(self)
@@ -108,7 +108,7 @@ extension Int {
     }
 }
 
-extension UInt32 {
+public extension UInt32 {
     private func rawBytes() -> [UInt8] {
         let totalBytes = MemoryLayout<UInt32>.size
         var value = self
@@ -124,7 +124,7 @@ extension UInt32 {
     }
 }
 
-extension UInt16 {
+public extension UInt16 {
     private func rawBytes() -> [UInt8] {
         let totalBytes = MemoryLayout<UInt16>.size
         var value = self
@@ -140,7 +140,7 @@ extension UInt16 {
     }
 }
 
-extension UInt8 {
+public extension UInt8 {
     private func rawBytes() -> [UInt8] {
         let totalBytes = MemoryLayout<UInt8>.size
         var value = self
@@ -264,7 +264,7 @@ struct Base58 {
 
 
 
-extension Array where Element == UInt8 {
+public extension Array where Element == UInt8 {
     public var base58EncodedString: String {
         guard !self.isEmpty else { return "" }
         return Base58.base58FromBytes(self)
@@ -280,7 +280,7 @@ extension Array where Element == UInt8 {
     }
 }
 
-extension String {
+public extension String {
     
     public var hexToData: Data {
         
