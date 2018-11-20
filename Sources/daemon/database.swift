@@ -246,17 +246,6 @@ class Database {
         
     }
     
-    class func HashsForHeight(_ height: Int) -> [Data] {
-        
-        var data:[Data] = []
-        let result = db.query(sql: "SELECT hash FROM Ledger WHERE height = ? ORDER BY address", params: [height])
-        for r in result.results {
-            data.append(r["hash"]!.asData()!)
-        }
-        return data
-        
-    }
-    
     class func PeeringNodes() -> [PeeringNode] {
         
         return db.query(PeeringNode(), sql: "SELECT * FROM PeeringNode", params: [])

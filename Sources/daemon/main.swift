@@ -106,11 +106,7 @@ if isGenesis {
     var firstBlock = Block()
     firstBlock.height = 0
     firstBlock.transactions = []
-    var newHash = Data()
-    newHash.append(Data())
-    newHash.append(contentsOf: firstBlock.height!.toHex().bytes)
-    newHash.append(blockchain.HashForBlock(firstBlock.height!))
-    firstBlock.hash = newHash.sha224()
+    firstBlock.hash = firstBlock.GenerateHashForBlock(previousHash: Data())
     if(!Database.WriteBlock(firstBlock)) {
         logger.log(level: .Info, log: "Unable to write initial genesis block into the blockchain.")
         exit(0)

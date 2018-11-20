@@ -59,11 +59,18 @@ class BlockMaker {
                         var newBlock = Block()
                         newBlock.height = index
                         
-                        var newHash = Data()
-                        newHash.append(previousBlock!.hash!)
-                        newHash.append(contentsOf: index.toHex().bytes)
-                        newHash.append(blockchain.HashForBlock(index))
-                        newBlock.hash = newHash.sha224()
+                        // query the table for this target block height
+                        let ledgers = blockchain.LedgersForBlock(index)
+                        
+                        if newBlock.transactions == nil {
+                            newBlock.transactions = []
+                        }
+                        
+                        for l in ledgers {
+                            newBlock.transactions!.append(l)
+                        }
+                        
+                        newBlock.hash = newBlock.GenerateHashForBlock(previousHash: previousBlock?.hash ?? Data())
                         newBlock.transactions = []
                         
                         logger.log(level: .Info, log: "Generated block @ height \(index) with hash \(newBlock.hash!.toHexString().lowercased())")

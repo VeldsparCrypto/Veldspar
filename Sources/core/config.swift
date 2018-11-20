@@ -35,7 +35,7 @@ public class Config {
     public static let DefaultHashType: CryptoHashType = .sha224
     
     // transaction maturity level - targets transactions for x number of blocks in the future to allow a consensus network to operate
-    public static let TransactionMaturityLevel = 3
+    public static let TransactionMaturityLevel = 2
     
     // number by which token value is divided to determine currency value
     public static let DenominationDivider = 100

@@ -45,7 +45,7 @@ class RPCRegisterToken {
         let token = payload["token"] as! String
         let address = payload["address"] as! String
         let bean = payload["bean"] as! String
-        let block = BlockMaker.currentNetworkBlockHeight() + Config.TransactionMaturityLevel
+        let block = blockchain.height() + Config.TransactionMaturityLevel
         
         do {
             if try blockchain.registerToken(tokenString: token, address: address, bean: bean, block: block) {
