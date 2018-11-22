@@ -51,7 +51,6 @@ public class Ledger : Codable {
     public var height: Int?
     public var algorithm: Int?
     public var value: Int?
-    public var state: Int?
     public var hash: Data?
     public var source: Data?
     public var auth: Data?

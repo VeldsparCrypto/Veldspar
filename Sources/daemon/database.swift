@@ -100,15 +100,6 @@ class Database {
         
     }
     
-    class func SetTransactionStateForHeight(height: Int, state: LedgerTransactionState) {
-        
-        let result = db.query(sql: "UPDATE Ledger SET state = ? WHERE height = ?", params: [state.rawValue, height])
-        if result.error != nil {
-            return
-        }
-        
-    }
-    
     class func CurrentHeight() -> Int? {
         
         let result = db.query(sql: "SELECT height FROM Block ORDER BY height DESC LIMIT 1", params: [])
@@ -228,7 +219,6 @@ class Database {
         } else {
             block.transactions = []
         }
-        
         
         return block
         

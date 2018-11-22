@@ -65,7 +65,7 @@ class RecieveTransfer {
         if blockchain.commitLedgerItems(tokens: tr.tokens, failIfAny: true) {
             
             // distribute this transfer to other nodes
-            broadcaster.add(tr.tokens)
+            broadcaster.add(tr.tokens, atomic: true)
             
         } else {
             

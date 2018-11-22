@@ -136,18 +136,14 @@ class BlockMaker {
                                 
                                 logger.log(level: .Info, log: "Block signature verification passed, committing block \(index) into blockchain with signature \(authoritiveBlock!.hash!.toHexString().lowercased())")
                                 
-                                if blockchain.addBlock(authoritiveBlock!) {
-                                    blockchain.setTransactionStateForHeight(height: index, state: .Verified)
-                                } else {
+                                if !blockchain.addBlock(authoritiveBlock!) {
                                     break
                                 }
                                 
                             } else {
                                 
                                 logger.log(level: .Info, log: "Block signature verification passed, committing block \(index) into blockchain with signature \(newBlock.hash!.toHexString().lowercased())")
-                                if blockchain.addBlock(newBlock) {
-                                    blockchain.setTransactionStateForHeight(height: index, state: .Verified)
-                                } else {
+                                if !blockchain.addBlock(newBlock) {
                                     break
                                 }
                                 
@@ -158,9 +154,7 @@ class BlockMaker {
                             // this is a/the seed node, so just write this (until we go for quorum model in v0.2.0)
                             logger.log(level: .Info, log: "Block signature verification passed, committing block \(index) into blockchain with signature \(newBlock.hash!.toHexString().lowercased())")
                             
-                            if blockchain.addBlock(newBlock) {
-                                blockchain.setTransactionStateForHeight(height: index, state: .Verified)
-                            } else {
+                            if !blockchain.addBlock(newBlock) {
                                 break
                             }
                             

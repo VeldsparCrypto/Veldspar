@@ -32,6 +32,8 @@ var isTestNet = false
 var isLocal = false
 let args: [String] = CommandLine.arguments
 
+let tempManager = TempManager()
+
 if args.count > 1 {
     for arg in args {
         if arg.lowercased() == "--help" {

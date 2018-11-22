@@ -185,14 +185,6 @@ class BlockChain {
         return retValue
         
     }
-    
-    func setTransactionStateForHeight(height: Int, state: LedgerTransactionState) {
-        
-        blockchain_lock.mutex {
-            Database.SetTransactionStateForHeight(height: height, state: state)
-        }
-        
-    }
 
     
     // ledger functions
@@ -270,7 +262,6 @@ class BlockChain {
         l.date = UInt64(consensusTime())
         l.destination = Crypto.strAddressToData(address: address)
         l.ore = t!.oreHeight
-        l.state = LedgerTransactionState.Pending.rawValue
         l.transaction_id = Data(bytes: UUID().uuidString.bytes.sha224())
         l.source = Crypto.strAddressToData(address: address)
         l.value = t!.value()
@@ -289,7 +280,7 @@ class BlockChain {
             logger.log(level: .Info, log: "Token submitted with address '\(l.address!.toHexString())' succeeded, token written.")
             
             // now broadcast this transaction to the connected nodes
-            broadcaster.add([l])
+            broadcaster.add([l], atomic: true)
             
             return true
             

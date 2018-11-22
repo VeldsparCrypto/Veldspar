@@ -25,10 +25,7 @@ import VeldsparCore
 
 class Broadcaster {
     
-    var lock = Mutex()
     var isBroadcasting = false
-    private var outstandingLedgers: [Ledger] = []
-    private var outstandingSeedLedgers: [String:[Ledgers]] = [:]
     
     //Method just to execute request, assuming the response type is string (and not file)
     func HTTPsendRequest(request: URLRequest,
@@ -58,111 +55,59 @@ class Broadcaster {
     
     func broadcast() {
         
+        var seedNodes = Config.SeedNodes
+        if isTestNet {
+            seedNodes = Config.TestNetNodes
+        }
+        for n in seedNodes {
+            
+            // create a thread for every seed node transfer
+            Execute.background {
+                while true {
+                    let d = tempManager.popIntOutSeed(n)
+                    if d != nil && d?.data != nil {
+                        self.HTTPPostJSON(url: "http://\(n)/int", data: d!.data) { (err, result) in
+                            if(err != nil) {
+                                // there was an error, so we need to restore the file back to disk again after waiting for a bit, otherwise the cycle will continue
+                                Thread.sleep(forTimeInterval: 5)
+                                tempManager.putBroadcastOutSeed(d!.data, seed: n, named: d!.fileId)
+                                
+                            } else {
+                                logger.log(level: .Info, log: "Sent delayed intra-node-transfer to seed node '\(n)' hash of \(d!.data.sha224().toHexString())")
+                            }
+                        }
+                    } else {
+                        // nothing to do for this node, so sleep until there is some work
+                        Thread.sleep(forTimeInterval: 1)
+                    }
+                }
+            }
+            
+        }
+        
         Execute.background {
             
+            // node transfers
             while true {
-                
-                
+
                 // grab the nodes
                 let nodes = blockchain.nodes()
-                let newBroadcast = Ledgers()
-                newBroadcast.broadcastId = UUID().uuidString.lowercased().replacingOccurrences(of: "-", with: "").sha224()
-                self.lock.mutex {
-                    let ledgers = self.outstandingLedgers.prefix(100000)
-                    self.outstandingLedgers.removeFirst(ledgers.count)
-                    newBroadcast.transactions.append(contentsOf: ledgers)
-                    newBroadcast.source_nodeId = thisNode.nodeId
-                    newBroadcast.visitedNodes.append(thisNode.nodeId!)
-                }
                 
-                var outstandingBroadcasts = false
-                self.lock.mutex {
+                for n in nodes {
                     
-                    var copyOutstanding = self.outstandingSeedLedgers
-                    self.outstandingSeedLedgers = [:]
-                    
-                    for s in copyOutstanding {
-                        if s.value.count > 0 {
-                            
-                            Execute.background {
-                                for l in s.value {
-                                    
-                                    let jsonData = try? JSONEncoder().encode(l)
-                                    if jsonData != nil {
-                                        self.HTTPPostJSON(url: "http://\(s.key)/int", data: jsonData!) { (err, result) in
-                                            if(err != nil) {
-                                                // do nothing, because we are leaving the outstanding transactions in place
-                                                self.lock.mutex {
-                                                    // it failed, add the outstanding object back in again
-                                                    if self.outstandingSeedLedgers[s.key] == nil {
-                                                        self.outstandingSeedLedgers[s.key] = []
-                                                    }
-                                                    self.outstandingSeedLedgers[s.key]!.append(l)
-                                                }
-                                            } else {
-                                                logger.log(level: .Info, log: "Sent delayed intra-node-transfer to seed node '\(s.key)' with id '\(l.broadcastId!)'.")
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            
-                        }
-                    }
-                }
-                
-                if newBroadcast.transactions.count > 0 {
-                    
-                    // now we can throw this broadcast to all the nodes on the network which can be reached.
-                    do {
+                    let d = tempManager.popIntOutBroadcast()
+                    if d != nil {
                         
-                        let jsonData = try JSONEncoder().encode(newBroadcast)
-                        
-                        if !settings.isSeedNode {
-                            // send this to the seed nodes first
-                            var seedNodes = Config.SeedNodes
-                            if isTestNet {
-                                seedNodes = Config.TestNetNodes
-                            }
-                            for n in seedNodes {
-                                
-                                Execute.background {
-                                    self.HTTPPostJSON(url: "http://\(n)/int", data: jsonData) { (err, result) in
-                                        if(err != nil) {
-                                            // this errored so we need to store these transactions until the seed node is ready to receive them again, the seed node will not create blocks for a minute until all the nodes have had time to send their outstanding transactions to the seed.  It will then start to produce blocks again
-                                            self.lock.mutex {
-                                                if self.outstandingSeedLedgers[n] == nil {
-                                                    self.outstandingSeedLedgers[n] = []
-                                                }
-                                                self.outstandingSeedLedgers[n]?.append(newBroadcast)
-                                            }
-                                            return
-                                        }
-                                    }
+                        Execute.background {
+                            self.HTTPPostJSON(url: "http://\(n.address!)/int", data: d!) { (err, result) in
+                                if(err != nil){
+                                    return
                                 }
                             }
                         }
-                        
-                        // now distribute to the wider community.
-                        
-                        for n in nodes {
-                            
-                            Execute.background {
-                                self.HTTPPostJSON(url: "http://\(n.address!)/int", data: jsonData) { (err, result) in
-                                    if(err != nil){
-                                        return
-                                    }
-                                }
-                            }
-                            
-                        }
-                        
-                        
-                    } catch {
                         
                     }
-                    
-                    
+
                 }
                 
                 Thread.sleep(forTimeInterval: 1)
@@ -173,10 +118,31 @@ class Broadcaster {
         
     }
     
-    func  add(_ ledgers: [Ledger]) {
+    func  add(_ ledgers: [Ledger], atomic: Bool) {
         
-        lock.mutex {
-            outstandingLedgers.append(contentsOf: ledgers)
+        let l = Ledgers()
+        l.atomic = atomic
+        l.broadcastId = UUID().uuidString.lowercased()
+        l.source_nodeId = thisNode.nodeId
+        l.visitedNodes = []
+        l.transactions = []
+        l.transactions.append(contentsOf: ledgers)
+        
+        // throw this transaction into the temp cache manager now on background thread
+        Execute.background {
+            
+            let d = try? JSONEncoder().encode(l)
+            if d != nil {
+                tempManager.putBroadcastOut(d!)
+                var seedNodes = Config.SeedNodes
+                if isTestNet {
+                    seedNodes = Config.TestNetNodes
+                }
+                for n in seedNodes {
+                    tempManager.putBroadcastOutSeed(d!, seed: n)
+                }
+            }
+            
         }
         
     }
