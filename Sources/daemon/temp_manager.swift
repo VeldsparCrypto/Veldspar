@@ -27,8 +27,8 @@ class TempManager {
     
     var TEMP_PATH = "./temp"
     var TEMP_PATH_INBOUND = "./temp/inbound"
-    var TEMP_PATH_OUTBOUND_SEED = "./temp/int/out/seeds"
-    var TEMP_PATH_OUTBOUND_BROADCAST = "./temp/int/out/broadcast"
+    var TEMP_PATH_OUTBOUND_SEED = "./temp/outbound/seeds"
+    var TEMP_PATH_OUTBOUND_BROADCAST = "./temp/outbound/broadcast"
     var TEMP_PATH_TIDEMARK = "./temp/tidemark"
     
     var lock_inbound = Mutex()
