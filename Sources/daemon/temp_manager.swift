@@ -242,7 +242,7 @@ class TempManager {
             
         } catch {
             
-            logger.log(level: .Error, log: "Unable to open file ")
+            logger.log(level: .Error, log: "Unable to open file error '\(error)'")
             return nil
             
         }
@@ -268,7 +268,7 @@ class TempManager {
             
         } catch {
             
-            logger.log(level: .Error, log: "Unable to open file ")
+            logger.log(level: .Error, log: "Unable to open file error '\(error)'")
             return nil
             
         }
