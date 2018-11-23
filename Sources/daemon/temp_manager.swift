@@ -52,7 +52,7 @@ class TempManager {
             nodes.append(contentsOf: Config.TestNetNodes)
         }
         for s in nodes {
-            try? FileManager.default.createDirectory(atPath: "\(TEMP_PATH_OUTBOUND_SEED)/\(s)", withIntermediateDirectories: true, attributes: nil)
+            try? FileManager.default.createDirectory(atPath: "\(TEMP_PATH_OUTBOUND_SEED)/\(s.sha224())", withIntermediateDirectories: true, attributes: nil)
         }
         
     }
@@ -107,13 +107,13 @@ class TempManager {
     
     func putBroadcastOutSeed(_  data: Data, seed: String) {
         
-        putTempItem(data, identifier: NextIdentifier(), path: "\(self.TEMP_PATH_OUTBOUND_SEED)/\(seed)", type: "int")
+        putTempItem(data, identifier: NextIdentifier(), path: "\(self.TEMP_PATH_OUTBOUND_SEED)/\(seed.sha224())", type: "int")
         
     }
     
     func putBroadcastOutSeed(_  data: Data, seed: String, named: String) {
         
-        putTempItem(data, path: "\(self.TEMP_PATH_OUTBOUND_SEED)/\(seed)", name: named)
+        putTempItem(data, path: "\(self.TEMP_PATH_OUTBOUND_SEED)/\(seed.sha224())", name: named)
         
     }
     
@@ -218,7 +218,7 @@ class TempManager {
         var d: (fileId: String, data: Data)?
         
         lock_outbound.mutex {
-            d = peekTempItem(path: "\(self.TEMP_PATH_OUTBOUND_BROADCAST)/\(seed)", type:"int")
+            d = peekTempItem(path: "\(self.TEMP_PATH_OUTBOUND_SEED)/\(seed.sha224())", type:"int")
         }
         
         return d
