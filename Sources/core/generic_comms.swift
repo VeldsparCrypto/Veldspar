@@ -73,6 +73,19 @@ public class Comms {
         
     }
     
+    public func blockDataAtHeight(height: Int) -> Data? {
+        
+        let blockData = request(method: "block", parameters: ["height" : "\(height)"])
+        if blockData != nil {
+            
+            return blockData
+            
+        }
+        
+        return nil
+        
+    }
+    
     public func hashForBlock(address: String, height: Int) -> BlockHash? {
         
         let blockData = basicRequest(address: address, method: "blockhash", parameters: ["height" : "\(height)"])

@@ -91,6 +91,7 @@ try? encoder.encode(settings).write(to: URL(fileURLWithPath: "veldspar.settings"
 Database.Initialize()
 
 let logger = Logger(debug: debug_on)
+let blockmaker = BlockMaker()
 
 logger.log(level: .Info, log: "---------------------------")
 logger.log(level: .Info, log: "\(Config.CurrencyName) Daemon v\(Config.Version)")
@@ -142,13 +143,13 @@ let thisNode = db.query(NodeInstance(), sql: "SELECT * FROM NodeInstance", param
 let broadcaster = Broadcaster()
 
 // initialisation complete, now we need to work out if we are behind and then play catchup with the network
-if !settings.isSeedNode && (BlockMaker.currentNetworkBlockHeight() - blockchain.height()) > 1 {
+if !settings.isSeedNode && (blockmaker.currentNetworkBlockHeight() - blockchain.height()) > 1 {
     
     // we are more than the current block +1 out, so we need to play catch-up before starting the webserver and services.
     
     logger.log(level: .Warning, log: "This node is behind the network, playing catchup until up-to-date.")
     
-    while blockchain.height() < BlockMaker.currentNetworkBlockHeight() {
+    while blockchain.height() < blockmaker.currentNetworkBlockHeight() {
         
         let b = comms.blockAtHeight(height: blockchain.height()+1)
         if b != nil {
@@ -186,7 +187,7 @@ Execute.background {
 Execute.background {
     // endlessly run the main process loop
     logger.log(level: .Info, log: "Block formation service started")
-    BlockMaker.Loop()
+    blockmaker.Loop()
 }
 
 Execute.background {

@@ -27,188 +27,299 @@ import VeldsparCore
 
 class BlockMaker {
     
-    class func currentNetworkBlockHeight() -> Int {
+    var lock: Mutex = Mutex()
+    var currentBlockData: Data?
+    var inProgress = false
+    
+    func currentNetworkBlockHeight() -> Int {
         let currentTime = consensusTime()
         return Int((currentTime - Config.BlockchainStartDate) / (Config.BlockTime * 1000))
     }
     
-    class func Loop() {
+    func Loop() {
         
-        // sleep for 2 minutes, waiting for nodes to transmit the missing transactions to the server before producing a block
+        // sleep for 5 minutes, waiting for nodes to transmit the missing transactions to the server before producing a block
         if settings.isSeedNode {
             logger.log(level: .Info, log: "Waiting for other nodes to send outstanding transactions before continuing to produce blocks.")
-            Thread.sleep(forTimeInterval: 120)
+            Thread.sleep(forTimeInterval: 1)
             logger.log(level: .Info, log: "Updates recieved, starting the production of blocks.")
         }
         
         while true {
             
-            let currentTime = consensusTime()
-            if currentTime > Config.BlockchainStartDate {
-                
-                // get the current height, and work out which block should be created and when
-                let blockHeightForTime = currentNetworkBlockHeight()
-                
-                if blockchain.height() < blockHeightForTime {
-                    
-                    for index in Int(blockchain.height()+1)...Int(blockHeightForTime) {
-                        
-                        // produce the block, hash it, seek quorum, then write it
-                        let previousBlock = blockchain.blockAtHeight(index-1, includeTransactions: false)
-                        
-                        var newBlock = Block()
-                        newBlock.height = index
-                        
-                        var newHash = Data()
-                        newHash.append(previousBlock!.hash!)
-                        newHash.append(contentsOf: index.toHex().bytes)
-                        newHash.append(blockchain.HashForBlock(index))
-                        newBlock.hash = newHash.sha224()
-                        newBlock.transactions = []
-                        
-                        logger.log(level: .Info, log: "Generated block @ height \(index) with hash \(newBlock.hash!.toHexString().lowercased())")
-                        
-                        if !settings.isSeedNode {
-                            
-                            var agreement: Float = 0.0
-                            var responses: Float = 0.0
-                            var attempts = 0
-                            
-                            // now contact the seed node(s) to get their hashes
-                            var nodes = Config.SeedNodes
-                            if isTestNet {
-                                nodes = Config.TestNetNodes
-                            }
-                            
-                            while true {
-                                for n in nodes {
-                                    let blockHash = comms.hashForBlock(address: n, height: index)
-                                    if blockHash != nil {
-                                        if blockHash!.ready! {
-                                            responses += 1.0
-                                            if blockHash?.hash == newBlock.hash {
-                                                agreement += 1.0
-                                            } else {
-                                                
-                                            }
-                                        } else {
-                                            // seed block is not ready yet, do nothing, because we will re-try after a delay
-                                            
-                                        }
-                                    } else {
-                                        // timeout, or error.  Do nothing, because it will be covered in a retry
-                                    }
-                                }
-                                if responses == 1.0 {
-                                    break
-                                }
-                                if attempts == 480 {
-                                    logger.log(level: .Error, log: "Unable to communicate with network for 240 mins, exiting as impossible to verify block image.")
-                                    exit(1)
-                                }
-                                attempts += 1
-                                logger.log(level: .Warning, log: "Failed to seek agreement for block hash with the network, will retry in 30 seconds.")
-                                Thread.sleep(forTimeInterval: 30)
-                            }
-                            
-                            // check the level of quorum
-                            let quorum = agreement / responses
-                            if quorum < 1.0 {
-                                
-                                logger.log(level: .Warning, log: "Block signature verification failed, attempting to re-sync block data with network")
-                                
-                                // something we have is either missing or extra :(.  Ask the authoritive node for all of the transactions for a certain height
-                                var authoritiveBlock = comms.blockAtHeight(height: index)
-                                if authoritiveBlock == nil {
-                                    // unable to get the block data from the seed node, wait and try again
-                                    logger.log(level: .Warning, log: "Network failed to return block data, waiting 30 seconds and trying again.")
-                                    Thread.sleep(forTimeInterval: 30.0)
-                                    authoritiveBlock = comms.blockAtHeight(height: index)
-                                }
-                                
-                                if authoritiveBlock == nil {
-                                    logger.log(level: .Warning, log: "Network failed to return block data for verification.  Aborting production of this block.")
-                                    break
-                                }
-                                
-                                // we have the authoritive block data, so poop-can the current block data and re-write it with the new.
-                                _ = blockchain.removeBlockAtHeight(index)
-                                
-                                logger.log(level: .Info, log: "Block signature verification passed, committing block \(index) into blockchain with signature \(authoritiveBlock!.hash!.toHexString().lowercased())")
-                                
-                                if !blockchain.addBlock(authoritiveBlock!) {
-                                    break
-                                }
-                                
-                            } else {
-                                
-                                logger.log(level: .Info, log: "Block signature verification passed, committing block \(index) into blockchain with signature \(newBlock.hash!.toHexString().lowercased())")
-                                if !blockchain.addBlock(newBlock) {
-                                    break
-                                }
-                                
-                            }
-                            
-                        } else {
-                            
-                            // this is a/the seed node, so just write this (until we go for quorum model in v0.2.0)
-                            logger.log(level: .Info, log: "Block signature verification passed, committing block \(index) into blockchain with signature \(newBlock.hash!.toHexString().lowercased())")
-                            
-                            if !blockchain.addBlock(newBlock) {
-                                break
-                            }
-                            
-                        }
-                        
-                        logger.log(level: .Info, log: "Blockchain produced block '\(index)'")
-                        if settings.blockchain_export_data {
-                            BlockMaker.export_block(index)
-                        }
-                        
-                    }
-                    
-                    
-                }
-                
-            }
-            
+            queueBlockProductionIfRequired()
             Thread.sleep(forTimeInterval: 5)
-            
             
         }
         
     }
     
-    class func export_block(_ height: Int) {
+    func validateNewBlockWithNetwork(_ newBlock: Block) {
         
-        do {
+        logger.log(level: .Info, log: "Generated block @ height \(index) with hash \(newBlock.hash!.toHexString().lowercased())")
+        
+        if !settings.isSeedNode {
+            
+            var agreement: Float = 0.0
+            var responses: Float = 0.0
+            var attempts = 0
+            
+            // now contact the seed node(s) to get their hashes
+            var nodes = Config.SeedNodes
+            if isTestNet {
+                nodes = Config.TestNetNodes
+            }
+            
+            while true {
+                for n in nodes {
+                    let blockHash = comms.hashForBlock(address: n, height: newBlock.height!)
+                    if blockHash != nil {
+                        if blockHash!.ready! {
+                            responses += 1.0
+                            if blockHash?.hash == newBlock.hash {
+                                agreement += 1.0
+                            } else {
+                                
+                            }
+                        } else {
+                            // seed block is not ready yet, do nothing, because we will re-try after a delay
+                        }
+                    } else {
+                        // timeout, or error.  Do nothing, because it will be covered in a retry
+                    }
+                }
+                if responses == 1.0 {
+                    break
+                }
+                if attempts == 480 {
+                    logger.log(level: .Error, log: "Unable to communicate with network for 240 mins, exiting as impossible to verify block image.")
+                    exit(1)
+                }
+                attempts += 1
+                logger.log(level: .Warning, log: "Failed to seek agreement for block hash with the network, will retry in 30 seconds.")
+                Thread.sleep(forTimeInterval: 30)
+            }
+            
+            // check the level of quorum
+            let quorum = agreement / responses
+            if quorum < 1.0 {
+                
+                logger.log(level: .Warning, log: "Block signature verification failed, attempting to re-sync block data with network")
+                
+                // something we have is either missing or extra :(.  Ask the authoritive node for all of the transactions for a certain height
+                var authoritiveBlockData = comms.blockDataAtHeight(height: newBlock.height!)
+                if authoritiveBlockData == nil {
+                    // unable to get the block data from the seed node, wait and try again
+                    logger.log(level: .Warning, log: "Network failed to return block data, waiting 30 seconds and trying again.")
+                    Thread.sleep(forTimeInterval: 30.0)
+                    authoritiveBlockData = comms.blockDataAtHeight(height: newBlock.height!)
+                }
+                
+                if authoritiveBlockData == nil {
+                    
+                    logger.log(level: .Warning, log: "Network failed to return block data for verification.  Aborting production of this block.")
+                    lock.mutex {
+                        self.currentBlockData = nil;
+                        self.inProgress = false
+                    }
+                
+                } else {
+                    
+                    // we have the authoritive block data, so poop-can the current block data and re-write it with the new.
+                    _ = blockchain.removeBlockAtHeight(newBlock.height!)
+                    
+                    lock.mutex {
+                        self.currentBlockData = authoritiveBlockData
+                    }
+                    
+                    // inflate the block data back into an object
+                    let o = try? JSONDecoder().decode(Block.self, from: authoritiveBlockData!)
+                    if o != nil {
+                        
+                        logger.log(level: .Info, log: "Block signature verification passed, committing block \(o!.height!) into blockchain with signature \(o!.hash!.toHexString().lowercased())")
+                        _ = blockchain.addBlock(o!)
+                        
+                        // dispatch the finalise closure
+                        Execute.background {
+                             self.finalise(newBlock.height!)
+                        }
+                        
+                    } else {
+                        
+                        lock.mutex {
+                            self.currentBlockData = nil;
+                            self.inProgress = false
+                        }
+                        
+                    }
+                    
+                }
+                
+            } else {
+                
+                logger.log(level: .Info, log: "Block signature verification passed, committing block \(newBlock.height!) into blockchain with signature \(newBlock.hash!.toHexString().lowercased())")
+                _ = !blockchain.addBlock(newBlock)
+                
+                // dispatch the finalise closure
+                Execute.background {
+                    
+                    if settings.blockchain_export_data {
+                        
+                        logger.log(level: .Info, log: "Encoding block data for storage within cache.")
+                        
+                        let b = blockchain.blockAtHeight(newBlock.height!, includeTransactions: true)
+                        let d = try? JSONEncoder().encode(b)
+                        if d != nil {
+                            self.lock.mutex {
+                                self.currentBlockData = d
+                            }
+                        }
+                        
+                        Execute.background {
+                            self.finalise(newBlock.height!)
+                        }
+                        
+                    } else {
+                        
+                        Execute.background {
+                            self.finalise(newBlock.height!)
+                        }
+                        
+                    }
+                    
+                }
+                
+            }
+            
+        } else {
+            
+            // this is a/the seed node, so just write this (until we go for quorum model in v0.2.0)
+            logger.log(level: .Info, log: "Block signature verification passed, committing block \(newBlock.height!) into blockchain with signature \(newBlock.hash!.toHexString().lowercased())")
+            
+            _ = blockchain.addBlock(newBlock)
+            
+            // dispatch the finalise closure
+            Execute.background {
+                
+                if settings.blockchain_export_data {
+                    
+                    logger.log(level: .Info, log: "Encoding block data for storage within cache.")
+                    
+                    let b = blockchain.blockAtHeight(newBlock.height!, includeTransactions: true)
+                    let d = try? JSONEncoder().encode(b)
+                    if d != nil {
+                        self.lock.mutex {
+                            self.currentBlockData = d
+                        }
+                    }
+                    
+                    Execute.background {
+                        self.finalise(newBlock.height!)
+                    }
+                    
+                } else {
+                    
+                    Execute.background {
+                        self.finalise(newBlock.height!)
+                    }
+                    
+                }
+
+            }
+            
+        }
+        
+    }
+    
+    func generateHashForBlock(_ height: Int) {
+    
+        // produce the block, hash it, seek quorum, then write it
+        let previousBlock = blockchain.blockAtHeight(height-1, includeTransactions: false)
+        
+        var newBlock = Block()
+        newBlock.height = height
+        
+        var newHash = Data()
+        newHash.append(previousBlock!.hash!)
+        newHash.append(contentsOf: height.toHex().bytes)
+        newHash.append(blockchain.HashForBlock(height))
+        newBlock.hash = newHash.sha224()
+        newBlock.transactions = []
+        
+        Execute.background {
+            self.validateNewBlockWithNetwork(newBlock)
+        }
+    
+    }
+    
+    func makeNextBlock() {
+        
+        let height = Int(blockchain.height()+1)
+        Execute.background {
+            self.generateHashForBlock(height)
+        }
+        
+    }
+    
+    func queueBlockProductionIfRequired() {
+        
+        let currentTime = consensusTime()
+        if currentTime > Config.BlockchainStartDate {
+            
+            lock.mutex {
+                
+                if inProgress == false {
+                    
+                    let currentTime = consensusTime()
+                    if currentTime > Config.BlockchainStartDate {
+                        
+                        // get the current height, and work out which block should be created and when
+                        let blockHeightForTime = currentNetworkBlockHeight()
+                        
+                        if blockchain.height() < blockHeightForTime {
+                            
+                            inProgress = true
+                            
+                            // blocks are required, now dispatch the activity
+                            Execute.background {
+                                self.makeNextBlock()
+                            }
+                            
+                        }
+                    }
+                }
+            }
+        }
+        
+    }
+    
+    func finalise(_ height: Int) {
+        
+        if settings.blockchain_export_data {
             
             try? FileManager.default.createDirectory(atPath: "./cache/blocks", withIntermediateDirectories: true, attributes: [:])
             let filePath = "./cache/blocks/\(height).block"
             
-            let block = blockchain.blockAtHeight(height, includeTransactions: true)
-            let e = JSONEncoder()
-            let d = try? e.encode(block)
-            
-            if d != nil {
-                try d!.write(to: URL(fileURLWithPath: filePath))
+            lock.mutex {
+                
+                if self.currentBlockData != nil {
+                    do {
+                        try self.currentBlockData!.write(to: URL(fileURLWithPath: filePath))
+                    } catch {
+                        logger.log(level: .Error, log: "Failed to export block \(height), error = '\(error)'")
+                    }
+                }
+                self.currentBlockData = nil
+                
+                // if we are in here, then this is the end point and we need to unlock the block production
+                
             }
             
-        } catch {
-            
-            logger.log(level: .Error, log: "Failed to export block \(height), error = '\(error)'")
-            
         }
         
-        // export the block height object
-        let filePath = "./cache/blocks/current.height"
-        var newHeightObject = CurrentHeightObject()
-        newHeightObject.height = blockchain.height()
-        let d = try? JSONEncoder().encode(newHeightObject)
-        if d != nil {
-            try? d!.write(to: URL(fileURLWithPath: filePath))
+        lock.mutex {
+            self.inProgress = false
         }
-        
         
     }
     
