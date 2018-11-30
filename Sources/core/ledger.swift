@@ -54,7 +54,6 @@ public class Ledger : Codable {
     public var hash: Data?
     public var source: Data?
     public var auth: Data?
-    public var bean: Data?
     
     public init() {
     }
@@ -71,7 +70,6 @@ public class Ledger : Codable {
         newChecksum.append(address!)
         newChecksum.append(source ?? Data())
         newChecksum.append(auth ?? Data())
-        newChecksum.append(bean ?? Data())
         return Data(bytes: newChecksum.bytes.sha224())
 
     }

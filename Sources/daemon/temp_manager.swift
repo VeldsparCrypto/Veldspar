@@ -93,21 +93,21 @@ class TempManager {
         
     }
     
-    func putInterNodeTransfer(_  data: Data) {
+    func putInterNodeTransfer(_  data: Data, src: String?) {
         
-        putTempItem(data, identifier: NextIdentifier(), path: TEMP_PATH_INBOUND, type: "int")
+        putTempItem(data, identifier: NextIdentifier(), path: TEMP_PATH_INBOUND, type: "int", src: src)
         
     }
     
     func putBroadcastOut(_  data: Data) {
         
-        putTempItem(data, identifier: NextIdentifier(), path: TEMP_PATH_OUTBOUND_BROADCAST, type: "int")
+        putTempItem(data, identifier: NextIdentifier(), path: TEMP_PATH_OUTBOUND_BROADCAST, type: "int", src: nil)
         
     }
     
     func putBroadcastOutSeed(_  data: Data, seed: String) {
         
-        putTempItem(data, identifier: NextIdentifier(), path: "\(self.TEMP_PATH_OUTBOUND_SEED)/\(seed.sha224())", type: "int")
+        putTempItem(data, identifier: NextIdentifier(), path: "\(self.TEMP_PATH_OUTBOUND_SEED)/\(seed.sha224())", type: "int", src: nil)
         
     }
     
@@ -117,15 +117,15 @@ class TempManager {
         
     }
     
-    func putRegister(_  data: Data) {
+    func putRegister(_  data: Data, src: String?) {
         
-        putTempItem(data, identifier: NextIdentifier(), path: TEMP_PATH_INBOUND, type: "reg")
+        putTempItem(data, identifier: NextIdentifier(), path: TEMP_PATH_INBOUND, type: "reg", src: src)
         
     }
     
-    func putTransfer(_  data: Data) {
+    func putTransfer(_  data: Data, src: String?) {
         
-        putTempItem(data, identifier: NextIdentifier(), path: TEMP_PATH_INBOUND, type: "tfr")
+        putTempItem(data, identifier: NextIdentifier(), path: TEMP_PATH_INBOUND, type: "tfr", src: src)
         
     }
     
@@ -147,7 +147,7 @@ class TempManager {
         
     }
     
-    func putTempItem(_  data: Data, identifier: UInt64, path: String, type: String) {
+    func putTempItem(_  data: Data, identifier: UInt64, path: String, type: String, src: String?) {
         
         // now write the request on a background thread, as it is not neccesary to block whilst this happens
         Execute.background {
@@ -159,6 +159,9 @@ class TempManager {
             do {
                 // attempt to write the temp file
                 try data.write(to: u)
+                if src != nil {
+                    try? src?.write(toFile: "\(path)/\(idno).src", atomically: true, encoding: .ascii)
+                }
             } catch {
                 logger.log(level: .Error, log: "Failed to write broadcast record to '\(u)'")
             }
@@ -231,7 +234,7 @@ class TempManager {
             
             let firstfile = try FileManager.default.contentsOfDirectory(atPath: path).sorted().first
             if firstfile != nil {
-                if firstfile!.hasSuffix("type") {
+                if firstfile!.hasSuffix(type) {
                     let d = FileManager.default.contents(atPath: "\(path)/\(firstfile!)")
                     if d != nil {
                         try FileManager.default.removeItem(atPath: "\(path)/\(firstfile!)")
@@ -255,12 +258,17 @@ class TempManager {
         
         do {
             
-            let firstfile = try FileManager.default.contentsOfDirectory(atPath: path).sorted().first
-            if firstfile != nil {
-                if firstfile!.hasSuffix("type") {
-                    let d = FileManager.default.contents(atPath: "\(path)/\(firstfile!)")
+            let files = try FileManager.default.contentsOfDirectory(atPath: path).sorted()
+            for firstfile in files {
+                if firstfile.hasSuffix(type) {
+                    let d = FileManager.default.contents(atPath: "\(path)/\(firstfile)")
                     if d != nil {
-                        try FileManager.default.removeItem(atPath: "\(path)/\(firstfile!)")
+                        try FileManager.default.removeItem(atPath: "\(path)/\(firstfile)")
+                        Execute.background {
+                            if FileManager.default.fileExists(atPath: "\(path)/\(firstfile.replacingOccurrences(of: type, with: "src"))") {
+                                try? FileManager.default.removeItem(atPath: "\(path)/\(firstfile.replacingOccurrences(of: type, with: "src"))")
+                            }
+                        }
                         return d
                     }
                 }

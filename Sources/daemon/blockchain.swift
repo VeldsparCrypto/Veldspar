@@ -44,12 +44,24 @@ class BlockChain {
         
     }
     
-    func nodes() -> [PeeringNode] {
+    func nodesAll() -> [PeeringNode] {
         
         var retValue: [PeeringNode] = []
         
         blockchain_lock.mutex {
             retValue = Database.PeeringNodes()
+        }
+        
+        return retValue
+        
+    }
+    
+    func nodesReachable() -> [PeeringNode] {
+        
+        var retValue: [PeeringNode] = []
+        
+        blockchain_lock.mutex {
+            retValue = Database.PeeringNodesReachable()
         }
         
         return retValue
@@ -229,10 +241,9 @@ class BlockChain {
         
     }
     
-    func registerToken(tokenString: String, address: String, bean: String, block: Int) throws -> Bool {
+    func registerToken(tokenString: String, address: String, block: Int) throws -> Bool {
         
-        var returnValue = false
-        var token = tokenString
+        let token = tokenString
         var t: Token?
         
         // first off, check that the token is essentially valid in construction
@@ -265,7 +276,6 @@ class BlockChain {
         l.transaction_id = Data(bytes: UUID().uuidString.bytes.sha224())
         l.source = Crypto.strAddressToData(address: address)
         l.value = t!.value()
-        l.bean = bean.hexToData
         l.hash = l.checksum()
         
         var success = false;

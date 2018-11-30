@@ -27,76 +27,24 @@ class Broadcaster {
     
     var isBroadcasting = false
     
-    //Method just to execute request, assuming the response type is string (and not file)
-    func HTTPsendRequest(request: URLRequest,
-                         callback: @escaping (Error?, String?) -> Void) {
-        let task = URLSession.shared.dataTask(with: request) { (data, res, err) in
-            if (err != nil) {
-                callback(err,nil)
-            } else {
-                callback(nil, String(data: data!, encoding: String.Encoding.utf8))
-            }
-        }
-        task.resume()
-    }
-    
-    // post JSON
-    func HTTPPostJSON(url: String,  data: Data,
-                      callback: @escaping (Error?, String?) -> Void) {
-        
-        var request = URLRequest(url: URL(string: url)!)
-        
-        request.httpMethod = "POST"
-        request.addValue("application/json",forHTTPHeaderField: "Content-Type")
-        request.addValue("application/json",forHTTPHeaderField: "Accept")
-        request.httpBody = data
-        HTTPsendRequest(request: request, callback: callback)
-    }
-    
     func broadcast() {
         
-        var seedNodes = Config.SeedNodes
-        if isTestNet {
-            seedNodes = Config.TestNetNodes
-        }
-        for n in seedNodes {
-            
-            // create a thread for every seed node transfer
-            Execute.background {
-                while true {
-                    let d = tempManager.popIntOutSeed(n)
-                    if d != nil && d?.data != nil {
-                        self.HTTPPostJSON(url: "http://\(n)/int", data: d!.data) { (err, result) in
-                            if(err != nil) {
-                                // there was an error, so we need to restore the file back to disk again after waiting for a bit, otherwise the cycle will continue
-                                Thread.sleep(forTimeInterval: 5)
-                                tempManager.putBroadcastOutSeed(d!.data, seed: n, named: d!.fileId)
-                                
-                            } else {
-                                logger.log(level: .Info, log: "Sent delayed intra-node-transfer to seed node '\(n)' hash of \(d!.data.sha224().toHexString())")
-                            }
-                        }
-                    } else {
-                        // nothing to do for this node, so sleep until there is some work
-                        Thread.sleep(forTimeInterval: 1)
-                    }
-                }
-            }
-            
-        }
+        
         
         Execute.background {
             
             // node transfers
             while true {
-
-                // grab the nodes
-                let nodes = blockchain.nodes()
                 
-                for n in nodes {
+                let d = tempManager.popIntOutBroadcast()
+                if d != nil {
                     
-                    let d = tempManager.popIntOutBroadcast()
-                    if d != nil {
+                    // grab the nodes
+                    let nodes = blockchain.nodesReachable()
+                    
+                    for n in nodes {
+                        
+                        
                         
                         Execute.background {
                             self.HTTPPostJSON(url: "http://\(n.address!)/int", data: d!) { (err, result) in
@@ -107,7 +55,7 @@ class Broadcaster {
                         }
                         
                     }
-
+                    
                 }
                 
                 Thread.sleep(forTimeInterval: 1)

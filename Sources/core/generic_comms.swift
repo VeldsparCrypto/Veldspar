@@ -151,9 +151,9 @@ public class Comms {
         
     }
     
-    public func Register(token: String, address: String, beanHex: String) -> RegisterRepsonse? {
+    public func Register(token: String, address: String) -> RegisterRepsonse? {
         
-        let response = request(method: "register", parameters: ["token" : token, "address" : address, "bean" : beanHex])
+        let response = request(method: "register", parameters: ["token" : token, "address" : address])
         if response != nil  {
             let r = try? JSONDecoder().decode(RegisterRepsonse.self, from: response!)
             if r != nil {

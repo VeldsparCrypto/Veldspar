@@ -23,16 +23,11 @@
 import Foundation
 import VeldsparCore
 
-public class Registration {
+public class Registration : Codable {
     
-    public var token: String
-    public var source: String
-    public var address: String
+    public var token: String?
+    public var address: String?
     
-    public init(tokenId: String, src: String, dest: String) {
-        self.token = tokenId
-        self.source = src
-        self.address = dest
-    }
+    public init() {}
     
 }

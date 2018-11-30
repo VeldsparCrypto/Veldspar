@@ -108,29 +108,6 @@ public class Token {
         return cachedValue!
         
     }
-    
-    public func value(bean: Data) -> Int {
-        
-        if cachedValue != nil {
-            return cachedValue!
-        }
-        
-        cachedValue = AlgorithmManager().value(token: self, bean: bean)
-        return cachedValue!
-        
-    }
-    
-    public func foundBean() -> Data? {
-    
-        return AlgorithmManager().foundBean(token: self)
-        
-    }
-    
-    public func validateFind(bean: Data) -> Bool {
-        
-        return AlgorithmManager().validate(token: self, bean: bean)
-        
-    }
 
     public class func valueFromId(_ token: String) -> Int {
         

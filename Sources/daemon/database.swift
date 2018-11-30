@@ -134,16 +134,9 @@ class Database {
                     if l.source == l.destination && TokenOwnershipRecord(ore: l.ore!, address: l.address!).count == 0 {
                         
                         // this is a new registration, so it can be committed right away.  But only after we have validated that it is a valid token to be registered
-                        if l.bean != nil {
-                            let t = Token(oreHeight: l.ore!, address: l.address!, algorithm: AlgorithmType.init(rawValue: l.algorithm!)!);
-                            if t.validateFind(bean: l.bean!) && t.value(bean:l.bean!) != 0 {
-                                
-                                _ = db.put(l)
-                                
-                            } else {
-                                retValue = false
-                            }
-                            
+                        let t = Token(oreHeight: l.ore!, address: l.address!, algorithm: AlgorithmType.init(rawValue: l.algorithm!)!);
+                        if t.value() != 0 {
+                            _ = db.put(l)
                         } else {
                             retValue = false
                         }
@@ -238,19 +231,20 @@ class Database {
     
     class func HashesForBlock(_ height: Int) -> Data {
         
-        var data:[Data] = []
-        let result = db.query(sql: "SELECT hash FROM Ledger WHERE height = ? ORDER BY address", params: [height])
+        let result = db.query(sql: "SELECT SHA512(hash) as sha512hash FROM Ledger INDEXED BY idx_Ledger_height_address WHERE height = ?", params: [height])
         for r in result.results {
-            data.append(r["hash"]!.asData()!)
+            return r["sha512hash"]?.asData() ?? Data()
         }
         return Data()
         
     }
     
     class func PeeringNodes() -> [PeeringNode] {
-        
         return db.query(PeeringNode(), sql: "SELECT * FROM PeeringNode", params: [])
-        
+    }
+    
+    class func PeeringNodesReachable() -> [PeeringNode] {
+        return db.query(PeeringNode(), sql: "SELECT * FROM PeeringNode WHERE reachable = 1", params: [])
     }
     
     class func WritePeeringNodes(nodes: [PeeringNode]) {

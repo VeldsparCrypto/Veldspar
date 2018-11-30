@@ -28,15 +28,8 @@ public enum AlgorithmType : Int {
 }
 
 public protocol AlgorithmProtocol {
-    func generate(ore: Ore, address: Data) -> Token
-    func validate(token: Token) -> Bool
     func deprecated(height: UInt) -> Bool
-    func hash(token: Token) -> [UInt8]
     func value(token: Token) -> Int
-    func value(token: Token, bean: Data) -> Int
-    func workload(token: Token) -> Workload
-    func validateFind(token: Token, bean: Data) -> Bool
-    func foundBean(token: Token) -> Data?
 }
 
 public class AlgorithmManager {
@@ -50,7 +43,6 @@ public class AlgorithmManager {
     
     init() {
         register(algorithm: AlgorithmSHA512AppendV0())
-        register(algorithm: AlgorithmSHA512AppendV1())
     }
     
     public func countOfAlgos() -> Int {
@@ -76,36 +68,6 @@ public class AlgorithmManager {
         return AlgorithmManager.this
     }
     
-    public func generate(type: AlgorithmType, ore: Ore, address: Data) -> Token? {
-        
-        var token: Token? = nil
-        
-        lock.mutex {
-            if type.rawValue < self.implementations.count {
-                let imp = self.implementations[Int(type.rawValue)]
-                token = imp.generate(ore: ore, address: address)
-            }
-        }
-        
-        return token
-        
-    }
-    
-    public func validate(token: Token) -> Bool {
-        
-        var isValid: Bool = false
-        
-        lock.mutex {
-            if token.algorithm.rawValue < self.implementations.count {
-                let imp = self.implementations[Int(token.algorithm.rawValue)]
-                isValid = imp.validate(token: token)
-            }
-        }
-        
-        return isValid
-        
-    }
-    
     public func depricated(type: AlgorithmType, height: UInt) -> Bool {
         
         var isDepricated: Bool = false
@@ -121,21 +83,6 @@ public class AlgorithmManager {
         
     }
     
-    public func hash(token: Token) -> [UInt8] {
-        
-        var hash: [UInt8] = []
-        
-        lock.mutex {
-            if token.algorithm.rawValue < self.implementations.count {
-                let imp = self.implementations[Int(token.algorithm.rawValue)]
-                hash = imp.hash(token: token)
-            }
-        }
-        
-        return hash
-
-    }
-    
     public func value(token: Token) -> Int {
         
         var value: Int = 0
@@ -148,51 +95,6 @@ public class AlgorithmManager {
         }
         
         return value
-        
-    }
-    
-    public func value(token: Token, bean: Data) -> Int {
-        
-        var value: Int = 0
-        
-        lock.mutex {
-            if token.algorithm.rawValue < self.implementations.count {
-                let imp = self.implementations[Int(token.algorithm.rawValue)]
-                value = imp.value(token: token)
-            }
-        }
-        
-        return value
-        
-    }
-    
-    public func foundBean(token: Token) -> Data? {
-        
-        var value: Data? = nil
-        
-        lock.mutex {
-            if token.algorithm.rawValue < self.implementations.count {
-                let imp = self.implementations[Int(token.algorithm.rawValue)]
-                value = imp.foundBean(token: token)
-            }
-        }
-        
-        return value
-        
-    }
-    
-    public func validate(token: Token, bean: Data) -> Bool {
-        
-        var retValue: Bool = false
-        
-        lock.mutex {
-            if token.algorithm.rawValue < self.implementations.count {
-                let imp = self.implementations[Int(token.algorithm.rawValue)]
-                retValue = imp.validateFind(token: token, bean: bean)
-            }
-        }
-        
-        return retValue
         
     }
     

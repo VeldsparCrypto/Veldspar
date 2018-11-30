@@ -34,12 +34,15 @@ var oreBlocks: [Int:Ore] = [:]
 var miningMethods: [AlgorithmType] = [AlgorithmType.SHA512_AppendV0]
 var walletAddress: String?
 var cacheLock = Mutex()
-var threads = 4
+var limitLock = Mutex()
+var threads = 1
 var isTestnet = false
 let args: [String] = CommandLine.arguments
 let statsLock: Mutex = Mutex()
 var hashes: Int = 0
 var matches: Int = 0
+var limit: Int = 0
+var mined: Float = 0.0
 
 if args.count > 1 {
     for i in 1...args.count-1 {
@@ -87,6 +90,17 @@ if args.count > 1 {
                 
                 let t = args[i+1]
                 threads = Int(t)!
+                
+            }
+            
+        }
+        
+        if arg.lowercased() == "--limit" {
+            
+            if i+1 < args.count {
+                
+                let t = args[i+1]
+                limit = Int(t)!
                 
             }
             
@@ -167,13 +181,16 @@ for _ in 1...threads {
             statsLock.mutex {
                 hashes += 1
             }
-            if t.value() > 0 && t.foundBean() != nil {
+            if t.value() > 0 {
                 
-                print("Found token! @\(Date()) Ore:\(height) method:\(method.rawValue) value:\(Float(t.value()) / Float(Config.DenominationDivider)) bean:\(t.foundBean()!.toHexString())")
+                print("Found token! @\(Date()) Ore:\(height) method:\(method.rawValue) value:\(Float(t.value()) / Float(Config.DenominationDivider))")
                 print("Token Address: " + t.tokenStringId())
                 
-                let r = comms.Register(token: t.tokenStringId(), address: walletAddress!, beanHex: t.foundBean()!.toHexString())
+                let r = comms.Register(token: t.tokenStringId(), address: walletAddress!)
                 if r != nil {
+                    statsLock.mutex {
+                        mined += Float(t.value()) / Float(Config.DenominationDivider)
+                    }
                     if r!.success! {
                         print("Token registration successful.")
                     } else {
@@ -193,6 +210,9 @@ while true {
     sleep(1)
     statsLock.mutex {
         print("Mining rate: \(hashes) h/s")
+        if limit > 0 && mined > Float(limit) {
+            exit(0)
+        }
         hashes = 0
     }
 }

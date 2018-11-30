@@ -48,7 +48,7 @@ class BlockMaker {
         while true {
             
             queueBlockProductionIfRequired()
-            Thread.sleep(forTimeInterval: 5)
+            Thread.sleep(forTimeInterval: 0.1)
             
         }
         
@@ -56,7 +56,7 @@ class BlockMaker {
     
     func validateNewBlockWithNetwork(_ newBlock: Block) {
         
-        logger.log(level: .Info, log: "Generated block @ height \(index) with hash \(newBlock.hash!.toHexString().lowercased())")
+        logger.log(level: .Info, log: "Generated block @ height \(newBlock.height!) with hash \(newBlock.hash!.toHexString().lowercased())")
         
         if !settings.isSeedNode {
             
@@ -240,7 +240,7 @@ class BlockMaker {
         newBlock.height = height
         
         var newHash = Data()
-        newHash.append(previousBlock!.hash!)
+        newHash.append(previousBlock?.hash ?? Data())
         newHash.append(contentsOf: height.toHex().bytes)
         newHash.append(blockchain.HashForBlock(height))
         newBlock.hash = newHash.sha224()

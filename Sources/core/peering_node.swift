@@ -29,6 +29,7 @@ public class PeeringNode : Codable {
     public var speed: Int?
     public var lastcomm: UInt64?
     public var tidemark: Int?
+    public var reachable: Int?
     
     public init() {}
     

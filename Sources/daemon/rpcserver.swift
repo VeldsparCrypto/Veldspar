@@ -134,7 +134,6 @@ class RPCHandler {
                 
                 var token = ""
                 var address = ""
-                var bean = ""
                 for p in request.queryParams {
                     if p.0 == "token" {
                         token = p.1
@@ -142,16 +141,15 @@ class RPCHandler {
                     if p.0 == "address" {
                         address = p.1
                     }
-                    if p.0 == "bean" {
-                        bean = p.1
-                    }
                 }
                 
                 logger.log(level: .Debug, log: "(RPC) '\(request.path)' token='\(token)' address='\(address)'")
                 
-                // try response.setBody(json: )
-                let r = try RPCRegisterToken.action(["token" : token, "address" : address, "bean" : bean], host: request.address)
-                return .ok(.json(r))
+                // flush this out to disk asap
+                let s = "{\"token\" : \"\(token)\", \"address\" : \"\(address)\"}"
+                tempManager.putRegister(s.data(using: .ascii)!, src: request.address)
+                
+                return .ok(.jsonData(try JSONEncoder().encode(GenericResponse(key: "received", value: "ok"))))
                 
             case "/int":
                 
@@ -163,13 +161,8 @@ class RPCHandler {
                     throw RPCErrors.InvalidRequest
                 }
                 
-                // decode the ledgers object
-                let l = try JSONDecoder().decode(Ledgers.self, from: Data(bytes: request.body))
-                
-                // throw these ledgers to the blockchain as they will be verified later on
-                _ = blockchain.commitLedgerItems(tokens: l.transactions, failIfAny: false)
-                
-                logger.log(level: .Info, log: "(RPC) '\(request.path)', received \(l.transactions.count) transactions from node '\(l.source_nodeId!)'")
+                // flush to disk and return
+                tempManager.putInterNodeTransfer(Data(bytes: request.body), src: request.address)
                 
                 return .ok(.jsonData(try JSONEncoder().encode(GenericResponse(key: "received", value: "ok"))))
                 
@@ -188,15 +181,21 @@ class RPCHandler {
                 
                 logger.log(level: .Debug, log: "(RPC) '\(request.path)' nodeId='\(nodeId)'")
                 
-                var node = PeeringNode()
-                node.address = "\(request.address!):\(port)"
-                node.uuid = nodeId
-                node.lastcomm = UInt64(Date().timeIntervalSince1970 * 1000)
-                if comms.basicRequest(address: node.address ?? "", method: "/timestamp", parameters: [:]) != nil {
+                Execute.background {
+                    
+                    let node = PeeringNode()
+                    node.address = "\(request.address!):\(port)"
+                    node.uuid = nodeId
+                    node.lastcomm = UInt64(Date().timeIntervalSince1970 * 1000)
+                    if comms.basicRequest(address: node.address ?? "", method: "/timestamp", parameters: [:]) != nil {
+                        node.reachable = 1
+                        logger.log(level: .Info, log: "Registering node (\(nodeId) on port \(port) from IP \(request.address ?? "UNKNOWN")")
+                    } else {
+                        node.reachable = 0
+                        logger.log(level: .Info, log: "Registering node (\(nodeId) on port \(port) from IP \(request.address ?? "UNKNOWN") failed, not reachable.")
+                    }
                     blockchain.putNode(node)
-                    logger.log(level: .Info, log: "Registering node (\(nodeId) on port \(port) from IP \(request.address ?? "UNKNOWN")")
-                } else {
-                    logger.log(level: .Info, log: "Registering node (\(nodeId) on port \(port) from IP \(request.address ?? "UNKNOWN") failed, not reachable.")
+                    
                 }
                 
                 return .ok(.jsonData(try JSONEncoder().encode(GenericResponse(key: "node", value: "registered"))))
@@ -205,7 +204,7 @@ class RPCHandler {
                 
                 logger.log(level: .Debug, log: "(RPC) '\(request.path)'")
                 
-                let nodes = blockchain.nodes()
+                let nodes = blockchain.nodesAll()
                 let nodeResponse = NodeListResponse()
                 nodeResponse.nodes = nodes
                 return .ok(.jsonData(try JSONEncoder().encode(nodeResponse)))
@@ -238,28 +237,12 @@ class RPCHandler {
                 
                 return .ok(.jsonData(try JSONEncoder().encode(blockHash)))
                 
-            case "/ledgers":
-                
-                var height = -1
-                for p in request.queryParams {
-                    if p.0 == "height" {
-                        height = Int(p.1) ?? 0
-                    }
-                }
-                
-                logger.log(level: .Debug, log: "(RPC) '\(request.path)'")
-                let ledgers = Ledgers()
-                let transactions = blockchain.LedgersForBlock(height)
-                ledgers.source_nodeId = thisNode.nodeId
-                ledgers.transactions = transactions
-                return .ok(.jsonData(try JSONEncoder().encode(ledgers)))
-                
             case "/transfer":
                 
-                let jsonBody = String(bytes: request.body, encoding: .ascii)
-                logger.log(level: .Debug, log: "(RPC) '\(request.path)', body : '\(jsonBody!)'")
-                let r = try RecieveTransfer.action(jsonBody!)
-                return .ok(.jsonString(r))
+                // just flush to disk and return generic response
+                tempManager.putTransfer(Data(bytes: request.body), src: request.address)
+                
+                return .ok(.jsonData(try JSONEncoder().encode(GenericResponse(key: "received", value: "ok"))))
                 
             default:
                 return .notFound

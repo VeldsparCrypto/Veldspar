@@ -69,7 +69,7 @@ if isTestNet {
 var comms = Comms(endpoint: endpointAddress!)
 
 let ore = Ore(Config.GenesisID, height: 0)
-let v3Beans = AlgorithmSHA512AppendV0.beans()
+
 var settings = Settings()
 if FileManager.default.fileExists(atPath: "veldspar.settings") {
     let settingsData: Data? = try? Data(contentsOf: URL(fileURLWithPath: "veldspar.settings"))
@@ -141,6 +141,10 @@ if db.query(NodeInstance(), sql: "SELECT * FROM NodeInstance", params: []).count
 
 let thisNode = db.query(NodeInstance(), sql: "SELECT * FROM NodeInstance", params: [])[0]
 let broadcaster = Broadcaster()
+let interNodeTransfer = InterNodeTransferProcessor()
+let registrations = RegistrationProcessor()
+let transfers = TransferProcessor()
+
 
 // initialisation complete, now we need to work out if we are behind and then play catchup with the network
 if !settings.isSeedNode && (blockmaker.currentNetworkBlockHeight() - blockchain.height()) > 1 {
@@ -169,19 +173,17 @@ if !settings.isSeedNode && (blockmaker.currentNetworkBlockHeight() - blockchain.
     
 } else if settings.isSeedNode {
     
-    // we need to catch up as quickly as possible with any of the transactions we may have missed from the registered nodes
+    // we need to catch up as quickly as possible with any of the transactions we may have missed from the registered nodes.  This happens by suspending block production until reasonable catchups have been achieved.
     
     
 }
 
 Execute.background {
-    
-    logger.log(level: .Info, log: "Node announcer service started")
-    while true {
-        _ = comms.request(method: "announce", parameters: ["nodeid" : "\(thisNode.nodeId!)", "port" : "\(settings.network_port)"])
-        Thread.sleep(forTimeInterval: 30)
+    if !settings.isSeedNode {
+        logger.log(level: .Info, log: "Node announcer service started")
+        let announcer = Announcer()
+        announcer.Announce()
     }
-    
 }
 
 Execute.background {

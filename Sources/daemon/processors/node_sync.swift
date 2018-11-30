@@ -39,21 +39,23 @@ class NodeSync {
                 let d = comms.basicRequest(address: s, method: "nodes", parameters: [:])
                 if d != nil {
                     do {
-                        
                         let currentNodes = try JSONDecoder().decode(NodeListResponse.self, from: d!)
                         blockchain.putNodes(currentNodes.nodes)
-                        
                     } catch {}
                 }
             }
             
             // now update our local reachability records
-            for n in blockchain.nodes() {
+            for n in blockchain.nodesAll() {
                 
                 if comms.basicRequest(address: n.address!, method:"timestamp" , parameters: [:]) != nil {
+                    n.reachable = 1
                     n.lastcomm = UInt64(Date().timeIntervalSince1970 * 1000)
-                    blockchain.putNode(n)
+                } else {
+                    n.reachable = 0
                 }
+                
+                blockchain.putNode(n)
                 
             }
             

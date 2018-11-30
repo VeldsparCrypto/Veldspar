@@ -21,9 +21,51 @@
 //    SOFTWARE.
 
 import Foundation
+import VeldsparCore
 
-public class Workload {
+class TransferProcessor {
     
-    public var beans: [Data] = []
+    init() {
+        
+        TransferProcessor.processNext()
+        
+    }
+    
+    class func processNext() {
+        
+        Execute.background {
+            
+            let reg = tempManager.popTransfer()
+            if reg != nil {
+                
+                // decode this and process it
+                let l = try? JSONDecoder().decode(TransferRequest.self, from: reg!)
+                
+                if l != nil {
+                    
+                    do {
+                        
+                        let block = blockmaker.currentNetworkBlockHeight() + Config.TransactionMaturityLevel
+                        try RecieveTransfer.action(l!, block: block)
+                        
+                    } catch {
+                        // TODO: implement banning
+                    }
+                    
+                }
+                
+                TransferProcessor.processNext()
+                
+            } else {
+                
+                Execute.backgroundAfter(after: 0.5, {
+                    TransferProcessor.processNext()
+                })
+                
+            }
+            
+        }
+        
+    }
     
 }

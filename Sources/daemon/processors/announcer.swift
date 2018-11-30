@@ -23,41 +23,15 @@
 import Foundation
 import VeldsparCore
 
-class RecieveTransfer {
+class Announcer {
     
-    class func action(_ tr: TransferRequest, block: Int) throws {
+    func Announce() {
         
-        if tr.tokens.count == 0 {
-            throw RPCErrors.InvalidRequest
-        }
-        
-        // check the digital signatures
-        for t in tr.tokens {
-            if !t.verifySignature() {
-                throw RPCErrors.InvalidRequest
-            }
-        }
-        
-        for t in tr.tokens {
-            t.height = block
-        }
-        
-        // if this is the entry point into the system for this transaction, then we need to allocate ids
-        for t in tr.tokens {
-            if t.transaction_id == nil {
-                t.transaction_id = Data(bytes:UUID().uuidString.bytes.sha224())
-            }
-        }
-        
-        // we ask the data layer to check that every single one of the tokens one-by-one, then transfer.  A boolean is returned to indicate success or failure.
-        if blockchain.commitLedgerItems(tokens: tr.tokens, failIfAny: true) {
+        while true {
             
-            // distribute this transfer to other nodes
-            broadcaster.add(tr.tokens, atomic: true)
-            
-        } else {
-            
-            throw RPCErrors.InvalidRequest
+            // send a registration ping to the seed nodes
+            _ = comms.request(method: "announce", parameters: ["nodeid" : "\(thisNode.nodeId!)", "port" : "\(settings.network_port)"])
+            Thread.sleep(forTimeInterval: 30)
             
         }
         
