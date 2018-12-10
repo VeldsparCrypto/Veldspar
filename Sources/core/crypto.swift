@@ -85,4 +85,8 @@ public class Crypto {
         return address.base58DecodedData!
     }
     
+    public class func dataAddressToStr(address: Data) -> String {
+        return "\(Config.CurrencyNetworkAddress)\(address.bytes.base58EncodedString)"
+    }
+    
 }

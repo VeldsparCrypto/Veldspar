@@ -47,6 +47,12 @@ class InterNodeTransferProcessor {
                     // check to see if this transaciton is too old and dump it.
                     if l!.transactions.count > 0 {
                         
+                        if l!.source_nodeId == thisNode.nodeId {
+                            // throw this away as this is an internal transfer
+                            InterNodeTransferProcessor.processNext()
+                            return
+                        }
+                        
                         if l!.transactions[0].height == nil || l!.transactions[0].height! >= blockchain.height() {
                             // the transaction is too old so that's it for this i-n-t
                             InterNodeTransferProcessor.processNext()

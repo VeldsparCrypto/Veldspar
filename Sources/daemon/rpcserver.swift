@@ -1,4 +1,4 @@
- //    MIT License
+//    MIT License
 //
 //    Copyright (c) 2018 Veldspar Team
 //
@@ -23,7 +23,7 @@
 import Foundation
 import VeldsparCore
 import Swifter
-
+ 
 let banLock: Mutex = Mutex()
 var bans: [String:Int] = [:]
 

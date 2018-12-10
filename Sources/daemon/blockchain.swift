@@ -273,11 +273,10 @@ class BlockChain {
         l.date = UInt64(consensusTime())
         l.destination = Crypto.strAddressToData(address: address)
         l.ore = t!.oreHeight
-        l.transaction_id = Data(bytes: UUID().uuidString.bytes.sha224())
+        l.transaction_id = Data(bytes: UUID().uuidString.sha512().bytes.sha224())
         l.source = Crypto.strAddressToData(address: address)
         l.value = t!.value()
-        l.hash = l.checksum()
-        
+        l.hash = l.signatureHash()
         var success = false;
         
         // the atomicity & validity of the ledger will be checked by the data layer upon submission

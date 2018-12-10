@@ -57,13 +57,17 @@ class RegistrationProcessor {
                         
                     } catch BlockchainErrors.TokenHasNoValue {
                         
+                        RegistrationProcessor.processNext()
                         // TODO: implement banning
                         
                     } catch BlockchainErrors.InvalidToken {
                         
                         // TODO: implement banning
+                        RegistrationProcessor.processNext()
                         
-                    } catch {}
+                    } catch {
+                        RegistrationProcessor.processNext()
+                    }
                     
                 }
                 

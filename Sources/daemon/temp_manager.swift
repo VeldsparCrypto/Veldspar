@@ -258,7 +258,8 @@ class TempManager {
         
         do {
             
-            let files = try FileManager.default.contentsOfDirectory(atPath: path).sorted()
+            let rawFiles = try FileManager.default.contentsOfDirectory(atPath: path)
+            let files = rawFiles.sorted()
             for firstfile in files {
                 if firstfile.hasSuffix(type) {
                     let d = FileManager.default.contents(atPath: "\(path)/\(firstfile)")

@@ -25,15 +25,13 @@ import VeldsparCore
 
 class BroadcastSwarm {
     
+    static var lock = Mutex()
+    static var outstanding: Int = 0
+    static var threshhold = 10
+    
     init() {
         
-        var seedNodes = Config.SeedNodes
-        if isTestNet {
-            seedNodes = Config.TestNetNodes
-        }
-        for n in seedNodes {
-            BroadcastSeed.processNext(n)
-        }
+        BroadcastSwarm.processNext()
         
     }
     
@@ -61,39 +59,57 @@ class BroadcastSwarm {
         request.addValue("application/json",forHTTPHeaderField: "Accept")
         request.httpBody = data
         HTTPsendRequest(request: request, callback: callback)
+        
     }
     
-    class func processNext(_ n: String) {
+    class func processNext() {
         
-        Execute.background {
+        lock.mutex {
             
-            let d = tempManager.popIntOutSeed(n)
-            if d != nil && d?.data != nil {
-                self.HTTPPostJSON(url: "http://\(n)/int", data: d!.data) { (err, result) in
-                    if(err != nil) {
-                        // there was an error, so we need to restore the file back to disk again after waiting for a bit, otherwise the cycle will continue
-                        tempManager.putBroadcastOutSeed(d!.data, seed: n, named: d!.fileId)
+            if outstanding <= threshhold {
+                Execute.background {
+                    
+                    let d = tempManager.popIntOutBroadcast()
+                    if d != nil {
                         
-                        Execute.backgroundAfter(after: 5.0, {
-                            processNext(n)
-                        })
+                        logger.log(level: .Info, log: "Sent broadcast intra-node-transfer to swarm. Hash of \(d!.sha224().toHexString())")
+                        
+                        // get everywhere this needs to be sent
+                        let nodes = blockchain.nodesAll()
+                        lock.mutex {
+                            outstanding += nodes.count
+                        }
+                        
+                        for n in nodes {
+                            
+                            self.HTTPPostJSON(url: "http://\(n)/int", data: d!) { (err, result) in
+                                
+                                // now decrement the outstanding
+                                lock.mutex {
+                                    outstanding -= 1
+                                }
+                                
+                            }
+                            
+                        }
+                        
+                        Execute.background {
+                            processNext()
+                        }
                         
                     } else {
-                        logger.log(level: .Info, log: "Sent delayed intra-node-transfer to seed node '\(n)' hash of \(d!.data.sha224().toHexString())")
-                        Execute.background {
-                            processNext(n)
-                        }
+                        
+                        // nothing to do for this node, so sleep until there is some work
+                        Execute.backgroundAfter(after: 1.0, {
+                            processNext()
+                        })
+                        
                     }
+                    
                 }
-            } else {
-                // nothing to do for this node, so sleep until there is some work
-                Execute.backgroundAfter(after: 1.0, {
-                    processNext(n)
-                })
             }
-            
         }
-        
+
     }
     
 }

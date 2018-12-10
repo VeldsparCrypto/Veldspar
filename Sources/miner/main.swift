@@ -31,7 +31,7 @@ srandom(UInt32(time(nil)))
 // defaults
 var nodeAddress: String = "127.0.0.1:14242"
 var oreBlocks: [Int:Ore] = [:]
-var miningMethods: [AlgorithmType] = [AlgorithmType.SHA512_AppendV0]
+var miningMethods: [AlgorithmType] = [AlgorithmType.SHA512_AppendV1]
 var walletAddress: String?
 var cacheLock = Mutex()
 var limitLock = Mutex()

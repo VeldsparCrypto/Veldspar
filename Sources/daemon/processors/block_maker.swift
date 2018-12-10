@@ -48,7 +48,7 @@ class BlockMaker {
         while true {
             
             queueBlockProductionIfRequired()
-            Thread.sleep(forTimeInterval: 0.1)
+            Thread.sleep(forTimeInterval: 0.2)
             
         }
         

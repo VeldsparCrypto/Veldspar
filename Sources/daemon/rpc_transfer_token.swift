@@ -31,21 +31,15 @@ class RecieveTransfer {
             throw RPCErrors.InvalidRequest
         }
         
-        // check the digital signatures
-        for t in tr.tokens {
-            if !t.verifySignature() {
-                throw RPCErrors.InvalidRequest
-            }
-        }
-        
         for t in tr.tokens {
             t.height = block
+            t.id = nil
         }
         
         // if this is the entry point into the system for this transaction, then we need to allocate ids
         for t in tr.tokens {
             if t.transaction_id == nil {
-                t.transaction_id = Data(bytes:UUID().uuidString.bytes.sha224())
+                t.transaction_id = Data(bytes:UUID().uuidString.sha512().bytes.sha224())
             }
         }
         

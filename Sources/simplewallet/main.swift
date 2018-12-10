@@ -51,6 +51,32 @@ enum WalletAction {
     
 }
 
+//Method just to execute request, assuming the response type is string (and not file)
+func HTTPsendRequest(request: URLRequest,
+                     callback: @escaping (Error?, String?) -> Void) {
+    let task = URLSession.shared.dataTask(with: request) { (data, res, err) in
+        if (err != nil) {
+            callback(err,nil)
+        } else {
+            callback(nil, String(data: data!, encoding: String.Encoding.utf8))
+        }
+    }
+    task.resume()
+}
+
+// post JSON
+func HTTPPostJSON(url: String,  data: Data,
+                  callback: @escaping (Error?, String?) -> Void) {
+    
+    var request = URLRequest(url: URL(string: url)!)
+    
+    request.httpMethod = "POST"
+    request.addValue("application/json",forHTTPHeaderField: "Content-Type")
+    request.addValue("application/json",forHTTPHeaderField: "Accept")
+    request.httpBody = data
+    HTTPsendRequest(request: request, callback: callback)
+}
+
 var currentAction: WalletAction = .ShowOptions
 
 let args: [String] = CommandLine.arguments
@@ -174,14 +200,10 @@ func WalletLoop() {
                                     
                                 }
                                 
-                                print("processing block \(block.height!) of \(height!.height!)")
-                                
                                 if totalAdded > 0 || totalSpent > 0 {
                                     
-                                    print("\((Float(totalAdded) / Float(Config.DenominationDivider))) \(Config.CurrencyName) added to wallet.")
-                                    print("Value of spent tokens: \((Float(totalSpent) / Float(Config.DenominationDivider)))")
-                                    print("--------------------------")
-                                    print("Current balance: \(wallet!.balance())")
+                                    wallet?.addTransferRecordsFromLedgers(block.transactions ?? [], height: block.height!)
+                                    print("\n")
                                     
                                 }
                                 
@@ -207,7 +229,7 @@ func WalletLoop() {
                     }
                     
                 }
-
+                
             }
         }
         Thread.sleep(forTimeInterval: delay)
@@ -385,10 +407,82 @@ while true {
             case "p":
                 print("feature not implemented yet")
             case "t":
+                // create a transfer object to transfer contents from this wallet to another wallet
+                print("amount of \(Config.CurrencyNetworkAddress) to send to target? (e.g.) 10.00")
+                let amount = readLine()
+                if amount == nil || Float(amount!) == nil {
+                    print("ERROR: invalid amount")
+                    break;
+                }
                 
-                // transfer tokens to anotehr address
+                let amt = Int(Float(amount!)!*Float(Config.DenominationDivider))
+                if amt < 1 {
+                    print("ERROR: invalid amount")
+                    break;
+                }
+                
+                if (Int(wallet?.balance() ?? 0) * Config.DenominationDivider) < (Config.NetworkFee + amt) {
+                    print("ERROR: not enough in wallet to send total of \(Float((Config.NetworkFee + amt) / Config.DenominationDivider))")
+                    break;
+                }
+                
+                // create a transfer object to transfer contents from this wallet to another wallet
+                print("destination address? (e.g. 'VEzTAJWTsPRN6XJJx8FQLqNE8YVi9jEARzyoQVR8Vcusk')")
+                let dest = readLine()
+                if dest == nil || dest!.count < 45 {
+                    print("ERROR: invalid destination")
+                    break;
+                }
+                
+                let ref = Data(UUID().uuidString.bytes.sha224()).prefix(24).bytes.base58EncodedString
+                
+                print("\nConfirmation:  You would like to create a transaction with the following properties:")
+                print("-----------------------------------------------------------------------------------")
+                print("Amount: \(Float(amt / Config.DenominationDivider))")
+                print("Destination: \(dest!)")
+                print("Reference: \(ref)\n")
+                
+                print("do you wish to proceed? [Y/n]")
+                var cont = readLine()
+                if cont != nil {
+                    if cont!.lowercased() == "n" {
+                        break
+                    }
+                    else
+                    {
+                        // showtime
+                        let items = wallet!.suitableArrayOfTokensForValue(amt, networkFee: Config.NetworkFee)
+                        if items.tokens.count == 0 {
+                            print("ERROR:  Unable to select the appropriate amount of tokens to make this transfer, please try again.")
+                            break
+                        }
+                        let tfr = wallet!.generateTransfer(distribution: items, destination: Crypto.strAddressToData(address: dest!), ref: ref.base58DecodedData!)
+                        // now attempt to send this to the node for processing, then mark the transfer as Spent to avoid double spends
+                        
+                        
+                        do {
+                            let d = try JSONEncoder().encode(tfr)
+                            HTTPPostJSON(url: "http://\(node)/transfer", data: d) { (err, result) in
+                                if(err != nil) {
+                                    
+                                    print("ERROR: cound not send transfer to node, please check node is online and available.")
+                                    
+                                } else {
+                                    
+                                    wallet!.spend(distribution: items)
+                                    print("Transfer requested from network.")
+                                    
+                                }
+                            }
+                        } catch {
+                            
+                        }
+                    }
+                }
+                
+                ShowOpenedMenu()
+                
                 break
-                
             case "c": // create new
                 
                 let uuid = UUID().uuidString.lowercased() + "-" + UUID().uuidString.lowercased()

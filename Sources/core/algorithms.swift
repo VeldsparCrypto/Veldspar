@@ -43,6 +43,7 @@ public class AlgorithmManager {
     
     init() {
         register(algorithm: AlgorithmSHA512AppendV0())
+        register(algorithm: AlgorithmSHA512AppendV1())
     }
     
     public func countOfAlgos() -> Int {

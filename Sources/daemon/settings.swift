@@ -25,6 +25,7 @@ import Foundation
 class Settings : Codable {
     
     var isSeedNode: Bool = false
+    var isSeedNodeAddress: String?
     var blockchain_export_data: Bool = false
     var blockchain_export_data_path: String = "./cache/blocks"
     var network_port: Int = 14242

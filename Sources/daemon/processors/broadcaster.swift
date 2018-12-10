@@ -26,46 +26,7 @@ import VeldsparCore
 class Broadcaster {
     
     var isBroadcasting = false
-    
-    func broadcast() {
         
-        
-        
-        Execute.background {
-            
-            // node transfers
-            while true {
-                
-                let d = tempManager.popIntOutBroadcast()
-                if d != nil {
-                    
-                    // grab the nodes
-                    let nodes = blockchain.nodesReachable()
-                    
-                    for n in nodes {
-                        
-                        
-                        
-                        Execute.background {
-                            self.HTTPPostJSON(url: "http://\(n.address!)/int", data: d!) { (err, result) in
-                                if(err != nil){
-                                    return
-                                }
-                            }
-                        }
-                        
-                    }
-                    
-                }
-                
-                Thread.sleep(forTimeInterval: 1)
-                
-            }
-            
-        }
-        
-    }
-    
     func  add(_ ledgers: [Ledger], atomic: Bool) {
         
         let l = Ledgers()

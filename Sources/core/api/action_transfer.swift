@@ -32,6 +32,7 @@ public class TransferResponse : Codable {
 public class TransferRequest : Codable {
     
     public var tokens: [Ledger] = []
-    init(){}
+    public var fee: [Ledger] = []
+    public init(){}
     
 }

@@ -22,20 +22,20 @@
 
 import Foundation
 
-public class AlgorithmSHA512AppendV0: AlgorithmProtocol {
+public class AlgorithmSHA512AppendV1: AlgorithmProtocol {
     
     /*
-     *      new v0 algo, relies on previous rounds to validate.  Stops pre-calculation, stops GUP parralisum
+     *      new v1 algo, relies on previous rounds to validate.  Stops pre-calculation, stops GPU parralisum
      */
     
     public let seed = "BoyBellSproutMouse".data(using: .ascii)!.bytes.sha512()
     public let distribution: [Int] = [1,1,1,2,2,2,5,5,5,10,10,20,20,50,50,100,200,500,1000,2000,5000]
-    public let beanBytes = 1
-    public let requiredDepth = 1
-    public let hashSearchLength = 64
-
+    public let beanBytes = 2
+    public let requiredDepth = 2
+    public let hashSearchLength = 20
+    
     public func deprecated(height: UInt) -> Bool {
-        return false
+        return true
     }
     
     public func value(token: Token) -> Int {
@@ -75,7 +75,7 @@ public class AlgorithmSHA512AppendV0: AlgorithmProtocol {
                     beans.append(beanSource.suffix(beanBytes))
                     beanSource.removeLast(beanBytes)
                 }
-
+                
                 let hashData = Data(hash).prefix(upTo: hashSearchLength)
                 var selectedBean: Data?
                 
@@ -117,9 +117,10 @@ public class AlgorithmSHA512AppendV0: AlgorithmProtocol {
             // boom, lets go and get the value
             return currentValue
         }
-
+        
         return 0
         
     }
     
 }
+

@@ -58,23 +58,7 @@ public class Ledger : Codable {
     public init() {
     }
     
-    public func checksum() -> Data {
-        
-        var newChecksum = Data()
-        newChecksum.append(contentsOf: date!.toHex().bytes)
-        newChecksum.append(transaction_id!)
-        newChecksum.append(destination!)
-        newChecksum.append(contentsOf: height!.toHex().bytes)
-        newChecksum.append(contentsOf: algorithm!.toHex().bytes)
-        newChecksum.append(contentsOf: ore!.toHex().bytes)
-        newChecksum.append(address!)
-        newChecksum.append(source ?? Data())
-        newChecksum.append(auth ?? Data())
-        return Data(bytes: newChecksum.bytes.sha224())
-
-    }
-    
-    private func signatureHash() -> Data {
+    public func signatureHash() -> Data {
         
         var newChecksum = Data()
         newChecksum.append(contentsOf: date!.toHex().bytes)
@@ -88,11 +72,11 @@ public class Ledger : Codable {
         
     }
     
-    private func sign(seed: Data) {
+    public func sign(seed: Data) {
         
         let key = Keys(seed.bytes as [UInt8])
+        auth = key.sign(signatureHash())
         hash = signatureHash()
-        auth = key.sign(hash!)
         
     }
     
@@ -103,7 +87,7 @@ public class Ledger : Codable {
     }
     
     public func token() -> Token? {
-        return Token.init(oreHeight: self.ore ?? 0, address: self.address ?? Data(), algorithm: AlgorithmType(rawValue: self.algorithm ?? 0) ?? AlgorithmType.SHA512_AppendV0)
+        return Token.init(oreHeight: self.ore ?? 0, address: self.address ?? Data(), algorithm: AlgorithmType(rawValue: self.algorithm ?? 0) ?? AlgorithmType.SHA512_AppendV1)
     }
     
 }

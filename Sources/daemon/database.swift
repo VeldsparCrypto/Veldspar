@@ -126,16 +126,17 @@ class Database {
         // work out which kind of transaction this is
         for l in ledgers {
             
-            if l.checksum() == l.hash {
+            if l.signatureHash() == l.hash {
                 
                 // record has not been tampered with, now check to see if we already have it in the data store
-                if db.query(sql: "SELECT NULL FROM Ledger WHERE transaction_id = ? LIMIT 1", params: [l.transaction_id]).results.count == 0 {
+                if db.query(sql: "SELECT id FROM Ledger WHERE transaction_id = ? LIMIT 1", params: [l.transaction_id]).results.count == 0 {
                     
                     if l.source == l.destination && TokenOwnershipRecord(ore: l.ore!, address: l.address!).count == 0 {
                         
                         // this is a new registration, so it can be committed right away.  But only after we have validated that it is a valid token to be registered
                         let t = Token(oreHeight: l.ore!, address: l.address!, algorithm: AlgorithmType.init(rawValue: l.algorithm!)!);
                         if t.value() != 0 {
+                            l.id = nil
                             _ = db.put(l)
                         } else {
                             retValue = false
@@ -152,10 +153,10 @@ class Database {
                             if current[0].destination != l.source {
                                 retValue = false
                             } else {
-                                
                                 // so the signature is correct, the last destination is this source so we can commit this transaction now.
+                                l.id = nil
+                                l.op = LedgerOPType.ChangeOwner.rawValue
                                 _ = db.put(l)
-                                
                             }
                             
                         }

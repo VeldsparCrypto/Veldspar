@@ -144,7 +144,8 @@ let broadcaster = Broadcaster()
 let interNodeTransfer = InterNodeTransferProcessor()
 let registrations = RegistrationProcessor()
 let transfers = TransferProcessor()
-
+let broadcastSwarm = BroadcastSwarm()
+let broadcastSeeds = BroadcastSeed()
 
 // initialisation complete, now we need to work out if we are behind and then play catchup with the network
 if !settings.isSeedNode && (blockmaker.currentNetworkBlockHeight() - blockchain.height()) > 1 {
@@ -198,12 +199,6 @@ Execute.background {
         logger.log(level: .Info, log: "Node swarm service started")
         NodeSync.SyncNodes()
     }
-}
-
-Execute.background {
-    // broadcast transaction data to all visible nodes
-    logger.log(level: .Info, log: "Transaction broadcaster service started")
-    broadcaster.broadcast()
 }
 
 // now start the webserver and block

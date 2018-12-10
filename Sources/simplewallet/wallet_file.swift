@@ -26,6 +26,7 @@ import SWSQLite
 import VeldsparCore
 import Ed25519
 import CryptoSwift
+import Rainbow
 
 enum WalletErrors : Error {
     case UnableToEncrypt
@@ -33,26 +34,37 @@ enum WalletErrors : Error {
     case InvalidSeed
 }
 
-struct Address : Codable {
+class Address : Codable {
     
     var addressId: String?
     var seed: String?
     var height: Int?
     var name: String?
     
-    init() {
-    }
+    public init() {}
     
 }
 
-struct Transfer : Codable {
+class Transfer : Codable {
     
     var id: Int?
     var timestamp: Int?
-    var transferGroup: String?
+    var transferRef: Data?
     var tokenValue: Int?
+    var height: Int?
+    var target: String?
     
-    init() {}
+    
+    public init() {}
+    
+}
+
+class Spent : Codable {
+    
+    var id: Int?
+    var transferRef: Data?
+
+    public init() {}
     
 }
 
@@ -69,6 +81,7 @@ class WalletFile {
         db.create(Address(), pk: "addressId", auto: false, indexes:[])
         db.create(Transfer(), pk: "id", auto: true, indexes:[])
         db.create(Ledger(), pk: "id", auto: true, indexes:["address"])
+        db.create(Spent(), pk: "id", auto: true, indexes:["address", "transferRef"])
         
         pw = password
         
@@ -81,7 +94,7 @@ class WalletFile {
         do {
             let aes = try AES(key: Data(bytes: pw.bytes.sha512()).prefix(32).bytes, blockMode: CBC(iv: Data(bytes:pw.bytes.sha512().sha512()).prefix(16).bytes), padding: Padding.pkcs7)
             
-            encSeed = try aes.encrypt(uuid.bytes).base58EncodedString
+            encSeed = try aes.encrypt(uuid.data(using: String.Encoding.ascii)!.bytes).base58EncodedString
             
         } catch {
             
@@ -114,12 +127,11 @@ class WalletFile {
     }
     
     func setHeight(_ height: Int) {
-        _ = db.execute(sql: "UPDATE address SET height = ?", params: [height])
+        _ = db.execute(sql: "UPDATE Address SET height = ?", params: [height])
         if height == 0 {
-            // this is a reset, so we need to scrub the database
-            _ = db.execute(sql: "DELETE FROM address", params: [])
-            _ = db.execute(sql: "DELETE FROM token", params: [])
-            _ = db.execute(sql: "DELETE FROM transfer", params: [])
+            _ = db.execute(sql: "DELETE FROM Transfer", params: [])
+            _ = db.execute(sql: "DELETE FROM Ledger", params: [])
+            _ = db.execute(sql: "DELETE FROM Spent", params: [])
         }
     }
     
@@ -155,7 +167,7 @@ class WalletFile {
         do {
             let aes = try AES(key: Data(bytes: pw.bytes.sha512()).prefix(32).bytes, blockMode: CBC(iv: Data(bytes:pw.bytes.sha512().sha512()).prefix(16).bytes), padding: Padding.pkcs7)
             
-            encSeed = try aes.encrypt(uuid.bytes).base58EncodedString
+            encSeed = try aes.encrypt(uuid.data(using: String.Encoding.ascii)!.bytes).base58EncodedString
             
         } catch {
             
@@ -255,6 +267,38 @@ class WalletFile {
         
     }
     
+    func seedData() -> [Data:Data] {
+        
+        var d: [Data:Data] = [:]
+        
+        let results = db.query(sql: "SELECT addressId,seed FROM Address;", params: [])
+        if results.error == nil && results.results.count > 0 {
+            
+            for r in results.results {
+                
+                let seed = r["seed"]!.asString()!
+                let address = Crypto.strAddressToData(address: r["addressId"]!.asString()!)
+                do {
+                    
+                    // this is where we check for the old format file & old AES implementation.  It's upgraded on write out.
+                    let encryptedData = seed.base58DecodedData
+                    let aes = try AES(key: Data(bytes: pw.bytes.sha512()).prefix(32).bytes, blockMode: CBC(iv: Data(bytes:pw.bytes.sha512().sha512()).prefix(16).bytes), padding: Padding.pkcs7)
+                    let decryptedSeed = String(bytes: try aes.decrypt(Array(encryptedData!)), encoding: .ascii)
+                    
+                    d[address] = Data((decryptedSeed!.bytes.sha512()).prefix(32))
+                    
+                } catch  {
+                    
+                }
+                
+            }
+            
+        }
+        
+        return d
+        
+    }
+    
     func setNameForAddress(_ address: String, name: String) {
         _ = db.execute(sql: "UPDATE address SET name = ? WHERE addressId = ?", params: [name, address])
     }
@@ -290,12 +334,10 @@ class WalletFile {
     func removeTokenIfOwned(_ token: Ledger) -> Int {
         
         if !addressesBytes().contains(token.destination!) {
-            
-            if db.query(sql: "SELECT address FROM Ledger WHERE address = ? AND ore = ?", params: [token.address!, token.ore!]).results.count > 0 {
+            if addressesBytes().contains(token.source!) {
                 _ = db.execute(sql: "DELETE FROM Ledger WHERE address = ? AND ore = ?", params: [token.address!, token.ore!])
                 return token.value!
             }
-            
         }
 
         return 0
@@ -304,7 +346,7 @@ class WalletFile {
     
     func balance() -> Double {
         
-        let results = db.query(sql: "SELECT SUM(value) as totalValue FROM Ledger;", params: [])
+        let results = db.query(sql: "SELECT SUM(value) as totalValue FROM Ledger WHERE id NOT IN (SELECT id FROM Spent);", params: [])
         if results.error == nil && results.results.count > 0 {
             for r in results.results {
                 return Double((r["totalValue"]!.asInt() ?? 0) / Config.DenominationDivider)
@@ -316,7 +358,7 @@ class WalletFile {
     
     func balance(address: String) -> Double {
         
-        let results = db.query(sql: "SELECT SUM(value) as totalValue FROM Ledger WHERE destination = ?", params: [Crypto.strAddressToData(address: address)])
+        let results = db.query(sql: "SELECT SUM(value) as totalValue FROM Ledger WHERE destination = ? AND id NOT IN (SELECT id FROM Spent)", params: [Crypto.strAddressToData(address: address)])
         if results.error == nil && results.results.count > 0 {
             for r in results.results {
                 return Double((r["totalValue"]!.asInt() ?? 0) / Config.DenominationDivider)
@@ -326,10 +368,10 @@ class WalletFile {
         
     }
     
-    func suitableArrayOfTokensForValue(_ value: Int) -> [Ledger] {
+    func suitableArrayOfTokensForValue(_ value: Int, networkFee: Int) -> (tokens:[Ledger], fee:[Ledger]) {
         
-        var returnTokens:[Ledger] = []
-        let current_denominations = db.query(sql: "SELECT id,value FROM Ledger GROUP BY value ORDER BY value DESC", params: [])
+        var returnTokens:(tokens:[Ledger],fee:[Ledger]) = ([],[])
+        let current_denominations = db.query(sql: "SELECT id,value FROM Ledger WHERE id NOT IN (SELECT id FROM Spent)", params: [])
         var denominations: [(id:Int,value:Int)] = []
         for r in current_denominations.results {
             let id = r["id"]!.asInt()!
@@ -339,29 +381,55 @@ class WalletFile {
             }
         }
         
-        var attempts = 10
+        var attempts = 50
         while true {
             
             // repeatedly shuffle until a payment combo appears
             denominations.shuffle()
+            returnTokens = ([],[])
+            var used: [Int] = []
             
             // now we want to randomly select tokens from the available stock
             var remaining = value
+            var remainingFee = networkFee
+
             for t in denominations {
                 
-                if t.value <= remaining {
+                if !used.contains(t.id) {
                     
-                    let token = db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE id = ?", params: [t.id])
-                    if token.count > 0 {
-                        returnTokens.append(token[0])
-                        remaining -= t.value
+                    if t.value <= remaining || t.value <= remainingFee {
+                        
+                        if t.value <= remainingFee {
+                            
+                            let token = db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE id = ?", params: [t.id])
+                            if token.count > 0 {
+                                returnTokens.fee.append(token[0])
+                                remainingFee -= t.value
+                                used.append(t.id)
+                            }
+                            
+                        } else if t.value <= remaining {
+                            
+                            let token = db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE id = ?", params: [t.id])
+                            if token.count > 0 {
+                                returnTokens.tokens.append(token[0])
+                                remaining -= t.value
+                                used.append(t.id)
+                            }
+                            
+                        }
+                        
+                    }
+                    
+                    if remaining == 0 && remainingFee == 0 {
+                        break
                     }
                     
                 }
-                
+
             }
             
-            if remaining == 0 {
+            if remaining == 0 && remainingFee == 0 {
                 break
             }
             
@@ -369,7 +437,7 @@ class WalletFile {
             
             if attempts == 0 {
                 // return nothing
-                return []
+                return ([],[])
             }
             
         }
@@ -378,5 +446,112 @@ class WalletFile {
         
     }
     
+    func generateTransfer(distribution: (tokens:[Ledger], fee:[Ledger]), destination: Data, ref: Data) -> TransferRequest {
+        
+        let sd = seedData()
+        
+        let t = TransferRequest()
+        for l in distribution.tokens {
+            l.transaction_id = Data(bytes:UUID().uuidString.sha512().bytes.sha224())
+            l.transaction_ref = ref
+            l.destination = destination
+            l.sign(seed: sd[l.source!]!)
+            t.tokens.append(l)
+        }
+        for l in distribution.fee {
+            
+            l.transaction_ref = ref
+            l.transaction_id = Data(bytes:UUID().uuidString.sha512().bytes.sha224())
+            if Config.CommunityAddress != nil {
+                l.destination = Crypto.strAddressToData(address: Config.CommunityAddress!)
+                l.sign(seed: sd[l.source!]!)
+                t.fee.append(l)
+            }
+            
+        }
+        
+        return t
+        
+    }
+    
+    func spend(distribution: (tokens:[Ledger], fee:[Ledger])) {
+        
+        for d in distribution.tokens {
+            
+            let s = Spent()
+            s.id = d.id
+            s.transferRef = d.transaction_ref
+            _ = db.put(s)
+            
+        }
+        
+    }
+    
+    func confirmSpend(ref: Data) {
+        
+        _ = db.execute(sql: "DELETE FROM Ledger WHERE id IN (SELECT id FROM Spent WHERE transferRef = ?)", params: [ref])
+        _ = db.execute(sql: "DELETE FROM Spent WHERE transferRef = ?", params: [ref])
+        
+    }
+    
+    func addTransferRecordsFromLedgers(_ ledgers: [Ledger], height: Int) {
+        
+        var tfrs: [Data:Int] = [:]
+        var timestamps: [Data:UInt64] = [:]
+        var target: [Data:String] = [:]
+        
+        for l in ledgers {
+            if addressesBytes().contains(l.source!) && !addressesBytes().contains(l.destination!) {
+                // this is a transfer out
+                if tfrs[l.transaction_ref!] == nil {
+                    tfrs[l.transaction_ref!] = 0
+                    timestamps[l.transaction_ref!] = l.date
+                    target[l.transaction_ref!] = Crypto.dataAddressToStr(address: l.destination!)
+                }
+                tfrs[l.transaction_ref!]! -= l.value!
+            } else if addressesBytes().contains(l.destination!) {
+                // this is a transfer in, it could have no ref if it is a registration
+                if l.transaction_ref == nil {
+                    l.transaction_ref = l.transaction_id
+                }
+                
+                if tfrs[l.transaction_ref!] == nil {
+                    tfrs[l.transaction_ref!] = 0
+                    timestamps[l.transaction_ref!] = l.date
+                    target[l.transaction_ref!] = Crypto.dataAddressToStr(address: l.destination!)
+                }
+                tfrs[l.transaction_ref!]! += l.value!
+            }
+        }
+        
+        // now write these transfers into the transfer table
+        if tfrs.keys.count > 0 {
+            for tfr in tfrs {
+                
+                let t = Transfer()
+                t.height = height
+                t.timestamp = Int(timestamps[tfr.key]!)
+                t.tokenValue = tfr.value
+                t.transferRef = tfr.key
+                t.target = target[tfr.key]
+                _ = db.put(t)
+                
+                let df = DateFormatter()
+                df.dateStyle = .medium
+                df.timeStyle = .medium
+                
+                if t.tokenValue! > 0 {
+                    print("Incoming \(t.transferRef!.bytes.base58EncodedString) : \(df.string(from: Date(timeIntervalSince1970: Double(t.timestamp! / 1000)))) of \(Float(t.tokenValue!) / Float(Config.DenominationDivider)) \(Config.CurrencyName)".blue)
+                } else {
+                    print("Outgoing \(t.transferRef!.bytes.base58EncodedString) : \(df.string(from: Date(timeIntervalSince1970: Double(t.timestamp! / 1000)))), of \(Float(t.tokenValue!) / Float(Config.DenominationDivider)) \(Config.CurrencyName) -> \(t.target!)".red)
+                }
+                
+                confirmSpend(ref: tfr.key)
+                
+            }
+            
+        }
+        
+    }
     
 }
