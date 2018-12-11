@@ -157,11 +157,31 @@ if !settings.isSeedNode && (blockmaker.currentNetworkBlockHeight() - blockchain.
     while blockchain.height() < blockmaker.currentNetworkBlockHeight() {
         
         let b = comms.blockAtHeight(height: blockchain.height()+1)
-        if b != nil {
+        if b.block != nil {
             
             // we have a block, commit it into the datastore
-            _ = blockchain.addBlock(b!)
-            logger.log(level: .Info, log: "Downloaded block \(b!.height!) with hash \(b!.hash!.toHexString()) from network.")
+            _ = blockchain.removeBlockAtHeight(b.block!.height!)
+            _ = blockchain.addBlock(b.block!)
+            
+            // now write out a cache record
+            Execute.background {
+                if settings.blockchain_export_data {
+                    
+                    try? FileManager.default.createDirectory(atPath: "./cache/blocks", withIntermediateDirectories: true, attributes: [:])
+                    let filePath = "./cache/blocks/\(b.block!.height!).block"
+                    
+                    if b.data != nil {
+                        do {
+                            try b.data!.write(to: URL(fileURLWithPath: filePath))
+                        } catch {
+                            logger.log(level: .Error, log: "Failed to export block \(b.block!.height!), error = '\(error)'")
+                        }
+                    }
+                    
+                }
+            }
+            
+            logger.log(level: .Info, log: "Downloaded block \(b.block!.height!) with hash \(b.block!.hash!.toHexString()) from network.")
             
         } else {
             
