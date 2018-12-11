@@ -31,62 +31,61 @@ public enum LedgerOPType : Int {
     
 }
 
-public class Ledger {
+public enum LedgerTransactionState : Int {
+    
+    case Pending = 0
+    case Verified = 1
+    
+}
 
-    public var transaction_id: String
-    public var op: LedgerOPType
-    public var date: UInt64
-    public var transaction_group: String
-    public var destination: String
-    public var token: String
-    public var spend_auth: String
-    public var block: UInt32
+public class Ledger : Codable {
+
+    public var id: Int?
+    public var op: Int?
+    public var date: UInt64?
+    public var transaction_id: Data?
+    public var transaction_ref: Data?
+    public var destination: Data?
+    public var ore: Int?
+    public var address: Data?
+    public var height: Int?
+    public var algorithm: Int?
+    public var value: Int?
+    public var hash: Data?
+    public var source: Data?
+    public var auth: Data?
     
-    public init(op: LedgerOPType,token: String, ref: String, address: String, auth: String, block: UInt32) {
+    public init() {
+    }
+    
+    public func signatureHash() -> Data {
         
-        self.transaction_id = UUID().uuidString.CryptoHash()
-        self.op = op
-        self.transaction_group = ref
-        self.destination = address
-        self.date = consensusTime()
-        self.spend_auth = auth
-        self.block = block
-        self.token = token
+        var newChecksum = Data()
+        newChecksum.append(contentsOf: date!.toHex().bytes)
+        newChecksum.append(transaction_id!)
+        newChecksum.append(destination!)
+        newChecksum.append(contentsOf: algorithm!.toHex().bytes)
+        newChecksum.append(contentsOf: ore!.toHex().bytes)
+        newChecksum.append(address!)
+        newChecksum.append(source ?? Data())
+        return Data(bytes: newChecksum.bytes.sha224())
         
     }
     
-    public init(id: String, op: LedgerOPType, token: String, ref: String, address: String, date: UInt64, auth: String, block: UInt32) {
-        
-        self.transaction_id = id
-        self.op = op
-        self.transaction_group = ref
-        self.destination = address
-        self.date = date
-        self.spend_auth = auth
-        self.block = block
-        self.token = token
-        
+    public func token() -> Token? {
+        return Token.init(oreHeight: self.ore ?? 0, address: self.address ?? Data(), algorithm: AlgorithmType(rawValue: self.algorithm ?? 0) ?? AlgorithmType.SHA512_AppendV1)
     }
     
-    public func addresses() -> [UInt64] {
-        
-        var addresses: [UInt64] = []
-        
-        var components = token.components(separatedBy: "-")
-        components.remove(at: 0) // ore
-        components.remove(at: 0) // algo
-        components.remove(at: 0) // value
-        
-        for a in components {
-            addresses.append(UInt64(a, radix: 16) ?? 0)
-        }
-        
-        return addresses
-        
+}
+
+extension Ledger : Comparable {
+    public static func == (lhs: Ledger, rhs: Ledger) -> Bool {
+        return lhs.transaction_id!.base64EncodedString() ==
+            rhs.transaction_id!.base64EncodedString()
     }
     
-    public func checksum() -> String {
-        return "\(transaction_id)\(op.rawValue)\(date)\(transaction_group)\(destination)\(spend_auth)\(block)".md5()
+    public static func < (lhs: Ledger, rhs: Ledger) -> Bool {
+        return lhs.transaction_id!.base64EncodedString() <
+            rhs.transaction_id!.base64EncodedString()
     }
-    
 }

@@ -22,11 +22,18 @@
 
 
 import Foundation
-import PerfectCURL
+import SwiftClient
+import Dispatch
 
 public class Comms {
     
-    public class func request(method: String, parameters: [String:String]?) -> Data? {
+    var node: String
+    
+    public init(endpoint: String) {
+        node = endpoint
+    }
+    
+    public func basicRequest(address: String, method: String, parameters: [String:String]? ) -> Data? {
         
         var encodedParams: [String] = []
         for p in parameters ?? [:] {
@@ -34,25 +41,11 @@ public class Comms {
             encodedParams.append(value!)
         }
         
-        let result = try? CURLRequest("http://\(Config.SeedNodes[0])/\(method)?\(encodedParams.joined(separator: "&"))",.timeout(30)).perform()
-        
-        if result == nil {
-            return nil
-        }
-        
-        if result!.responseCode != 200 {
-            return nil
-        }
-        
-        if result!.bodyBytes.count == 0 {
-            return nil
-        }
-        
-        return Data(bytes: result!.bodyBytes)
+        return try? Data(contentsOf: URL(string:"http://\(address)/\(method)?\(encodedParams.joined(separator: "&"))")!)
         
     }
     
-    public class func requestJSON(method: String, parameters: [String:String]?) -> [String:Any]? {
+    public func request(method: String, parameters: [String:String]?) -> Data? {
         
         var encodedParams: [String] = []
         for p in parameters ?? [:] {
@@ -60,36 +53,129 @@ public class Comms {
             encodedParams.append(value!)
         }
         
-        let result = try? CURLRequest("http://\(Config.SeedNodes[0])/\(method)?\(encodedParams.joined(separator: "&"))",.timeout(30)).perform()
-        
-        if result == nil {
-            return nil
-        }
-        
-        if result!.responseCode != 200 {
-            return nil
-        }
-        
-        if result!.bodyBytes.count == 0 {
-            return nil
-        }
-        
-        return result!.bodyJSON
+        return try? String(contentsOf: URL(string:"http://\(node)/\(method)?\(encodedParams.joined(separator: "&"))")! , encoding: .ascii).data(using: .ascii)!
         
     }
     
-    public class func requestHeight() -> UInt32? {
-    
-        let response = requestJSON(method: "blockchain/currentheight", parameters: nil)
-        if response != nil {
+    public func blockAtHeight(height: Int) -> Block? {
+        
+        let blockData = request(method: "block", parameters: ["height" : "\(height)"])
+        if blockData != nil {
             
-            if response!["height"] != nil {
+            let b = try? JSONDecoder().decode(Block.self, from: blockData!)
+            if b != nil {
+                return b!
+            }
+            
+        }
+        
+        return nil
+        
+    }
+    
+    public func blockDataAtHeight(height: Int) -> Data? {
+        
+        let blockData = request(method: "block", parameters: ["height" : "\(height)"])
+        if blockData != nil {
+            
+            return blockData
+            
+        }
+        
+        return nil
+        
+    }
+    
+    public func hashForBlock(address: String, height: Int) -> BlockHash? {
+        
+        let blockData = basicRequest(address: address, method: "blockhash", parameters: ["height" : "\(height)"])
+        if blockData != nil {
+            
+            let b = try? JSONDecoder().decode(BlockHash.self, from: blockData!)
+            if b != nil {
+                return b!
+            }
+            
+        }
+        
+        return nil
+        
+    }
+    
+    public func hashForBlock(height: Int) -> BlockHash? {
+        
+        var node = "127.0.0.1:14242"
+        return hashForBlock(address: node, height: height)
+        
+    }
+    
+    public func announce(nodeId: String, port: Int) -> Bool {
+        
+        let blockData = request(method: "announce", parameters: ["nodeId" : nodeId, "port" : "\(port)"])
+        if blockData != nil {
+            return true
+        }
+        return false
+        
+    }
+    
+    public func nodes() -> NodeListResponse {
+        
+        let blockData = request(method: "nodes", parameters: [:])
+        if blockData != nil {
+            
+            let b = try? JSONDecoder().decode(NodeListResponse.self, from: blockData!)
+            if b != nil {
+                return b!
+            }
+            
+        }
+        
+        return NodeListResponse()
+        
+    }
+    
+    public func pending(height: Int, tidemark: Int) -> Ledgers {
+        
+        let blockData = request(method: "pending", parameters: ["height":"\(height)", "tidemark" : "\(tidemark)"])
+        if blockData != nil {
+            
+            let b = try? JSONDecoder().decode(Ledgers.self, from: blockData!)
+            if b != nil {
+                return b!
+            }
+            
+        }
+        
+        return Ledgers()
+        
+    }
+    
+    public func Register(token: String, address: String) -> RegisterRepsonse? {
+        
+        let response = request(method: "register", parameters: ["token" : token, "address" : address])
+        if response != nil  {
+            let r = try? JSONDecoder().decode(RegisterRepsonse.self, from: response!)
+            if r != nil {
+                return r
+            }
+        }
+        
+        return nil
+        
+    }
+    
+    public func requestHeight() -> Int? {
+        
+        let method = "currentheight"
+        let responseData = try? String(contentsOf: URL(string:"http://\(node)/\(method)")! , encoding: .ascii).data(using: .ascii)!
+        
+        if responseData != nil {
+            
+            let response = try? JSONDecoder().decode(CurrentHeightObject.self, from: responseData!)
+            if response != nil {
                 
-                for v in response! {
-                    if v.key == "height" {
-                        return UInt32(v.value as! Int)
-                    }
-                }
+                return response?.height!
                 
             }
             

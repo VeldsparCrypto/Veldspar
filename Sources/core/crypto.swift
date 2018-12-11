@@ -45,19 +45,28 @@ public class Keys {
         return "\(Config.CurrencyNetworkAddress)\(public_key.base58EncodedString)"
     }
     
-    public func sign(_ value: String) -> String {
+    public func sign(_ value: Data) -> Data {
         
-        return Sign(private_key, value.bytes).base58EncodedString
+        return Data(bytes: Sign(private_key, value.bytes))
         
     }
     
-    public func isSigned(_ value: String, signature: String) -> Bool {
-        return Verify(public_key, value.bytes, (signature.base58DecodedData ?? Data()).bytes)
+    public func isSigned(_ value: Data, signature: Data) -> Bool {
+        return Verify(public_key, value.bytes, signature.bytes)
     }
     
 }
 
 public class Crypto {
+    
+    public class func isSigned(_ value: Data, signature_bytes: Data, public_key: Data) -> Bool {
+        return Verify(public_key.bytes, value.bytes, signature_bytes.bytes)
+    }
+    
+    public class func isSigned(_ value: Data, signature_bytes: Data, public_address: String) -> Bool {
+        let address = String(public_address.suffix(public_address.count-Config.CurrencyNetworkAddress.count))
+        return Verify(address.base58DecodedData!.bytes, value.bytes, signature_bytes.bytes)
+    }
     
     public class func isSigned(_ value: String, signature_bytes: [byte], public_key_bytes: [byte]) -> Bool {
         return Verify(public_key_bytes, value.bytes, signature_bytes)
@@ -71,8 +80,50 @@ public class Crypto {
         return isSigned(value ,signature: signature, public_key: String(address.suffix(address.count-Config.CurrencyNetworkAddress.count)))
     }
     
-    public class func makeTransactionIdentifier(src: String, dest: String, token: String) -> String {
-        return "\(src)\(dest)\(token)".base58EncodedString
+    public class func strAddressToData(address: String) -> Data {
+        let address = String(address.suffix(address.count-Config.CurrencyNetworkAddress.count))
+        return address.base58DecodedData!
+    }
+    
+    public class func dataAddressToStr(address: Data) -> String {
+        return "\(Config.CurrencyNetworkAddress)\(address.bytes.base58EncodedString)"
+    }
+    
+    // signatures for transactions are done here, and a signature covers multiple transaction objects.
+    
+    public class func sign(seed: Data, ledgers: [Ledger]) -> [Ledger] {
+        
+        // sort the ledger ready to produce the hash
+        let key = Keys(seed.bytes as [UInt8])
+        var sorted = ledgers.sorted()
+        var hashData = Data()
+        
+        for l in sorted {
+            hashData.append(contentsOf: l.hash!)
+        }
+        
+        let auth = key.sign(hashData.sha224())
+        sorted[0].auth = auth
+        
+        return sorted
+        
+    }
+    
+    public class func verifySignature(_ ledgers: [Ledger]) -> Bool {
+        
+        let sorted = ledgers.sorted()
+        var hashData = Data()
+        
+        for l in sorted {
+            hashData.append(contentsOf: l.hash!)
+        }
+        
+        let hash = hashData.sha224()
+        let signature = sorted[0].auth
+        let source = sorted[0].source
+        
+        return Crypto.isSigned(hash, signature_bytes: signature ?? Data(), public_key: source ?? Data())
+        
     }
     
 }

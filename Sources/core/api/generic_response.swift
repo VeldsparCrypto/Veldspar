@@ -20,16 +20,33 @@
 //    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //    SOFTWARE.
 
-
 import Foundation
 
-public class RPC_Seed : Codable {
-    public var height: Int = 0
-    public var seed: String = ""
-    public init() {}
-}
-
-public class RPC_SeedList : Codable {
-    public var seeds: [RPC_Seed] = []
-    public init() {}
+public class GenericResponse : Codable {
+    
+    public var success: Bool
+    public var error: String?
+    public var info: [String:String] = [:]
+    
+    public init(error: String) {
+        success = false
+        self.error = error
+    }
+    
+    public init(values: [(key: String, value: String)]) {
+        success = true
+        for kvp in values {
+            info[kvp.key] = kvp.value
+        }
+    }
+    
+    public init(key: String, value: String) {
+        success = true
+        info = [key:value]
+    }
+    
+    public init() {
+        success = true
+    }
+    
 }

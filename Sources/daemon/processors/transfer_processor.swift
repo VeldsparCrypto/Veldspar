@@ -21,16 +21,50 @@
 //    SOFTWARE.
 
 import Foundation
-
 import VeldsparCore
 
-public class RPCStats {
+class TransferProcessor {
     
-    public class func action() -> String {
+    init() {
         
-        // setup the variables
+        TransferProcessor.processNext()
         
-        return blockchain.getStatsJSON()
+    }
+    
+    class func processNext() {
+        
+        Execute.background {
+            
+            let reg = tempManager.popTransfer()
+            if reg != nil {
+                
+                // decode this and process it
+                let l = try? JSONDecoder().decode(TransferRequest.self, from: reg!)
+                
+                if l != nil {
+                    
+                    do {
+                        
+                        let block = blockmaker.currentNetworkBlockHeight() + Config.TransactionMaturityLevel
+                        try RecieveTransfer.action(l!, block: block)
+                        
+                    } catch {
+                        // TODO: implement banning
+                    }
+                    
+                }
+                
+                TransferProcessor.processNext()
+                
+            } else {
+                
+                Execute.backgroundAfter(after: 0.5, {
+                    TransferProcessor.processNext()
+                })
+                
+            }
+            
+        }
         
     }
     

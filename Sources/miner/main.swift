@@ -29,18 +29,20 @@ srandom(UInt32(time(nil)))
 #endif
 
 // defaults
-var nodeAddress: String = Config.SeedNodes[0]
+var nodeAddress: String = "127.0.0.1:14242"
 var oreBlocks: [Int:Ore] = [:]
-var miningMethods: [AlgorithmType] = [AlgorithmType.SHA512_AppendV3]
+var miningMethods: [AlgorithmType] = [AlgorithmType.SHA512_AppendV1]
 var walletAddress: String?
 var cacheLock = Mutex()
-var threads = 4
-
+var limitLock = Mutex()
+var threads = 1
+var isTestnet = false
 let args: [String] = CommandLine.arguments
-
 let statsLock: Mutex = Mutex()
 var hashes: Int = 0
 var matches: Int = 0
+var limit: Int = 0
+var mined: Float = 0.0
 
 if args.count > 1 {
     for i in 1...args.count-1 {
@@ -58,12 +60,25 @@ if args.count > 1 {
         if arg.lowercased() == "--debug" {
             debug_on = true
         }
+        if arg.lowercased() == "--testnet" {
+            isTestnet = true
+        }
         if arg.lowercased() == "--address" {
             
             if i+1 < args.count {
                 
                 let add = args[i+1]
                 walletAddress = add
+                
+            }
+            
+        }
+        if arg.lowercased() == "--node" {
+            
+            if i+1 < args.count {
+                
+                let add = args[i+1]
+                nodeAddress = add
                 
             }
             
@@ -80,61 +95,51 @@ if args.count > 1 {
             
         }
         
+        if arg.lowercased() == "--limit" {
+            
+            if i+1 < args.count {
+                
+                let t = args[i+1]
+                limit = Int(t)!
+                
+            }
+            
+        }
+        
     }
 }
+
+if isTestnet {
+    nodeAddress = Config.TestNetNodes[0]
+}
+
+var comms = Comms(endpoint: nodeAddress)
+
 
 print("---------------------------")
 print("\(Config.CurrencyName) Miner v\(Config.Version)")
 print("---------------------------")
 
-// check for a cache file
-var cache = MinerCacheObject()
-if FileManager.default.fileExists(atPath: "miner.cache") {
-    let cacheObject = try? JSONDecoder().decode(MinerCacheObject.self, from: Data(contentsOf: URL(fileURLWithPath: "miner.cache")))
-    if cacheObject != nil {
-        cache = cacheObject!
-    }
-}
-
 print("Connecting to server \(nodeAddress)")
 // connect to the server, download the ore seeds and the allowed methods & algos
 
-let seeds = Comms.request(method: "blockchain/seeds", parameters: nil)
-if seeds != nil {
-    let resObject = try? JSONDecoder().decode(RPC_SeedList.self, from: seeds!)
-    if resObject != nil {
-        for s in resObject!.seeds {
-            print("Generating ORE for seed \(s.seed)")
-            oreBlocks[s.height] = Ore(s.seed, height: UInt32(s.height))
-            cache.ore_cache[s.height] = s.seed
-        }
-        cache.write()
-    } else if (cache.ore_cache.keys.count == 0) {
-        // no comms from server, can't mine nothing.
-        print("Unable to download ORE from the server located at '\(nodeAddress)', can't continue as cache is also empty.  Please try again later.")
-        exit(0)
-    }
-} else if (cache.ore_cache.keys.count == 0) {
-    
-    // no comms from server, can't mine nothing.
-    print("Unable to download ORE from the server located at '\(nodeAddress)', can't continue as cache is also empty.  Please try again later.")
-    exit(0)
-    
+if isTestnet {
+    print("")
+    print("********************************************")
+    print("** WARNING: RUNNING IN TESTNET MODE       **")
+    print("********************************************")
+    print("")
 }
 
-if oreBlocks.keys.count == 0 {
-    // restore and generate from the cache
-    for k in cache.ore_cache.keys {
-        print("Generating ORE for seed (cached) '\(cache.ore_cache[k]!)'")
-        oreBlocks[k] = Ore(cache.ore_cache[k]!, height: UInt32(k))
-    }
-}
-
-if oreBlocks.keys.count == 0 {
-    // no ore :(
-    print("Unable to download ORE from the server located at '\(nodeAddress)', can't continue as cache is also empty.  Please try again later.")
+// test the connection to the node address
+let testd = try? Data(contentsOf: URL(string: "http://\(nodeAddress)/")!)
+if testd == nil {
+    print("Unable to communicate with \(Config.CurrencyName) node @ '\(nodeAddress)'.\nPlease make sure the node is running, and that the port is open on the firewall.\n\nAlternatively, you can use the public node available at public.veldspar.co:14242\n\nTo use another node, please use the command 'miner --node public.veldspar.co --address <- YOUR WALLET ADDRESS HERE ->'")
     exit(0)
 }
+
+// generate the ore
+oreBlocks[0] = Ore(Config.GenesisID, height: 0)
 
 if walletAddress == nil {
     print("No target wallet address specified, please run the miner with '--address <your wallet id>'")
@@ -161,71 +166,41 @@ for _ in 1...threads {
             
             let height = oreBlocks[Int(oreBlocks.keys.sorted()[Random.Integer(oreBlocks.keys.count-1)])]!.height
             
-            var address: [UInt32] = []
+            var locations: [UInt32] = []
             for _ in 1...Config.TokenAddressSize {
-                address.append(UInt32(Random.Integer(oreSize)))
+                locations.append(UInt32(Int(Random.Integer(oreSize))))
             }
-            let t = Token(oreHeight: height, address: address, algorithm: method)
+            var address = ""
+            
+            for l in locations {
+                let hex = "00000000" + String(l, radix: 16, uppercase: true)
+                address += hex.suffix(8)
+            }
+            
+            let t = Token(oreHeight: height, address: address.hexToData, algorithm: method)
             statsLock.mutex {
                 hashes += 1
             }
             if t.value() > 0 {
+                
                 print("Found token! @\(Date()) Ore:\(height) method:\(method.rawValue) value:\(Float(t.value()) / Float(Config.DenominationDivider))")
-                print("Token Address: " + t.tokenId())
+                print("Token Address: " + t.tokenStringId())
                 
-                let h = TokenRegistration.Register(token: t.tokenId(), address: walletAddress!, nodeAddress: nodeAddress)
-                
-                if h == nil {
-                    
-                    print("Unable to register token with \(Config.CurrencyName) network, caching locally until available.")
-                    
-                    cacheLock.mutex {
-                        // cache this bad boy for later
-                        cache.found_tokens[t.tokenId()] = Date()
-                        
-                        // write out the cache
-                        cache.write()
+                let r = comms.Register(token: t.tokenStringId(), address: walletAddress!)
+                if r != nil {
+                    statsLock.mutex {
+                        mined += Float(t.value()) / Float(Config.DenominationDivider)
                     }
-                    
-                } else if (h! > 0) {
-                    print("Token successfully registered with \(Config.CurrencyName) node.")
-                } else if (h! == -1) {
-                    print("Token registration unsuccessful, token already registered :(, or invalid token.")
-                }
-                
-                if h != nil && (h! == -1 || h! > 0) {
-                    
-                    // we had communication just a moment ago so try and flush the cache to the network
-                    
-                    cacheLock.mutex {
-                        if cache.found_tokens.keys.count > 0 {
-                            
-                            for token in cache.found_tokens.keys.sorted() {
-                                
-                                let registration = TokenRegistration.Register(token: token, address: walletAddress!, nodeAddress: nodeAddress)
-                                
-                                if registration != nil {
-                                    
-                                    if registration! > 0 {
-                                        print("Cached token successfully registered with \(Config.CurrencyName) node.")
-                                    }
-                                    if registration! == -1 {
-                                        print("Cached token registration unsuccessful, token already registered :( or invalid.")
-                                    }
-                                    
-                                    // now remove from the cache
-                                    
-                                    cache.found_tokens.removeValue(forKey: token)
-                                    
-                                    cache.write()
-                                    
-                                }
-                                
-                            }
-                            
-                        }
+                    if r!.success! {
+                        print("Token registration successful.")
+                    } else {
+                        print("Token registration unsuccessful, token already registered :(, or invalid token.")
                     }
                 }
+                else {
+                    print("Token registration unsuccessful, \(Config.CurrencyName) node is not responding or request has timed out.")
+                }
+                
             }
         }
     }
@@ -235,6 +210,9 @@ while true {
     sleep(1)
     statsLock.mutex {
         print("Mining rate: \(hashes) h/s")
+        if limit > 0 && mined > Float(limit) {
+            exit(0)
+        }
         hashes = 0
     }
 }

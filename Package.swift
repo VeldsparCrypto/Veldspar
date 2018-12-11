@@ -14,28 +14,29 @@ let package = Package(
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
-        .package(url: "https://github.com/krzyzanowskim/CryptoSwift.git", .exact("0.8.3")),
-        .package(url: "https://github.com/PerfectlySoft/Perfect-HTTPServer.git", .exact("3.0.17")),
-        .package(url: "https://gitlab.com/katalysis/Ed25519.git", .exact("0.2.1")),
-        .package(url: "https://github.com/sharksync/SWSQLite.git", .exact("1.0.11")),
-        .package(url: "https://github.com/PerfectlySoft/Perfect-CURL.git", .exact("3.0.7")),
+        .package(url: "https://github.com/krzyzanowskim/CryptoSwift.git", .exact("0.12.0")),
+        .package(url: "https://github.com/VeldsparCrypto/Ed25519.git", .exact("0.0.1")),
+        .package(url: "https://github.com/VeldsparCrypto/SWSQLite.git", .exact("1.0.23")),
+        .package(url: "https://github.com/VeldsparCrypto/swifter.git", .exact("1.4.8")),
+        .package(url: "https://github.com/VeldsparCrypto/SwiftClient.git", .exact("3.0.5")),
+        .package(url: "https://github.com/onevcat/Rainbow.git", .exact("3.0.0")),
         ],
     targets: [
         .target(
             name: "veldspard",
-            dependencies: ["CryptoSwift","PerfectHTTPServer","SWSQLite","VeldsparCore","Ed25519","PerfectCURL"],
+            dependencies: ["CryptoSwift","Swifter","Swifter","SwiftClient","VeldsparCore","Ed25519","SWSQLite","Rainbow"],
             path: "./Sources/daemon"),
         .target(
             name: "miner",
-            dependencies: ["CryptoSwift","PerfectHTTPServer","SWSQLite","VeldsparCore","Ed25519","PerfectCURL"],
+            dependencies: ["CryptoSwift","Swifter","SWSQLite","VeldsparCore","Ed25519","SwiftClient","Swifter"],
             path: "./Sources/miner"),
         .target(
             name: "simplewallet",
-            dependencies: ["CryptoSwift","PerfectHTTPServer","SWSQLite","VeldsparCore","Ed25519","PerfectCURL"],
+            dependencies: ["CryptoSwift","Swifter","SWSQLite","VeldsparCore","Swifter","SwiftClient","Ed25519","Rainbow"],
             path: "./Sources/simplewallet"),
         .target(
             name: "VeldsparCore",
-            dependencies: ["CryptoSwift","PerfectHTTPServer","SWSQLite","Ed25519","PerfectCURL"],
+            dependencies: ["CryptoSwift","Ed25519"],
             path: "./Sources/core"),
         ]
 )

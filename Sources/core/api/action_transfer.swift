@@ -22,28 +22,17 @@
 
 import Foundation
 
-public enum LogType: String {
-    case Info =     "INFO    "
-    case Debug =    "DEBUG   "
-    case Warning =  "WARNING "
-    case Error =    "ERROR   "
+public class TransferResponse : Codable {
+    
+    public var success: Bool?
+    public var target: Int?
+    
 }
 
-public class Logger {
+public class TransferRequest : Codable {
     
-    private var filename: String
-    private var lock: Mutex = Mutex()
-    
-    public init(_ logfile: String) {
-        filename = logfile
-    }
-    
-    public func log(_ level: LogType,_ log: String) {
-        
-        let entry = "\(Date()) | \(level.rawValue) | \(log)"
-        try? entry.write(toFile: filename, atomically: true, encoding: .ascii)
-        print(entry)
-        
-    }
+    public var tokens: [Ledger] = []
+    public var fee: [Ledger] = []
+    public init(){}
     
 }

@@ -22,8 +22,9 @@
 
 import Foundation
 
-public class Workload {
+public struct CurrentHeightObject : Codable {
     
-    public var beans: [String] = []
+    public var height: Int?
+    public init () {}
     
 }

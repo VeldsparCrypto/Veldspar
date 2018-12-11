@@ -20,15 +20,11 @@
 //    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //    SOFTWARE.
 
-
 import Foundation
 
-public class RPC_Register_Repsonse : Codable {
+public struct NodeInstance : Codable {
     
-    public var success: Bool?
-    public var token: String?
-    public var block: Int?
-    
-    public init() {}
+    public var nodeId: String?
+    init(){}
     
 }

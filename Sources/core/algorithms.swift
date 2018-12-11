@@ -22,19 +22,14 @@
 
 import Foundation
 
-public enum AlgorithmType : UInt16 {
-    case SHA512_AppendV1 = 0
-    case SHA512_AppendV2 = 1
-    case SHA512_AppendV3 = 2
+public enum AlgorithmType : Int {
+    case SHA512_AppendV0 = 0
+    case SHA512_AppendV1 = 1
 }
 
 public protocol AlgorithmProtocol {
-    func generate(ore: Ore, address: [UInt32]) -> Token
-    func validate(token: Token) -> Bool
     func deprecated(height: UInt) -> Bool
-    func hash(token: Token) -> [UInt8]
-    func value(token: Token) -> UInt32
-    func workload(token: Token) -> Workload
+    func value(token: Token) -> Int
 }
 
 public class AlgorithmManager {
@@ -47,9 +42,8 @@ public class AlgorithmManager {
     private var lock: Mutex = Mutex()
     
     init() {
+        register(algorithm: AlgorithmSHA512AppendV0())
         register(algorithm: AlgorithmSHA512AppendV1())
-        register(algorithm: AlgorithmSHA512AppendV2())
-        register(algorithm: AlgorithmSHA512AppendV3())
     }
     
     public func countOfAlgos() -> Int {
@@ -75,36 +69,6 @@ public class AlgorithmManager {
         return AlgorithmManager.this
     }
     
-    public func generate(type: AlgorithmType, ore: Ore, address: [UInt32]) -> Token? {
-        
-        var token: Token? = nil
-        
-        lock.mutex {
-            if type.rawValue < self.implementations.count {
-                let imp = self.implementations[Int(type.rawValue)]
-                token = imp.generate(ore: ore, address: address)
-            }
-        }
-        
-        return token
-        
-    }
-    
-    public func validate(token: Token) -> Bool {
-        
-        var isValid: Bool = false
-        
-        lock.mutex {
-            if token.algorithm.rawValue < self.implementations.count {
-                let imp = self.implementations[Int(token.algorithm.rawValue)]
-                isValid = imp.validate(token: token)
-            }
-        }
-        
-        return isValid
-        
-    }
-    
     public func depricated(type: AlgorithmType, height: UInt) -> Bool {
         
         var isDepricated: Bool = false
@@ -120,24 +84,9 @@ public class AlgorithmManager {
         
     }
     
-    public func hash(token: Token) -> [UInt8] {
+    public func value(token: Token) -> Int {
         
-        var hash: [UInt8] = []
-        
-        lock.mutex {
-            if token.algorithm.rawValue < self.implementations.count {
-                let imp = self.implementations[Int(token.algorithm.rawValue)]
-                hash = imp.hash(token: token)
-            }
-        }
-        
-        return hash
-
-    }
-    
-    public func value(token: Token) -> UInt32 {
-        
-        var value: UInt32 = 0
+        var value: Int = 0
         
         lock.mutex {
             if token.algorithm.rawValue < self.implementations.count {

@@ -25,12 +25,11 @@ import Foundation
 public class RPC_StatsBlock : Codable {
     
     public var height = 0
-    public var newTokens = 0
+    public var newCoins = 0
     public var newValue = 0
-    public var depletion: Double = 0
     public var addressHeight = 0
     public var activeAddresses = 0
-    public var reallocTokens = 0
+    public var reallocCoins = 0
     public var reallocValue = 0
     
     public var denominations: [String:Int] = [:]
@@ -46,7 +45,6 @@ public class RPC_Stats : Codable {
     public var tokens = 0
     public var blocks: [RPC_StatsBlock] = []
     public var denominations: [String:Int] = [:]
-    public var depletion: Double = 0.0
     public var rate: Double = 0.0
     public var transactions: Int = 0
     public var addresses: Int = 0

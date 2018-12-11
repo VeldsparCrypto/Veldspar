@@ -23,39 +23,11 @@
 import Foundation
 import VeldsparCore
 
-class RPCSyncWallet {
+public class Registration : Codable {
     
-    class func action(address: String, height: Int) -> RPC_Wallet_Sync_Object {
-        
-        let rpcBlock = RPC_Wallet_Sync_Object()
-        
-        let ledgers = blockchain.ledgersConcerningAddress(address, lastRowHeight: height)
-        
-        for row in ledgers {
-            
-            if row.0 > rpcBlock.rowid {
-                rpcBlock.rowid = row.0
-                
-                let l = row.1
-                
-                let ledger = RPC_Ledger()
-                ledger.block = l.block
-                ledger.date = l.date
-                ledger.destination = l.destination
-                ledger.op = l.op.rawValue
-                ledger.spend_auth = l.spend_auth
-                ledger.token = l.token
-                ledger.transaction_group = l.transaction_group
-                ledger.transaction_id = l.transaction_id
-                
-                rpcBlock.transactions.append(ledger)
-                
-            }
-            
-        }
-        
-        return rpcBlock
-        
-    }
+    public var token: String?
+    public var address: String?
+    
+    public init() {}
     
 }

@@ -20,57 +20,28 @@
 //    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //    SOFTWARE.
 
-
 import Foundation
-import VeldsparCore
 
-func SimpleMenu(_ options: [String:String]) {
+class Settings : Codable {
     
-    print("")
-    print("Wallet Options")
-    print("--------------")
-    print("")
-    
-    for o in options {
-        print("  [\(o.key.uppercased())] : \(o.value)")
-    }
-    print("")
-    print("Please choose one of the above options :")
-    
-    
-}
-
-func ShowOpenedMenu() {
-    SimpleMenu(["P" : "Show pending transactions",
-                "L" : "List transfers",
-                "B" : "Balance",
-                "X" : "Exit",
-                "T" : "Transfer \(Config.CurrencyName) to another address.",
-        "S" : "Show seed",
-        "R" : "Rebuild wallet",
-        "C" : "Create new wallet",
-        "A" : "Add existing wallet",
-        "D" : "Delete wallet",
-        "W" : "List wallets", "N" : "Name a wallet"])
-}
-
-func ListWallets() {
-    
-    print("")
-    print("Wallet(s)")
-    print("---------")
-    print("")
-    
-    var i = 1
-    for w in wallet!.addresses() {
-        if wallet!.nameForAddress(w) != w {
-            print("  [\(i)] : \(wallet!.nameForAddress(w)) (\(w))")
-        } else {
-            print("  [\(i)] : \(w)")
-        }
-        
-        i+=1
-    }
-    print("")
+    var isSeedNode: Bool = false
+    var isSeedNodeAddress: String?
+    var blockchain_export_data: Bool = false
+    var blockchain_export_data_path: String = "./cache/blocks"
+    var network_port: Int = 14242
+    var rpc_allow_block: Bool = true
+    var rpc_allow_height: Bool = true
+    var rpc_allow_timestamp: Bool = true
+    var rpc_allow_pending: Bool = true
+    var rpc_allow_transfer: Bool = true
+    var rpc_ban_invalid_requests: Bool = true
+    var rpc_ban_invalid_limit: Int = 10
+    var database_service_type: String = "SQLITE"
+    var database_cache_size_mb: Int = 64
+    var database_connection_string: String? = nil
+    var database_connection_username: String? = nil
+    var database_connection_password: String? = nil
+    var debug_mirror_requests: Bool? = false
+    var debug_mirror_target: String? = nil
     
 }

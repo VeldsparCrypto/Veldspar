@@ -21,30 +21,50 @@
 //    SOFTWARE.
 
 import Foundation
+import VeldsparCore
 
-public class TokenRegistration {
+class NodeSync {
     
-    public class func Register(token: String, address: String, nodeAddress: String) -> Int? {
+    class func SyncNodes() {
         
-        let response = Comms.request(method: "token/register", parameters: ["token":token, "address":address])
-        if response != nil {
-            // we have a valid response
-            let resObject: RPC_Register_Repsonse? = try? JSONDecoder().decode(RPC_Register_Repsonse.self, from: response!)
-            if resObject != nil {
+        var nodes = Config.SeedNodes
+        if isTestNet {
+            nodes = Config.TestNetNodes
+        }
+        
+        while true {
+            
+            for s in nodes {
                 
-                // check for failure
-                if resObject?.success == false {
-                    return -1 // specific, communication was fine, but registration was unsuccessful
+                let d = comms.basicRequest(address: s, method: "nodes", parameters: [:])
+                if d != nil {
+                    do {
+                        let currentNodes = try JSONDecoder().decode(NodeListResponse.self, from: d!)
+                        blockchain.putNodes(currentNodes.nodes)
+                    } catch {}
+                }
+            }
+            
+            // now update our local reachability records
+            for n in blockchain.nodesAll() {
+                
+                if comms.basicRequest(address: n.address!, method:"timestamp" , parameters: [:]) != nil {
+                    n.reachable = 1
+                    n.lastcomm = UInt64(Date().timeIntervalSince1970 * 1000)
+                } else {
+                    n.reachable = 0
                 }
                 
-                // successfully written, return the height at which it was placed
-                return resObject?.block
+                blockchain.putNode(n)
                 
             }
             
+            // clean up stale nodes
+            blockchain.purgeStaleNodes()
+            
+            Thread.sleep(forTimeInterval: 60)
+            
         }
-        
-        return nil
         
     }
     

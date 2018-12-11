@@ -20,57 +20,14 @@
 //    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //    SOFTWARE.
 
-
 import Foundation
-import VeldsparCore
 
-func SimpleMenu(_ options: [String:String]) {
+public struct BlockHash : Codable {
     
-    print("")
-    print("Wallet Options")
-    print("--------------")
-    print("")
-    
-    for o in options {
-        print("  [\(o.key.uppercased())] : \(o.value)")
-    }
-    print("")
-    print("Please choose one of the above options :")
-    
-    
-}
-
-func ShowOpenedMenu() {
-    SimpleMenu(["P" : "Show pending transactions",
-                "L" : "List transfers",
-                "B" : "Balance",
-                "X" : "Exit",
-                "T" : "Transfer \(Config.CurrencyName) to another address.",
-        "S" : "Show seed",
-        "R" : "Rebuild wallet",
-        "C" : "Create new wallet",
-        "A" : "Add existing wallet",
-        "D" : "Delete wallet",
-        "W" : "List wallets", "N" : "Name a wallet"])
-}
-
-func ListWallets() {
-    
-    print("")
-    print("Wallet(s)")
-    print("---------")
-    print("")
-    
-    var i = 1
-    for w in wallet!.addresses() {
-        if wallet!.nameForAddress(w) != w {
-            print("  [\(i)] : \(wallet!.nameForAddress(w)) (\(w))")
-        } else {
-            print("  [\(i)] : \(w)")
-        }
-        
-        i+=1
-    }
-    print("")
+    public var ready: Bool?
+    public var nodeId: String?
+    public var height: Int?
+    public var hash: Data?
+    public init () {}
     
 }

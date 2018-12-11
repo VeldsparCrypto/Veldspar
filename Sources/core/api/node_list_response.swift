@@ -22,12 +22,9 @@
 
 import Foundation
 
-public class RPC_Wallet_Sync_Object : Codable {
+public class NodeListResponse : Codable {
     
-    public var rowid: Int = 0
-    public var transactions: [RPC_Ledger] = []
-    
+    public var nodes: [PeeringNode] = []
     public init() {}
     
 }
-

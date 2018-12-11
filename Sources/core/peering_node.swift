@@ -21,29 +21,16 @@
 //    SOFTWARE.
 
 import Foundation
-import VeldsparCore
 
-public class RPCOreSeeds {
+public class PeeringNode : Codable {
     
-    public class func action() throws -> RPC_SeedList {
-        
-        // setup the variables
-        
-        let seedResponse = RPC_SeedList()
-        
-        let oreSeeds = blockchain.oreSeeds()
-        
-        debug("(RPCOreSeeds) call to blockchain.oreSeeds() returned \(oreSeeds.count) results")
-
-        for s in oreSeeds {
-            let seed = RPC_Seed()
-            seed.height = Int(s.height)
-            seed.seed = s.oreSeed!
-            seedResponse.seeds.append(seed)
-        }
-        
-        return seedResponse
-        
-    }
+    public var uuid: String?
+    public var address: String?
+    public var speed: Int?
+    public var lastcomm: UInt64?
+    public var tidemark: Int?
+    public var reachable: Int?
+    
+    public init() {}
     
 }

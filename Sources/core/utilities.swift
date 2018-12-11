@@ -40,8 +40,8 @@ public func debug(_ output: String) {
     }
 }
 
-public func consensusTime() -> UInt64 {
-    return UInt64(Date().timeIntervalSince1970 * 1000)
+public func consensusTime() -> Int {
+    return Int(UInt64(Date().timeIntervalSince1970 * 1000))
 }
 
 public extension Array where Element == UInt8 {
@@ -50,7 +50,7 @@ public extension Array where Element == UInt8 {
         
         var values: [String] = []
         
-        for b in self as! [UInt8] {
+        for b in self {
             values.append(b.toHex())
         }
         
@@ -59,7 +59,7 @@ public extension Array where Element == UInt8 {
     }
 }
 
-extension String {
+public extension String {
     public func CryptoHash() -> String {
         switch Config.DefaultHashType {
         case .sha224:
@@ -76,7 +76,7 @@ extension String {
     }
 }
 
-extension UInt64 {
+public extension UInt64 {
     private func rawBytes() -> [UInt8] {
         let totalBytes = MemoryLayout<UInt64>.size
         var value = self
@@ -92,7 +92,23 @@ extension UInt64 {
     }
 }
 
-extension UInt32 {
+public extension Int {
+    private func rawBytes() -> [UInt8] {
+        let totalBytes = MemoryLayout<UInt32>.size
+        var value = UInt32(self)
+        return withUnsafePointer(to: &value) { valuePtr in
+            return valuePtr.withMemoryRebound(to: UInt8.self, capacity: totalBytes) { reboundPtr in
+                return Array(UnsafeBufferPointer(start: reboundPtr, count: totalBytes))
+            }
+        }
+    }
+    func toHex() -> String {
+        let byteArray = self.rawBytes().reversed()
+        return byteArray.map{String(format: "%02X", $0)}.joined()
+    }
+}
+
+public extension UInt32 {
     private func rawBytes() -> [UInt8] {
         let totalBytes = MemoryLayout<UInt32>.size
         var value = self
@@ -108,7 +124,7 @@ extension UInt32 {
     }
 }
 
-extension UInt16 {
+public extension UInt16 {
     private func rawBytes() -> [UInt8] {
         let totalBytes = MemoryLayout<UInt16>.size
         var value = self
@@ -124,7 +140,7 @@ extension UInt16 {
     }
 }
 
-extension UInt8 {
+public extension UInt8 {
     private func rawBytes() -> [UInt8] {
         let totalBytes = MemoryLayout<UInt8>.size
         var value = self
@@ -248,7 +264,7 @@ struct Base58 {
 
 
 
-extension Array where Element == UInt8 {
+public extension Array where Element == UInt8 {
     public var base58EncodedString: String {
         guard !self.isEmpty else { return "" }
         return Base58.base58FromBytes(self)
@@ -264,7 +280,22 @@ extension Array where Element == UInt8 {
     }
 }
 
-extension String {
+public extension String {
+    
+    public var hexToData: Data {
+        
+        var d = Data()
+        var copy = self
+        
+        while copy.count > 0 {
+            let byte = copy.prefix(2).uppercased()
+            copy.removeFirst(2)
+            d.append(UInt8(byte, radix: 16)!)
+        }
+        
+        return d
+        
+    }
     
     public var base58EncodedString: String {
         return [UInt8](utf8).base58EncodedString
@@ -294,4 +325,39 @@ extension String {
     }
     
 }
+
+#if os(Linux)
+import SwiftGlibc
+
+public func arc4random_uniform(_ max: UInt32) -> Int32 {
+    return (SwiftGlibc.rand() % Int32(max-1))
+}
+#endif
+
+#if swift(>=4.2)
+#else
+public extension MutableCollection {
+    /// Shuffles the contents of this collection.
+    mutating func shuffle() {
+        let c = count
+        guard c > 1 else { return }
+        
+        for (firstUnshuffled, unshuffledCount) in zip(indices, stride(from: c, to: 1, by: -1)) {
+            // Change `Int` in the next line to `IndexDistance` in < Swift 4.1
+            let d: Int = Int(arc4random_uniform(UInt32(unshuffledCount)))
+            let i = index(firstUnshuffled, offsetBy: d)
+            swapAt(firstUnshuffled, i)
+        }
+    }
+}
+
+public extension Sequence {
+    /// Returns an array with the contents of this sequence, shuffled.
+    func shuffled() -> [Element] {
+        var result = Array(self)
+        result.shuffle()
+        return result
+    }
+}
+#endif
 

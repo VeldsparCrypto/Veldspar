@@ -24,168 +24,52 @@ import Foundation
 import SWSQLite
 import VeldsparCore
 
-#if os(Linux)
-let blockchain_db = SWSQLite(path: "\(NSHomeDirectory())/.\(Config.CurrencyName)", filename: "blockchain.db")
-let pending_db = SWSQLite(path: "\(NSHomeDirectory())/.\(Config.CurrencyName)", filename: "pending.db")
-#else
-let blockchain_db = SWSQLite(path: "\(URL(fileURLWithPath: NSHomeDirectory())).\(Config.CurrencyName)", filename: "blockchain.db")
-let pending_db = SWSQLite(path: "\(URL(fileURLWithPath: NSHomeDirectory())).\(Config.CurrencyName)", filename: "pending.db")
-#endif
+let db = SWSQLite(path: "./", filename: "\(Config.CurrencyName).db")
 
 class Database {
     
     class func Initialize() {
         
-        _ = blockchain_db.execute(sql: "PRAGMA cache_size = -33554432;", params: [])
-        _ = blockchain_db.execute(sql: "PRAGMA temp_store = MEMORY;", params: [])
-        _ = pending_db.execute(sql: "PRAGMA cache_size = -33554432;", params: [])
-        _ = pending_db.execute(sql: "PRAGMA temp_store = MEMORY;", params: [])
-        
-        _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS block (height INTEGER PRIMARY KEY, hash TEXT, oreSeed TEXT, confirms INTEGER, shenanigans INTEGER)", params: [])
-        _ = blockchain_db.execute(sql: """
-CREATE TABLE IF NOT EXISTS stats (
-    block INTEGER PRIMARY KEY,
-    newTokens INTEGER,
-    newValue INTEGER,
-    depletion REAL,
-    addressCount INTEGER,
-    activeAddressCount INTEGER,
-    transCount INTEGER,
-    reallocTokens INTEGER,
-    reallocValue INTEGER,
-    d1 INTEGER,
-    d2 INTEGER,
-    d5 INTEGER,
-    d10 INTEGER,
-    d20 INTEGER,
-    d50 INTEGER,
-    d100 INTEGER,
-    d200 INTEGER,
-    d500 INTEGER,
-    d1000 INTEGER,
-    d2000 INTEGER,
-    d5000 INTEGER)
-""", params: [])
-        _ = blockchain_db.execute(sql: "DROP VIEW IF EXISTS stats_summary;", params: [])
-        _ = blockchain_db.execute(sql: """
-CREATE VIEW IF NOT EXISTS stats_summary
-AS
-SELECT MAX(block) as blocks,
-SUM(newTokens) as tokens,
-(SUM(d1) + (SUM(d2)*2) + (SUM(d5)*5) + (SUM(d10)*10) + (SUM(d20)*20)  + (SUM(d50)*50) + (SUM(d100)*100) + (SUM(d200)*200) + (SUM(d500)*500) + (SUM(d1000)*1000)  + (SUM(d2000)*2000) + (SUM(d5000)*5000)) as value,
-(SELECT AVG(depletion) FROM stats WHERE block > (SELECT MAX(block) from stats)-3) as depletion,
-(SELECT CAST((CAST(AVG(newTokens) AS REAL) / 2) as REAL)  FROM stats WHERE block > (SELECT MAX(block) from stats)-3) as rate,
-MAX(addressCount) as addresses,
-SUM(transCount) as transactions,
-SUM(d1) as d1,
-SUM(d2) as d2,
-SUM(d5) as d5,
-SUM(d10) as d10,
-SUM(d20) as d20,
-SUM(d50) as d50,
-SUM(d100) as d100,
-SUM(d200) as d200,
-SUM(d500) as d500,
-SUM(d1000) as d1000,
-SUM(d2000) as d2000,
-SUM(d5000) as d5000  FROM stats;
-""", params: [])
-        _ = blockchain_db.execute(sql:
-            """
-CREATE TABLE IF NOT EXISTS ledger (
-    transaction_id TEXT PRIMARY KEY,
-    op INTEGER,
-    date INTEGER,
-    transaction_group TEXT,
-    owner TEXT,
-    token TEXT,
-    spend_auth TEXT,
-    block INTEGER,
-    checksum TEXT
-)
-""", params: [])
-        
-        _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_token ON ledger (token);", params: [])
-        _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_block ON ledger (block);", params: [])
-        _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_op ON ledger (op);", params: [])
-        _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_owner ON ledger (owner);", params: [])
-        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add1 INTEGER", params: [])
-        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add2 INTEGER", params: [])
-        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add3 INTEGER", params: [])
-        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add4 INTEGER", params: [])
-        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add5 INTEGER", params: [])
-        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add6 INTEGER", params: [])
-        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add7 INTEGER", params: [])
-        _ = blockchain_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add8 INTEGER", params: [])
-        _ = blockchain_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_address ON ledger (add1,add2,add3,add4,add5,add6,add7,add8)", params: [])
-        _ = pending_db.execute(sql:
-            """
-CREATE TABLE IF NOT EXISTS ledger (
-    transaction_id TEXT PRIMARY KEY,
-    op INTEGER,
-    date INTEGER,
-    transaction_group TEXT,
-    owner TEXT,
-    token TEXT,
-    spend_auth TEXT,
-    block INTEGER,
-    checksum TEXT
-)
-""", params: [])
-        
-        _ = pending_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_token ON ledger (token);", params: [])
-        _ = pending_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_ledger_block ON ledger (block);", params: [])
-        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add1 INTEGER", params: [])
-        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add2 INTEGER", params: [])
-        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add3 INTEGER", params: [])
-        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add4 INTEGER", params: [])
-        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add5 INTEGER", params: [])
-        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add6 INTEGER", params: [])
-        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add7 INTEGER", params: [])
-        _ = pending_db.execute(sql: "ALTER TABLE ledger ADD COLUMN add8 INTEGER", params: [])
-        _ = pending_db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_address ON ledger (add1,add2,add3,add4,add5,add6,add7,add8)", params: [])
+        db.create(Block(), pk: "height", auto: false, indexes:[])
+        db.create(Ledger(), pk: "id", auto: true, indexes:["address,date","height,address","transaction_id"])
+        db.create(PeeringNode(), pk: "uuid", auto: false, indexes: [])
+        db.create(NodeInstance(), pk: "nodeId", auto: false, indexes: [])
+        _ = db.execute(sql: "PRAGMA cache_size = -\(settings.database_cache_size_mb * 1024)", params: [])
         
     }
     
-    class func DeleteBlock(_ block: Block) -> Bool {
+    class func DeleteBlock(_ block: VeldsparCore.Block) -> Bool {
         
-        if blockchain_db.execute(sql: "DELETE FROM block WHERE height = ?; DELETE FROM ledger WHERE block = ?;", params: [block.height, block.height]).error != nil {
+        if db.execute(sql: "DELETE FROM Block WHERE height = ?;", params: [block.height]).error != nil {
+            return false
+        }
+        
+        if db.execute(sql: "DELETE FROM Ledger WHERE height = ?;", params: [block.height]).error != nil {
             return false
         }
         
         return true
     }
     
-    class func WritePendingLedger(_ ledger: Ledger) -> Bool {
+    class func DeleteBlock(_ height: Int) -> Bool {
         
-        let address = ledger.addresses()
-        
-        if pending_db.execute(
-            sql: "INSERT OR REPLACE INTO ledger (transaction_id, op, date, transaction_group, owner, token, spend_auth, block, checksum, add1, add2, add3, add4, add5, add6, add7, add8) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            params: [
-                
-                ledger.transaction_id,
-                UInt64(ledger.op.rawValue),
-                UInt64(ledger.date),
-                ledger.transaction_group,
-                ledger.destination,
-                Token.compactToken(ledger.token),
-                ledger.spend_auth,
-                UInt64(ledger.block),
-                ledger.checksum(),
-                address[0],
-                address[1],
-                address[2],
-                address[3],
-                address[4],
-                address[5],
-                address[6],
-                address[7],
-                
-            ]).error != nil {
+        if db.execute(sql: "DELETE FROM Block WHERE height = ?;", params: [height]).error != nil {
             return false
-            
         }
+        
+        if db.execute(sql: "DELETE FROM Ledger WHERE height = ?;", params: [height]).error != nil {
+            return false
+        }
+        
+        return true
+    }
+    
+    class func WriteLedger(_ ledger: Ledger) -> Bool {
+        
+        if db.put(ledger).error != nil {
+            return false
+        }
+        
         return true
         
     }
@@ -194,475 +78,225 @@ CREATE TABLE IF NOT EXISTS ledger (
         
         // TODO: transaction & rollback
         
-        _ = blockchain_db.execute(sql: "BEGIN TRANSACTION", params: [])
-        if blockchain_db.execute(sql: "INSERT OR REPLACE INTO block (height, hash, oreSeed, confirms, shenanigans) VALUES (?,?,?,?,?)", params: [UInt64(block.height), block.hash!, block.oreSeed ?? NSNull(), block.confirms, block.shenanigans]).error == nil {
+        _ = db.execute(sql: "BEGIN TRANSACTION", params: [])
+        if db.put(block).error == nil {
             
             // now write in the transactions into the table as well
-            for t in block.transactions {
+            for ledger in block.transactions ?? [] {
                 
-                let address = t.addresses()
-                
-                if blockchain_db.execute(
-                    sql: "INSERT OR REPLACE INTO ledger (transaction_id, op, date, transaction_group, owner, token, spend_auth, block, checksum, add1, add2, add3, add4, add5, add6, add7, add8) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                    params: [
-                        
-                        t.transaction_id,
-                        UInt64(t.op.rawValue),
-                        UInt64(t.date),
-                        t.transaction_group,
-                        t.destination,
-                        Token.compactToken(t.token),
-                        t.spend_auth,
-                        UInt64(t.block),
-                        t.checksum(),
-                        address[0],
-                        address[1],
-                        address[2],
-                        address[3],
-                        address[4],
-                        address[5],
-                        address[6],
-                        address[7]
-                        
-                    ]).error != nil {
-                    _ = blockchain_db.execute(sql: "ROLLBACK TRANSACTION;", params: [])
+                if WriteLedger(ledger) == false {
+                    
+                    _ = db.execute(sql: "ROLLBACK TRANSACTION;", params: [])
                     return false
+                    
                 }
+                
             }
-            _ = blockchain_db.execute(sql: "COMMIT TRANSACTION;", params: [])
+            _ = db.execute(sql: "COMMIT TRANSACTION;", params: [])
             return true
         }
-        _ = blockchain_db.execute(sql: "ROLLBACK TRANSACTION;", params: [])
+        _ = db.execute(sql: "ROLLBACK TRANSACTION;", params: [])
         return false
         
     }
-
-    class func WriteStatsRecord(block: Int, depletionRate: Double) {
-        
-        _ = blockchain_db.execute(sql: "BEGIN TRANSACTION", params: [])
-        _ = blockchain_db.execute(sql: "DROP TABLE IF EXISTS temp_stats;", params: [])
-        _ = blockchain_db.execute(sql: "DROP TABLE IF EXISTS temp_block;", params: [])
-        _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS temp_block (block INTEGER PRIMARY KEY);", params: [])
-        _ = blockchain_db.execute(sql: "INSERT INTO temp_block VALUES (?);", params: [block])
-        _ = blockchain_db.execute(sql: "CREATE TABLE IF NOT EXISTS temp_stats (denom TEXT PRIMARY KEY, denom_count INTEGER);", params: [])
-        _ = blockchain_db.execute(sql: "INSERT OR REPLACE INTO stats (block) VALUES ((SELECT block FROM temp_block LIMIT 1));", params: [])
-        _ = blockchain_db.execute(sql: "INSERT INTO temp_stats SELECT substr(token,19,4) as denom, COUNT(*) as denom_count FROM ledger WHERE block = (SELECT block FROM temp_block LIMIT 1) AND op = 1 GROUP BY substr(token,19,4);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET newTokens = (SELECT SUM(denom_count) FROM temp_stats) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET d1 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 1))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET d2 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 2))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET d5 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 5))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET d10 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 10))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET d20 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 20))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET d50 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 50))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET d100 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 100))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET d200 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 200))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET d500 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 500))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET d1000 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 1000))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET d2000 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 2000))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET d5000 = (SELECT denom_count FROM temp_stats WHERE denom = upper(printf('%04X', 5000))) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET newValue = (SELECT SUM((CAST(denom as INT) * denom_count)) FROM temp_stats) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET addressCount = (SELECT COUNT(DISTINCT owner) FROM ledger WHERE block <= (SELECT block FROM temp_block LIMIT 1)) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET activeAddressCount = (SELECT COUNT(DISTINCT owner) FROM ledger WHERE block = (SELECT block FROM temp_block LIMIT 1)) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET transCount = (SELECT COUNT(*) FROM ledger WHERE block = (SELECT block FROM temp_block LIMIT 1)) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET reallocTokens = (SELECT COUNT(*) FROM ledger WHERE block = (SELECT block FROM temp_block LIMIT 1) AND op = 2) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "DELETE FROM temp_stats;", params: [])
-        _ = blockchain_db.execute(sql: "INSERT INTO temp_stats SELECT substr(token,19,4) as denom, COUNT(*) as denom_count FROM ledger WHERE block = (SELECT block FROM temp_block LIMIT 1) AND op = 2 GROUP BY substr(token,19,4);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET reallocValue = (SELECT SUM((CAST(denom as INT) * denom_count)) FROM temp_stats) WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [])
-        _ = blockchain_db.execute(sql: "UPDATE stats SET depletion = ? WHERE block = (SELECT block FROM temp_block LIMIT 1);", params: [depletionRate])
-        _ = blockchain_db.execute(sql: "DROP TABLE IF EXISTS temp_stats;", params: [])
-        _ = blockchain_db.execute(sql: "DROP TABLE IF EXISTS temp_block;", params: [])
-        _ = blockchain_db.execute(sql: "COMMIT TRANSACTION;", params: [])
-        
-    }
     
-    class func PopulateAddressColumnsInBlockchain() -> Bool /* data found to fix, return false when no results because then we are all done and this function can be removed */ {
+    class func CurrentHeight() -> Int? {
         
-        let result = blockchain_db.query(sql: "SELECT transaction_id, token FROM ledger WHERE add1 IS NULL LIMIT 100", params: [])
-        if result.error != nil {
-            return true
-        }
-        
-        if result.results.count > 0 {
-            _ = blockchain_db.execute(sql: "BEGIN TRANSACTION", params: [])
-            for r in result.results {
-                let id = r["transaction_id"]!.asString()!
-                let token = r["token"]!.asString()!
-                
-                var addresses: [UInt64] = []
-                
-                var components = token.components(separatedBy: "-")
-                components.remove(at: 0) // ore
-                components.remove(at: 0) // algo
-                components.remove(at: 0) // value
-                
-                for a in components {
-                    addresses.append(UInt64(a, radix: 16) ?? 0)
-                }
-                
-                _ = blockchain_db.execute(sql: "UPDATE ledger SET add1 = ?, add2 = ?, add3 = ?, add4 = ?, add5 = ?, add6 = ?, add7 = ?, add8 = ? WHERE transaction_id = ?;", params: [
-                        addresses[0],
-                        addresses[1],
-                        addresses[2],
-                        addresses[3],
-                        addresses[4],
-                        addresses[5],
-                        addresses[6],
-                        addresses[7],
-                        id
-                    ])
-            }
-            _ = blockchain_db.execute(sql: "COMMIT TRANSACTION;", params: [])
-            return true
-        } else {
-            return false
-        }
-        
-    }
-    
-    class func PopulateAddressColumnsInPending() -> Bool /* data found to fix, return false when no results because then we are all done and this function can be removed */ {
-        
-        let result = pending_db.query(sql: "SELECT transaction_id, token FROM ledger WHERE add1 IS NULL LIMIT 100", params: [])
-        if result.error != nil {
-            return true
-        }
-        
-        if result.results.count > 0 {
-            _ = pending_db.execute(sql: "BEGIN TRANSACTION", params: [])
-            for r in result.results {
-                let id = r["transaction_id"]!.asString()!
-                let token = r["token"]!.asString()!
-                
-                var addresses: [UInt64] = []
-                
-                var components = token.components(separatedBy: "-")
-                components.remove(at: 0) // ore
-                components.remove(at: 0) // algo
-                components.remove(at: 0) // value
-                
-                for a in components {
-                    addresses.append(UInt64(a, radix: 16) ?? 0)
-                }
-                
-                _ = blockchain_db.execute(sql: "UPDATE ledger SET add1 = ?, add2 = ?, add3 = ?, add4 = ?, add5 = ?, add6 = ?, add7 = ?, add8 = ? WHERE transaction_id = ?;", params: [
-                    addresses[0],
-                    addresses[1],
-                    addresses[2],
-                    addresses[3],
-                    addresses[4],
-                    addresses[5],
-                    addresses[6],
-                    addresses[7],
-                    id
-                    ])
-            }
-            _ = blockchain_db.execute(sql: "COMMIT TRANSACTION;", params: [])
-            return true
-        } else {
-            return false
-        }
-        
-    }
-    
-    class func CurrentHeight() -> UInt32? {
-        
-        let result = blockchain_db.query(sql: "SELECT height FROM block ORDER BY height DESC LIMIT 1", params: [])
+        let result = db.query(sql: "SELECT height FROM Block ORDER BY height DESC LIMIT 1", params: [])
         if result.error != nil {
             return nil
         }
         
         if result.results.count > 0 {
             let r = result.results[0]
-            return UInt32(r["height"]!.asUInt64()!)
+            return r["height"]!.asInt() ?? 0
         }
         
         return nil;
     }
     
-    class func StatsHeight() -> Int {
+    class func CommitLedger(ledgers: [Ledger], failAll: Bool, op: LedgerOPType) -> Bool {
         
-        let result = blockchain_db.query(sql: "SELECT blocks FROM stats_summary ORDER BY blocks DESC LIMIT 1", params: [])
-        if result.error != nil {
-            return 0
-        }
+        // after many different versions, I have decided that digital signature checking and authority checking will be done here.  This will allow the data layer to atomically verify the state of the transactions and roll back if invalid transactions are attempted.
         
-        if result.results.count > 0 {
-            let r = result.results[0]
-            return Int(r["blocks"]!.asInt() ?? 0)
-        }
+        var retValue = true
+        var changesMade = false
         
-        return 0;
-        
-    }
-    
-    class func GetStats() -> RPC_Stats {
-        
-        let summary_stats = blockchain_db.query(sql: "SELECT * FROM stats_summary;", params: [])
-        if summary_stats.error != nil {
-            return RPC_Stats();
-        }
-        
-        if summary_stats.results.count > 0 {
+        if op == .RegisterToken {
             
-            let stats = blockchain_db.query(sql: "SELECT * FROM stats ORDER BY block", params: [])
-            if stats.error != nil {
-                return RPC_Stats();
-            }
+            _ = db.execute(sql: "BEGIN TRANSACTION", params: [])
             
-            if stats.results.count > 0 {
+            // work out which kind of transaction this is
+            for l in ledgers {
                 
-                // build the summary
-                let rpcstats = RPC_Stats()
-                rpcstats.depletion = summary_stats.results[0]["depletion"]!.asDouble() ?? 0
-                rpcstats.height = summary_stats.results[0]["blocks"]!.asInt() ?? 0
-                rpcstats.tokens = summary_stats.results[0]["tokens"]!.asInt() ?? 0
-                rpcstats.value = Double(summary_stats.results[0]["value"]!.asInt() ?? 0)
-                rpcstats.rate = summary_stats.results[0]["rate"]!.asDouble() ?? 0
-                rpcstats.transactions = summary_stats.results[0]["transactions"]!.asInt() ?? 0
-                rpcstats.addresses = summary_stats.results[0]["addresses"]!.asInt() ?? 0
-                
-                rpcstats.value = Double(rpcstats.value) / Double(Config.DenominationDivider)
-                
-                rpcstats.denominations["0.01"] = summary_stats.results[0]["d1"]!.asInt() ?? 0
-                rpcstats.denominations["0.02"] = summary_stats.results[0]["d2"]!.asInt() ?? 0
-                rpcstats.denominations["0.05"] = summary_stats.results[0]["d5"]!.asInt() ?? 0
-                rpcstats.denominations["0.10"] = summary_stats.results[0]["d10"]!.asInt() ?? 0
-                rpcstats.denominations["0.20"] = summary_stats.results[0]["d20"]!.asInt() ?? 0
-                rpcstats.denominations["0.50"] = summary_stats.results[0]["d50"]!.asInt() ?? 0
-                rpcstats.denominations["1.00"] = summary_stats.results[0]["d100"]!.asInt() ?? 0
-                rpcstats.denominations["2.00"] = summary_stats.results[0]["d200"]!.asInt() ?? 0
-                rpcstats.denominations["5.00"] = summary_stats.results[0]["d500"]!.asInt() ?? 0
-                rpcstats.denominations["10.00"] = summary_stats.results[0]["d1000"]!.asInt() ?? 0
-                rpcstats.denominations["20.00"] = summary_stats.results[0]["d2000"]!.asInt() ?? 0
-                rpcstats.denominations["50.00"] = summary_stats.results[0]["d5000"]!.asInt() ?? 0
-                
-                for s in stats.results {
+                if l.signatureHash() == l.hash {
                     
-                    let block = RPC_StatsBlock()
-                    block.height = s["block"]!.asInt() ?? 0
-                    block.newTokens = s["newTokens"]!.asInt() ?? 0
-                    block.newValue = s["newValue"]!.asInt() ?? 0
-                    block.depletion = s["depletion"]!.asDouble() ?? 0
-                    block.addressHeight = s["addressCount"]!.asInt() ?? 0
-                    block.activeAddresses = s["activeAddressCount"]!.asInt() ?? 0
-                    block.reallocTokens = s["block"]!.asInt() ?? 0
-                    block.reallocValue = s["block"]!.asInt() ?? 0
-                    
-                    block.denominations["0.01"] = s["d1"]!.asInt() ?? 0
-                    block.denominations["0.02"] = s["d2"]!.asInt() ?? 0
-                    block.denominations["0.05"] = s["d5"]!.asInt() ?? 0
-                    block.denominations["0.10"] = s["d10"]!.asInt() ?? 0
-                    block.denominations["0.20"] = s["d20"]!.asInt() ?? 0
-                    block.denominations["0.50"] = s["d50"]!.asInt() ?? 0
-                    block.denominations["1.00"] = s["d100"]!.asInt() ?? 0
-                    block.denominations["2.00"] = s["d200"]!.asInt() ?? 0
-                    block.denominations["5.00"] = s["d500"]!.asInt() ?? 0
-                    block.denominations["10.00"] = s["d1000"]!.asInt() ?? 0
-                    block.denominations["20.00"] = s["d2000"]!.asInt() ?? 0
-                    block.denominations["50.00"] = s["d5000"]!.asInt() ?? 0
-                    
-                    rpcstats.blocks.append(block)
-                    
-                }
-                
-                return rpcstats
-                
-            }
-            
-        }
-        
-        return RPC_Stats()
-        
-    }
-    
-    class func CountAddresses() -> Int {
-        
-        let result = blockchain_db.query(sql: "SELECT COUNT(DISTINCT owner) as count_owner FROM ledger;", params: [])
-        if result.error != nil {
-            return 0
-        }
-        
-        if result.results.count > 0 {
-            let r = result.results[0]
-            return Int(r["count_owner"]!.asUInt64()!)
-        }
-        
-        return 0;
-    }
-    
-    class func LedgersConcerningAddress(_ address: String, lastRowHeight: Int) -> [(Int,Ledger)] {
-        
-        // need to improve this with an internal join I feel.  Super slow at the moment
-        
-        let result = blockchain_db.query(sql: "SELECT ROWID,* FROM ledger WHERE token IN (SELECT DISTINCT token FROM ledger WHERE owner = ?) AND ROWID > ? ORDER BY block ASC LIMIT 5000", params: [address, lastRowHeight])
-        if result.error != nil {
-            return []
-        }
-        
-        if result.results.count > 0 {
-            var ledgers: [(Int,Ledger)] = []
-            for r in result.results {
-                let l = Ledger(id: r["transaction_id"]!.asString()!,
-                               op: LedgerOPType(rawValue: r["op"]!.asInt()!)!,
-                               token: Token.expandToken(r["token"]!.asString()!),
-                               ref: r["transaction_group"]!.asString()!,
-                               address: r["owner"]!.asString()!,
-                               date: r["date"]!.asUInt64()!,
-                               auth: r["spend_auth"]!.asString()!,
-                               block: UInt32(r["block"]!.asUInt64()!))
-                ledgers.append((Int(r["rowid"]!.asUInt64()!),l))
-            }
-            return ledgers
-        }
-        
-        return [];
-    }
-    
-    class func TokenOwnershipRecord(_ id: String) -> Ledger? {
-        
-        let result = blockchain_db.query(sql: "SELECT * FROM ledger WHERE token = ? ORDER BY block DESC LIMIT 1", params: [Token.compactToken(id)])
-        if result.error != nil {
-            return nil
-        }
-        
-        if result.results.count > 0 {
-            let r = result.results[0]
-            let l = Ledger(id: r["transaction_id"]!.asString()!,
-                           op: LedgerOPType(rawValue: r["op"]!.asInt()!)!,
-                           token: Token.expandToken(r["token"]!.asString()!),
-                           ref: r["transaction_group"]!.asString()!,
-                           address: r["owner"]!.asString()!,
-                           date: r["date"]!.asUInt64()!,
-                           auth: r["spend_auth"]!.asString()!,
-                           block: UInt32(r["block"]!.asUInt64()!))
-            return l
-        }
-        
-        return nil;
-    }
-    
-    class func TokenPendingRecord(_ id: String) -> Ledger? {
-        
-        let result = pending_db.query(sql: "SELECT * FROM ledger WHERE token = ? ORDER BY block DESC LIMIT 1", params: [Token.compactToken(id)])
-        if result.error != nil {
-            return nil
-        }
-        
-        if result.results.count > 0 {
-            let r = result.results[0]
-            let l = Ledger(id: r["transaction_id"]!.asString()!,
-                           op: LedgerOPType(rawValue: r["op"]!.asInt()!)!,
-                           token: Token.expandToken(r["token"]!.asString()!),
-                           ref: r["transaction_group"]!.asString()!,
-                           address: r["owner"]!.asString()!,
-                           date: r["date"]!.asUInt64()!,
-                           auth: r["spend_auth"]!.asString()!,
-                           block: UInt32(r["block"]!.asUInt64()!))
-            return l
-        }
-        
-        return nil;
-    }
-    
-    class func BlockAtHeight(_ height: UInt32) -> Block? {
-        
-        let result = blockchain_db.query(sql: "SELECT * FROM block WHERE height = ? LIMIT 1", params: [UInt64(height)])
-        if result.error != nil {
-            debug("(Database) 'BlockAtHeight(_ height: UInt32) -> Block?', received an Error from the SQLite database engine.  Error = '\(result.error!)'")
-            return nil
-        }
-        
-        if result.results.count > 0 {
-            
-            let br = result.results[0]
-            let b = Block(height: height)
-            b.oreSeed = br["oreSeed"]?.asString()
-            b.hash = br["hash"]?.asString()
-            b.confirms = br["confirms"]?.asUInt64() ?? 0
-            b.shenanigans = br["shenanigans"]?.asUInt64() ?? 0
-            
-            // now get the transactions for that block
-            let trans = blockchain_db.query(sql: "SELECT * FROM ledger WHERE block = ? ORDER BY token", params: [UInt64(height)])
-            if trans.error != nil {
-                return nil
-            }
-            
-            if trans.results.count > 0 {
-                
-                for r in trans.results {
-                    
-                    let l = Ledger(id: r["transaction_id"]!.asString()!,
-                                   op: LedgerOPType(rawValue: r["op"]!.asInt()!)!,
-                                   token: Token.expandToken(r["token"]!.asString()!),
-                                   ref: r["transaction_group"]!.asString()!,
-                                   address: r["owner"]!.asString()!,
-                                   date: r["date"]!.asUInt64()!,
-                                   auth: r["spend_auth"]!.asString()!,
-                                   block: UInt32(r["block"]!.asUInt64()!))
-                    
-                    b.transactions.append(l)
+                    // record has not been tampered with, now check to see if we already have it in the data store
+                    if db.query(sql: "SELECT id FROM Ledger WHERE transaction_id = ? LIMIT 1", params: [l.transaction_id]).results.count == 0 {
+                        
+                        if l.source == l.destination && TokenOwnershipRecord(ore: l.ore!, address: l.address!).count == 0 {
+                            
+                            // this is a new registration, so it can be committed right away.  But only after we have validated that it is a valid token to be registered
+                            let t = Token(oreHeight: l.ore!, address: l.address!, algorithm: AlgorithmType.init(rawValue: l.algorithm!)!);
+                            if t.value() != 0 {
+                                l.id = nil
+                                changesMade = true
+                                _ = db.put(l)
+                            } else {
+                                retValue = false
+                            }
+                            
+                        }
+                        
+                    } else {
+                        
+                        // record already exists, no action taken
+                        
+                    }
                     
                 }
                 
             }
             
-            return b
-        }
-        
-        return nil;
-    }
-    
-    class func PendingLedgersForHeight(_ height: UInt32) -> [Ledger] {
-        
-        var retValue: [Ledger] = []
-        
-        // now get the transactions for that block
-        let trans = pending_db.query(sql: "SELECT * FROM ledger WHERE block = ? ORDER BY token", params: [UInt64(height)])
-        
-        if trans.error == nil && trans.results.count > 0 {
+        } else if op == .ChangeOwner {
             
-            for r in trans.results {
+            // to save nodes lots of processing time, the auth signature is a digitally signed hash of the sorted addresses from within the ledgers.
+            // the first ledger in the sorted set should contain the auth for the set
+            
+            if Crypto.verifySignature(ledgers) {
                 
-                let l = Ledger(id: r["transaction_id"]!.asString()!,
-                               op: LedgerOPType(rawValue: r["op"]!.asInt()!)!,
-                               token: Token.expandToken(r["token"]!.asString()!),
-                               ref: r["transaction_group"]!.asString()!,
-                               address: r["owner"]!.asString()!,
-                               date: r["date"]!.asUInt64()!,
-                               auth: r["spend_auth"]!.asString()!,
-                               block: UInt32(r["block"]!.asUInt64()!))
+                _ = db.execute(sql: "BEGIN TRANSACTION", params: [])
+                changesMade = true
                 
-                retValue.append(l)
-                
+                // work out which kind of transaction this is
+                for l in ledgers {
+                    
+                    if l.signatureHash() == l.hash {
+                        
+                        // record has not been tampered with, now check to see if we already have it in the data store
+                        if db.query(sql: "SELECT id FROM Ledger WHERE transaction_id = ? LIMIT 1", params: [l.transaction_id]).results.count == 0 {
+                            
+                            if l.source != l.destination {
+                                
+                                // get the current ownership record for this token
+                                let current = TokenOwnershipRecord(ore: l.ore!, address: l.address!)
+                                if current.count == 0 {
+                                    retValue = false
+                                } else {
+                                    
+                                    if current[0].destination != l.source {
+                                        retValue = false
+                                    } else {
+                                        // so the signature is correct, the last destination is this source so we can commit this transaction now.
+                                        l.id = nil
+                                        l.op = LedgerOPType.ChangeOwner.rawValue
+                                        changesMade = true
+                                        _ = db.put(l)
+                                    }
+                                    
+                                }
+                                
+                            }
+                            
+                        } else {
+                            
+                            // record already exists, no action taken
+                            
+                        }
+                        
+                    }
+                    
+                }
             }
-            
         }
         
-        return retValue;
-    }
-    
-    class func OreBlocks() -> [Block] {
-        
-        var retValue: [Block] = []
-        
-        let result = blockchain_db.query(sql: "SELECT * FROM block WHERE oreSeed IS NOT NULL", params: [])
-        
-        if result.results.count > 0 {
+        if changesMade {
             
-            for br in result.results {
+            if retValue {
                 
-                let b = Block(height: UInt32(br["height"]!.asUInt64()!))
-                b.oreSeed = br["oreSeed"]?.asString()
-                retValue.append(b)
+                _ = db.execute(sql: "COMMIT TRANSACTION;", params: [])
+                
+            } else {
+                
+                if failAll {
+                    _ = db.execute(sql: "ROLLBACK TRANSACTION;", params: [])
+                } else {
+                    _ = db.execute(sql: "COMMIT TRANSACTION;", params: [])
+                }
                 
             }
             
         } else {
             
-            debug("(Database) call to 'OreBlocks() -> [Block]' returned no results.")
+            retValue = false
             
         }
         
         return retValue
+        
+    }
+    
+    class func TokenOwnershipRecord(ore: Int, address: Data) -> [Ledger] {
+        
+        // get the last ten items, recent->oldest.  Uses status to determine pending and current.
+        return db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE ore = ? AND address = ? ORDER BY date DESC LIMIT 1", params: [ore, address])
+        
+    }
+    
+    class func BlockAtHeight(_ height: Int, includeTransactions: Bool) -> Block? {
+        
+        let blocks = db.query(Block(), sql: "SELECT * FROM Block WHERE height = ? LIMIT 1", params: [height])
+        
+        if blocks.count == 0 {
+            return nil
+        }
+        
+        var block = blocks.first!
+        if includeTransactions {
+            block.transactions = LedgersForHeight(height)
+        } else {
+            block.transactions = []
+        }
+        
+        return block
+        
+    }
+    
+    class func PendingLedgers(_ tidemark: Int, height: Int) -> [Ledger] {
+        
+        return db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE id > ? AND height >= ? ORDER BY id LIMIT 1000", params: [tidemark, height])
+        
+    }
+    
+    class func LedgersForHeight(_ height: Int) -> [Ledger] {
+        
+        return db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE height = ? ORDER BY address", params: [height])
+        
+    }
+    
+    class func HashesForBlock(_ height: Int) -> Data {
+        
+        let result = db.query(sql: "SELECT SHA512(hash) as sha512hash FROM Ledger INDEXED BY idx_Ledger_height_address WHERE height = ?", params: [height])
+        for r in result.results {
+            return r["sha512hash"]?.asData() ?? Data()
+        }
+        return Data()
+        
+    }
+    
+    class func PeeringNodes() -> [PeeringNode] {
+        return db.query(PeeringNode(), sql: "SELECT * FROM PeeringNode", params: [])
+    }
+    
+    class func PeeringNodesReachable() -> [PeeringNode] {
+        return db.query(PeeringNode(), sql: "SELECT * FROM PeeringNode WHERE reachable = 1", params: [])
+    }
+    
+    class func WritePeeringNodes(nodes: [PeeringNode]) {
+        
+        for p in nodes {
+            _ = db.put(p)
+        }
         
     }
     

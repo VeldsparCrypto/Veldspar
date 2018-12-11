@@ -23,67 +23,48 @@
 import Foundation
 import VeldsparCore
 
-class RPCTransferToken {
+class RecieveTransfer {
     
-    class func action(_ payload: [String:Any?]) throws -> [String:Any?] {
+    class func action(_ tr: TransferRequest, block: Int) throws {
         
-        if payload["token"] == nil {
+        if tr.tokens.count == 0 {
             throw RPCErrors.InvalidRequest
         }
         
-        if payload["address"] == nil {
-            throw RPCErrors.InvalidRequest
+        for t in tr.tokens {
+            t.height = block
+            t.id = nil
         }
         
-        if payload["auth"] == nil {
-            throw RPCErrors.InvalidRequest
-        }
-        
-        if payload["reference"] == nil {
-            throw RPCErrors.InvalidRequest
-        }
-        
-        // setup the variables
-        
-        let token = payload["token"] as! String
-        let address = payload["address"] as! String
-        let auth = payload["auth"] as! String
-        let reference = payload["reference"] as! String
-        let block = blockchain.height() + UInt32(Config.TransactionMaturityLevel)
-        
-        // get the current ownership details of the token
-        let current = blockchain.tokenLedger(token: token)
-        if current == nil { // not a registered token, or maturity level not reached, it can't be transferred
-            throw RPCErrors.InvalidRequest
-        }
-        
-        // check that the token is not currently the subject of an existing transfer
-        let pending = blockchain.tokenLedger(token: token)
-        if pending != nil { // token is already a pending transaction
-            throw RPCErrors.InvalidRequest
-        }
-        
-        // check that the request has the authority to transfer the token by testing the public key signature
-        let transferSignature = Crypto.makeTransactionIdentifier(src: current!.destination, dest: address, token: token)
-        if Crypto.isSigned(transferSignature, signature: auth, address: current!.destination) {
-            // signatures match, time to add this to the pending chain
-            
-            if blockchain.transferToken(token: token, address: address, block: block, auth: auth, reference: reference) {
-                
-                return ["success" : true, "token" : token, "block" : block]
-                
-            } else {
-                
+        // if this is the entry point into the system for this transaction, then we need to allocate ids
+        for t in tr.tokens {
+            if t.transaction_id == nil {
                 throw RPCErrors.InvalidRequest
-                
             }
+        }
+        
+        // we ask the data layer to check that every single one of the tokens one-by-one, then transfer.  A boolean is returned to indicate success or failure.
+        if blockchain.commitLedgerItems(tokens: tr.tokens, failIfAny: true, op: .ChangeOwner) {
             
+            // distribute this transfer to other nodes
+            broadcaster.add(tr.tokens, atomic: true, op: .ChangeOwner)
             
         } else {
+            
             throw RPCErrors.InvalidRequest
+            
         }
         
-        
+        if blockchain.commitLedgerItems(tokens: tr.fee, failIfAny: true, op: .ChangeOwner) {
+            
+            // distribute this transfer to other nodes
+            broadcaster.add(tr.tokens, atomic: true, op: .ChangeOwner)
+            
+        } else {
+            
+            throw RPCErrors.InvalidRequest
+            
+        }
         
     }
     
