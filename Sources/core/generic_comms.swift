@@ -57,19 +57,19 @@ public class Comms {
         
     }
     
-    public func blockAtHeight(height: Int) -> Block? {
+    public func blockAtHeight(height: Int) -> (block:Block?, data: Data?) {
         
         let blockData = request(method: "block", parameters: ["height" : "\(height)"])
         if blockData != nil {
             
             let b = try? JSONDecoder().decode(Block.self, from: blockData!)
             if b != nil {
-                return b!
+                return (b!, blockData!)
             }
             
         }
         
-        return nil
+        return (nil,nil)
         
     }
     
