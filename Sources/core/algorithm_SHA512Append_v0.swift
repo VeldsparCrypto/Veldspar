@@ -29,13 +29,13 @@ public class AlgorithmSHA512AppendV0: AlgorithmProtocol {
      */
     
     public let seed = "BoyBellSproutMouse".data(using: .ascii)!.bytes.sha512()
-    public let distribution: [Int] = [1,1,1,2,2,2,5,5,5,10,10,20,20,50,50,100,200,500,1000,2000,5000]
+    public let distribution: [Int] = [50,100,1,500,2,2,2000,5,1,5,10,10,20,20,50,5,200,1,1000,2,5000]
     public let beanBytes = 1
     public let requiredDepth = 1
     public let hashSearchLength = 64
 
     public func deprecated(height: UInt) -> Bool {
-        return false
+        return true
     }
     
     public func value(token: Token) -> Int {
