@@ -27,6 +27,9 @@ class TempManager {
     
     var TEMP_PATH = "./temp"
     var TEMP_PATH_INBOUND = "./temp/inbound"
+    var TEMP_PATH_INBOUND_INT = "./temp/inbound/int"
+    var TEMP_PATH_INBOUND_REG = "./temp/inbound/reg"
+    var TEMP_PATH_INBOUND_TFR = "./temp/inbound/tfr"
     var TEMP_PATH_OUTBOUND_SEED = "./temp/outbound/seeds"
     var TEMP_PATH_OUTBOUND_BROADCAST = "./temp/outbound/broadcast"
     var TEMP_PATH_TIDEMARK = "./temp/tidemark"
@@ -37,10 +40,15 @@ class TempManager {
     
     var nextValue: UInt64? = nil
     
+    var inboundItems: [String:[String]] = [:]
+    
     init() {
         
         try? FileManager.default.createDirectory(atPath: TEMP_PATH, withIntermediateDirectories: true, attributes: nil)
         try? FileManager.default.createDirectory(atPath: TEMP_PATH_INBOUND, withIntermediateDirectories: true, attributes: nil)
+        try? FileManager.default.createDirectory(atPath: TEMP_PATH_INBOUND_INT, withIntermediateDirectories: true, attributes: nil)
+        try? FileManager.default.createDirectory(atPath: TEMP_PATH_INBOUND_REG, withIntermediateDirectories: true, attributes: nil)
+        try? FileManager.default.createDirectory(atPath: TEMP_PATH_INBOUND_TFR, withIntermediateDirectories: true, attributes: nil)
         try? FileManager.default.createDirectory(atPath: TEMP_PATH_OUTBOUND_SEED, withIntermediateDirectories: true, attributes: nil)
         try? FileManager.default.createDirectory(atPath: TEMP_PATH_OUTBOUND_BROADCAST, withIntermediateDirectories: true, attributes: nil)
         
@@ -86,7 +94,7 @@ class TempManager {
                     try? data.write(to: URL(fileURLWithPath: self.TEMP_PATH_TIDEMARK))
                 }
             }
-
+            
         }
         
         return i
@@ -95,7 +103,7 @@ class TempManager {
     
     func putInterNodeTransfer(_  data: Data, src: String?) {
         
-        putTempItem(data, identifier: NextIdentifier(), path: TEMP_PATH_INBOUND, type: "int", src: src)
+        putTempItem(data, identifier: NextIdentifier(), path: TEMP_PATH_INBOUND_INT, type: "int", src: src)
         
     }
     
@@ -119,13 +127,13 @@ class TempManager {
     
     func putRegister(_  data: Data, src: String?) {
         
-        putTempItem(data, identifier: NextIdentifier(), path: TEMP_PATH_INBOUND, type: "reg", src: src)
+        putTempItem(data, identifier: NextIdentifier(), path: TEMP_PATH_INBOUND_REG, type: "reg", src: src)
         
     }
     
     func putTransfer(_  data: Data, src: String?) {
         
-        putTempItem(data, identifier: NextIdentifier(), path: TEMP_PATH_INBOUND, type: "tfr", src: src)
+        putTempItem(data, identifier: NextIdentifier(), path: TEMP_PATH_INBOUND_TFR, type: "tfr", src: src)
         
     }
     
@@ -175,7 +183,7 @@ class TempManager {
         var d: Data?
         
         lock_inbound.mutex {
-            d = popTempItem(path: self.TEMP_PATH_INBOUND, type:"int")
+            d = popTempItem(path: self.TEMP_PATH_INBOUND_INT, type:"int")
         }
         
         return d
@@ -186,7 +194,7 @@ class TempManager {
         var d: Data?
         
         lock_inbound.mutex {
-            d = popTempItem(path: self.TEMP_PATH_INBOUND, type: "reg")
+            d = popTempItem(path: self.TEMP_PATH_INBOUND_REG, type: "reg")
         }
         
         return d
@@ -197,7 +205,7 @@ class TempManager {
         var d: Data?
         
         lock_inbound.mutex {
-            d = popTempItem(path: self.TEMP_PATH_INBOUND, type:"tfr")
+            d = popTempItem(path: self.TEMP_PATH_INBOUND_TFR, type:"tfr")
         }
         
         return d
@@ -207,7 +215,7 @@ class TempManager {
         
         var d: Data?
         
-        lock_outbound.mutex {
+        lock_inbound.mutex {
             d = popTempItem(path: self.TEMP_PATH_OUTBOUND_BROADCAST, type:"int")
         }
         
@@ -258,19 +266,38 @@ class TempManager {
         
         do {
             
-            let rawFiles = try FileManager.default.contentsOfDirectory(atPath: path)
-            let files = rawFiles.sorted()
-            for firstfile in files {
-                if firstfile.hasSuffix(type) {
-                    let d = FileManager.default.contents(atPath: "\(path)/\(firstfile)")
-                    if d != nil {
-                        try FileManager.default.removeItem(atPath: "\(path)/\(firstfile)")
-                        Execute.background {
-                            if FileManager.default.fileExists(atPath: "\(path)/\(firstfile.replacingOccurrences(of: type, with: "src"))") {
-                                try? FileManager.default.removeItem(atPath: "\(path)/\(firstfile.replacingOccurrences(of: type, with: "src"))")
-                            }
+            if inboundItems[path+type] == nil {
+                inboundItems[path+type] = []
+            }
+            
+            if inboundItems[path+type]!.count == 0 {
+                
+                let sortedItems = try FileManager.default.contentsOfDirectory(atPath: path).sorted()
+                for i in sortedItems {
+                    if !i.hasSuffix("src") {
+                        if i.hasSuffix(type) {
+                            inboundItems[path+type]!.append(i)
                         }
-                        return d
+                    }
+                }
+                
+            }
+            
+            if inboundItems[path+type]!.count > 0 {
+                for idx in 0...inboundItems[path+type]!.count-1 {
+                    let firstfile = inboundItems[path+type]![idx]
+                    if firstfile.hasSuffix(type) {
+                        let d = FileManager.default.contents(atPath: "\(path)/\(firstfile)")
+                        if d != nil {
+                            try FileManager.default.removeItem(atPath: "\(path)/\(firstfile)")
+                            inboundItems[path+type]!.remove(at: idx)
+                            Execute.background {
+                                if FileManager.default.fileExists(atPath: "\(path)/\(firstfile.replacingOccurrences(of: type, with: "src"))") {
+                                    try? FileManager.default.removeItem(atPath: "\(path)/\(firstfile.replacingOccurrences(of: type, with: "src"))")
+                                }
+                            }
+                            return d
+                        }
                     }
                 }
             }

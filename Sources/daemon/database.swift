@@ -125,6 +125,7 @@ class Database {
         if op == .RegisterToken {
             
             _ = db.execute(sql: "BEGIN TRANSACTION", params: [])
+            changesMade = true
             
             // work out which kind of transaction this is
             for l in ledgers {
