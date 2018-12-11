@@ -27,7 +27,7 @@ class Broadcaster {
     
     var isBroadcasting = false
         
-    func  add(_ ledgers: [Ledger], atomic: Bool) {
+    func  add(_ ledgers: [Ledger], atomic: Bool, op: LedgerOPType) {
         
         let l = Ledgers()
         l.atomic = atomic
@@ -36,6 +36,7 @@ class Broadcaster {
         l.visitedNodes = []
         l.transactions = []
         l.transactions.append(contentsOf: ledgers)
+        l.op = op.rawValue
         
         // throw this transaction into the temp cache manager now on background thread
         Execute.background {

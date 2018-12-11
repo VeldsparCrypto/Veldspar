@@ -61,10 +61,10 @@ class InterNodeTransferProcessor {
                         
                         if l!.atomic {
                             // throw these ledgers to the blockchain as they will be verified later on
-                            _ = blockchain.commitLedgerItems(tokens: l!.transactions, failIfAny: true)
+                            _ = blockchain.commitLedgerItems(tokens: l!.transactions, failIfAny: true, op: LedgerOPType(rawValue: l!.op!)!)
                         } else {
                             // throw these ledgers to the blockchain as they will be verified later on
-                            _ = blockchain.commitLedgerItems(tokens: l!.transactions, failIfAny: false)
+                            _ = blockchain.commitLedgerItems(tokens: l!.transactions, failIfAny: false, op: LedgerOPType(rawValue: l!.op!)!)
                         }
                         InterNodeTransferProcessor.processNext()
                         

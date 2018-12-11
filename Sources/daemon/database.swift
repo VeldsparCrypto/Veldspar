@@ -115,76 +115,120 @@ class Database {
         return nil;
     }
     
-    class func CommitLedger(ledgers: [Ledger], failAll: Bool) -> Bool {
+    class func CommitLedger(ledgers: [Ledger], failAll: Bool, op: LedgerOPType) -> Bool {
         
         // after many different versions, I have decided that digital signature checking and authority checking will be done here.  This will allow the data layer to atomically verify the state of the transactions and roll back if invalid transactions are attempted.
         
         var retValue = true
+        var changesMade = false
         
-        _ = db.execute(sql: "BEGIN TRANSACTION", params: [])
-        
-        // work out which kind of transaction this is
-        for l in ledgers {
+        if op == .RegisterToken {
             
-            if l.signatureHash() == l.hash {
+            _ = db.execute(sql: "BEGIN TRANSACTION", params: [])
+            
+            // work out which kind of transaction this is
+            for l in ledgers {
                 
-                // record has not been tampered with, now check to see if we already have it in the data store
-                if db.query(sql: "SELECT id FROM Ledger WHERE transaction_id = ? LIMIT 1", params: [l.transaction_id]).results.count == 0 {
+                if l.signatureHash() == l.hash {
                     
-                    if l.source == l.destination && TokenOwnershipRecord(ore: l.ore!, address: l.address!).count == 0 {
+                    // record has not been tampered with, now check to see if we already have it in the data store
+                    if db.query(sql: "SELECT id FROM Ledger WHERE transaction_id = ? LIMIT 1", params: [l.transaction_id]).results.count == 0 {
                         
-                        // this is a new registration, so it can be committed right away.  But only after we have validated that it is a valid token to be registered
-                        let t = Token(oreHeight: l.ore!, address: l.address!, algorithm: AlgorithmType.init(rawValue: l.algorithm!)!);
-                        if t.value() != 0 {
-                            l.id = nil
-                            _ = db.put(l)
-                        } else {
-                            retValue = false
-                        }
-                        
-                    } else if l.source != l.destination && l.verifySignature() {
-                        
-                        // get the current ownership record for this token
-                        let current = TokenOwnershipRecord(ore: l.ore!, address: l.address!)
-                        if current.count == 0 {
-                            retValue = false
-                        } else {
+                        if l.source == l.destination && TokenOwnershipRecord(ore: l.ore!, address: l.address!).count == 0 {
                             
-                            if current[0].destination != l.source {
-                                retValue = false
-                            } else {
-                                // so the signature is correct, the last destination is this source so we can commit this transaction now.
+                            // this is a new registration, so it can be committed right away.  But only after we have validated that it is a valid token to be registered
+                            let t = Token(oreHeight: l.ore!, address: l.address!, algorithm: AlgorithmType.init(rawValue: l.algorithm!)!);
+                            if t.value() != 0 {
                                 l.id = nil
-                                l.op = LedgerOPType.ChangeOwner.rawValue
+                                changesMade = true
                                 _ = db.put(l)
+                            } else {
+                                retValue = false
                             }
                             
                         }
                         
+                    } else {
+                        
+                        // record already exists, no action taken
+                        
                     }
-                    
-                } else {
-                    
-                    // record already exists, no action taken
                     
                 }
                 
             }
             
+        } else if op == .ChangeOwner {
+            
+            // to save nodes lots of processing time, the auth signature is a digitally signed hash of the sorted addresses from within the ledgers.
+            // the first ledger in the sorted set should contain the auth for the set
+            
+            if Crypto.verifySignature(ledgers) {
+                
+                _ = db.execute(sql: "BEGIN TRANSACTION", params: [])
+                changesMade = true
+                
+                // work out which kind of transaction this is
+                for l in ledgers {
+                    
+                    if l.signatureHash() == l.hash {
+                        
+                        // record has not been tampered with, now check to see if we already have it in the data store
+                        if db.query(sql: "SELECT id FROM Ledger WHERE transaction_id = ? LIMIT 1", params: [l.transaction_id]).results.count == 0 {
+                            
+                            if l.source != l.destination {
+                                
+                                // get the current ownership record for this token
+                                let current = TokenOwnershipRecord(ore: l.ore!, address: l.address!)
+                                if current.count == 0 {
+                                    retValue = false
+                                } else {
+                                    
+                                    if current[0].destination != l.source {
+                                        retValue = false
+                                    } else {
+                                        // so the signature is correct, the last destination is this source so we can commit this transaction now.
+                                        l.id = nil
+                                        l.op = LedgerOPType.ChangeOwner.rawValue
+                                        changesMade = true
+                                        _ = db.put(l)
+                                    }
+                                    
+                                }
+                                
+                            }
+                            
+                        } else {
+                            
+                            // record already exists, no action taken
+                            
+                        }
+                        
+                    }
+                    
+                }
+            }
         }
         
-        
-        if retValue {
+        if changesMade {
             
-            _ = db.execute(sql: "COMMIT TRANSACTION;", params: [])
+            if retValue {
+                
+                _ = db.execute(sql: "COMMIT TRANSACTION;", params: [])
+                
+            } else {
+                
+                if failAll {
+                    _ = db.execute(sql: "ROLLBACK TRANSACTION;", params: [])
+                } else {
+                    _ = db.execute(sql: "COMMIT TRANSACTION;", params: [])
+                }
+                
+            }
             
         } else {
             
-            if failAll {
-                _ = db.execute(sql: "ROLLBACK TRANSACTION;", params: [])
-            } else {
-                _ = db.execute(sql: "COMMIT TRANSACTION;", params: [])
-            }
+            retValue = false
             
         }
         

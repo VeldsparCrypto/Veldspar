@@ -50,7 +50,7 @@ public extension Array where Element == UInt8 {
         
         var values: [String] = []
         
-        for b in self as! [UInt8] {
+        for b in self {
             values.append(b.toHex())
         }
         

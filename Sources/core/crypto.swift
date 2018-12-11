@@ -89,4 +89,41 @@ public class Crypto {
         return "\(Config.CurrencyNetworkAddress)\(address.bytes.base58EncodedString)"
     }
     
+    // signatures for transactions are done here, and a signature covers multiple transaction objects.
+    
+    public class func sign(seed: Data, ledgers: [Ledger]) -> [Ledger] {
+        
+        // sort the ledger ready to produce the hash
+        let key = Keys(seed.bytes as [UInt8])
+        var sorted = ledgers.sorted()
+        var hashData = Data()
+        
+        for l in sorted {
+            hashData.append(contentsOf: l.hash!)
+        }
+        
+        let auth = key.sign(hashData.sha224())
+        sorted[0].auth = auth
+        
+        return sorted
+        
+    }
+    
+    public class func verifySignature(_ ledgers: [Ledger]) -> Bool {
+        
+        let sorted = ledgers.sorted()
+        var hashData = Data()
+        
+        for l in sorted {
+            hashData.append(contentsOf: l.hash!)
+        }
+        
+        let hash = hashData.sha224()
+        let signature = sorted[0].auth
+        let source = sorted[0].source
+        
+        return Crypto.isSigned(hash, signature_bytes: signature ?? Data(), public_key: source ?? Data())
+        
+    }
+    
 }

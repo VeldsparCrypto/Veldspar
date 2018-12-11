@@ -72,22 +72,20 @@ public class Ledger : Codable {
         
     }
     
-    public func sign(seed: Data) {
-        
-        let key = Keys(seed.bytes as [UInt8])
-        auth = key.sign(signatureHash())
-        hash = signatureHash()
-        
-    }
-    
-    public func verifySignature() -> Bool {
-        
-        return Crypto.isSigned(hash ?? Data(), signature_bytes: auth ?? Data(), public_key: source ?? Data())
-        
-    }
-    
     public func token() -> Token? {
         return Token.init(oreHeight: self.ore ?? 0, address: self.address ?? Data(), algorithm: AlgorithmType(rawValue: self.algorithm ?? 0) ?? AlgorithmType.SHA512_AppendV1)
     }
     
+}
+
+extension Ledger : Comparable {
+    public static func == (lhs: Ledger, rhs: Ledger) -> Bool {
+        return lhs.transaction_id!.base64EncodedString() ==
+            rhs.transaction_id!.base64EncodedString()
+    }
+    
+    public static func < (lhs: Ledger, rhs: Ledger) -> Bool {
+        return lhs.transaction_id!.base64EncodedString() <
+            rhs.transaction_id!.base64EncodedString()
+    }
 }

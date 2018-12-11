@@ -201,13 +201,13 @@ class BlockChain {
     
     // ledger functions
     
-    func commitLedgerItems(tokens: [Ledger], failIfAny: Bool) -> Bool {
+    func commitLedgerItems(tokens: [Ledger], failIfAny: Bool, op: LedgerOPType) -> Bool {
         
             var retValue = true
             
             blockchain_lock.mutex {
                 
-                if Database.CommitLedger(ledgers: tokens, failAll: failIfAny) {
+                if Database.CommitLedger(ledgers: tokens, failAll: failIfAny, op: op) {
                     
                     retValue = true
                     
@@ -281,7 +281,7 @@ class BlockChain {
         
         // the atomicity & validity of the ledger will be checked by the data layer upon submission
         blockchain_lock.mutex {
-            success = Database.CommitLedger(ledgers: [l], failAll: true)
+            success = Database.CommitLedger(ledgers: [l], failAll: true, op: .RegisterToken)
         }
         
         if success {
@@ -289,7 +289,7 @@ class BlockChain {
             logger.log(level: .Info, log: "Token submitted with address '\(l.address!.toHexString())' succeeded, token written.")
             
             // now broadcast this transaction to the connected nodes
-            broadcaster.add([l], atomic: true)
+            broadcaster.add([l], atomic: true, op: .RegisterToken)
             
             return true
             

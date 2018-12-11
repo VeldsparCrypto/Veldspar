@@ -451,12 +451,15 @@ class WalletFile {
         let sd = seedData()
         
         let t = TransferRequest()
+        var tokensArr: [Ledger] = []
+        var feeArr: [Ledger] = []
+        
         for l in distribution.tokens {
             l.transaction_id = Data(bytes:UUID().uuidString.sha512().bytes.sha224())
             l.transaction_ref = ref
             l.destination = destination
-            l.sign(seed: sd[l.source!]!)
-            t.tokens.append(l)
+            l.hash = l.signatureHash()
+            tokensArr.append(l)
         }
         for l in distribution.fee {
             
@@ -464,11 +467,14 @@ class WalletFile {
             l.transaction_id = Data(bytes:UUID().uuidString.sha512().bytes.sha224())
             if Config.CommunityAddress != nil {
                 l.destination = Crypto.strAddressToData(address: Config.CommunityAddress!)
-                l.sign(seed: sd[l.source!]!)
-                t.fee.append(l)
+                l.hash = l.signatureHash()
+                feeArr.append(l)
             }
             
         }
+        
+        t.tokens = Crypto.sign(seed: sd[distribution.tokens[0].source!]!, ledgers: tokensArr)
+        t.fee = Crypto.sign(seed: sd[distribution.tokens[0].source!]!, ledgers: feeArr)
         
         return t
         

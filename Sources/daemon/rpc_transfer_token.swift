@@ -39,15 +39,26 @@ class RecieveTransfer {
         // if this is the entry point into the system for this transaction, then we need to allocate ids
         for t in tr.tokens {
             if t.transaction_id == nil {
-                t.transaction_id = Data(bytes:UUID().uuidString.sha512().bytes.sha224())
+                throw RPCErrors.InvalidRequest
             }
         }
         
         // we ask the data layer to check that every single one of the tokens one-by-one, then transfer.  A boolean is returned to indicate success or failure.
-        if blockchain.commitLedgerItems(tokens: tr.tokens, failIfAny: true) {
+        if blockchain.commitLedgerItems(tokens: tr.tokens, failIfAny: true, op: .ChangeOwner) {
             
             // distribute this transfer to other nodes
-            broadcaster.add(tr.tokens, atomic: true)
+            broadcaster.add(tr.tokens, atomic: true, op: .ChangeOwner)
+            
+        } else {
+            
+            throw RPCErrors.InvalidRequest
+            
+        }
+        
+        if blockchain.commitLedgerItems(tokens: tr.fee, failIfAny: true, op: .ChangeOwner) {
+            
+            // distribute this transfer to other nodes
+            broadcaster.add(tr.tokens, atomic: true, op: .ChangeOwner)
             
         } else {
             

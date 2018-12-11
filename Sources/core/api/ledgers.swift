@@ -26,6 +26,7 @@ public class Ledgers : Codable {
     
     public var atomic: Bool = false
     public var broadcastId: String?
+    public var op: Int?
     public var visitedNodes: [String] = []
     public var source_nodeId: String?
     public var transactions : [Ledger] = []
