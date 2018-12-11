@@ -41,7 +41,7 @@ class BlockMaker {
         // sleep for 5 minutes, waiting for nodes to transmit the missing transactions to the server before producing a block
         if settings.isSeedNode {
             logger.log(level: .Info, log: "Waiting for other nodes to send outstanding transactions before continuing to produce blocks.")
-            Thread.sleep(forTimeInterval: 1)
+            Thread.sleep(forTimeInterval: 30)
             logger.log(level: .Info, log: "Updates recieved, starting the production of blocks.")
         }
         

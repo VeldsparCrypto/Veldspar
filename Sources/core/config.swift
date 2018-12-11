@@ -28,7 +28,7 @@ public class Config {
     public static let CurrencyName = "Veldspar"
     public static let CurrencyNetworkAddress = "VE"
     public static let GenesisID = "0fcbb8951fd052764f71a634b02361448386c5b0f70eadb716cc0f3f"
-    public static let BlockchainStartDate = 1544488200000
+    public static let BlockchainStartDate = 1544567700000
     
     public static let MagicByte = UInt8(255)
     
@@ -52,7 +52,7 @@ public class Config {
     public static let NetworkFee = 2 // 0.02
     
     // the community fund address where the network fee ends up.  Some will be burnt, some will be used to pay community members for tasks, some will be used as a money exchange system.
-    public static let CommunityAddress: String? = "VE28FprBLguatwmdeBd4YMqRp4yZuY3mqoszQrc1odgL8r"
+    public static let CommunityAddress: String? = "VE8ESJL5oALAa4TEGnaMyUfg6Moiz3QEAiNtsfkmw8KeWt"
     
     // number of addresses within the block that makes up a token address, exponentially increses ore payload
     public static let TokenAddressSize = 3
