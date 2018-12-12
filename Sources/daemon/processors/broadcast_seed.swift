@@ -83,7 +83,7 @@ class BroadcastSeed {
                         })
                         
                     } else {
-                        
+                                                
                         logger.log(level: .Info, log: "Sent delayed intra-node-transfer to seed node '\(n)' hash of \(d!.data.sha224().toHexString())")
                         Execute.background {
                             processNext(n)

@@ -55,7 +55,7 @@ class InterNodeTransferProcessor {
                         
                         logger.log(level: .Info, log: "Processing inter-node-transfer from node \(l!.source_nodeId!) with \(l!.transactions.count) transactions")
                         
-                        if l!.transactions[0].height == nil || l!.transactions[0].height! >= blockchain.height() {
+                        if l!.transactions[0].height == nil || l!.transactions[0].height! <= blockchain.height() {
                             // the transaction is too old so that's it for this i-n-t
                             logger.log(level: .Error, log: "Transfer from node \(l!.source_nodeId!) is too old to be committed into the blockchain")
                             InterNodeTransferProcessor.processNext()
