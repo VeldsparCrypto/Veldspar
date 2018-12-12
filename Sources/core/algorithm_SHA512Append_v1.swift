@@ -35,7 +35,7 @@ public class AlgorithmSHA512AppendV1: AlgorithmProtocol {
     public let hashSearchLength = 20
     
     public func deprecated(height: UInt) -> Bool {
-        return true
+        return false
     }
     
     public func value(token: Token) -> Int {
