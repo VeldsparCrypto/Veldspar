@@ -438,9 +438,7 @@ class WalletFile {
             for r in current_denominations.results {
                 let id = r["id"]!.asInt()!
                 let value = r["value"]!.asInt()!
-                for _ in 1...current_denominations.results.count {
-                    denominations.append((id,value))
-                }
+                denominations.append((id,value))
             }
             
             var attempts = 50
@@ -564,6 +562,10 @@ class WalletFile {
         
     }
     
+    func getTransfers(wallet: ) -> {
+        
+    }
+    
     func confirmSpend(ref: Data) {
         
         walletLock.mutex {
@@ -591,6 +593,7 @@ class WalletFile {
                 }
                 tfrs[l.transaction_ref!]! -= l.value!
             } else if addressesBytes().contains(l.destination!) {
+                
                 // this is a transfer in, it could have no ref if it is a registration
                 if l.transaction_ref == nil {
                     l.transaction_ref = l.transaction_id
@@ -644,7 +647,7 @@ class WalletFile {
     
     func pollForChanges() {
         
-        var delay = 0.0
+        var delay = 1.0
         
         if self.addresses().count > 0 {
             
@@ -679,14 +682,20 @@ class WalletFile {
                         
                     } else {
                         
-                        log.log(level: .Error, log: "Error downloading block \(nextHeight) from node \(node)")
+                        if Block.currentNetworkBlockHeight() - self.height() > 1 {
+                            log.log(level: .Error, log: "Error downloading block \(nextHeight) from node \(node)")
+                        }
+                        
                         delay = 10.0
                         
                     }
                     
                 } else {
                     
-                    log.log(level: .Error, log: "Error downloading block \(nextHeight) from node \(node)")
+                    if Block.currentNetworkBlockHeight() - self.height() > 1 {
+                        log.log(level: .Error, log: "Error downloading block \(nextHeight) from node \(node)")
+                    }
+                    
                     delay = 10.0
                     
                 }
