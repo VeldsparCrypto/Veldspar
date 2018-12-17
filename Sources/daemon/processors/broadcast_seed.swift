@@ -73,6 +73,8 @@ class BroadcastSeed {
                 self.HTTPPostJSON(url: "http://\(n)/int", data: d!.data) { (err, result) in
                     if(err != nil) {
                         
+                        logger.log(level: .Info, log: "Unable to contact seed node '\(n)', caching update until later.")
+                        
                         // there was an error, so we need to restore the file back to disk again after waiting for a bit, otherwise the cycle will continue
                         tempManager.putBroadcastOutSeed(d!.data, seed: n, named: d!.fileId)
                         
@@ -81,7 +83,7 @@ class BroadcastSeed {
                         })
                         
                     } else {
-                        
+                                                
                         logger.log(level: .Info, log: "Sent delayed intra-node-transfer to seed node '\(n)' hash of \(d!.data.sha224().toHexString())")
                         Execute.background {
                             processNext(n)

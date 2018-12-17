@@ -63,6 +63,8 @@ class RPCHandler {
                     return .forbidden
                 }
                 
+                logger.log(level: .Debug, log: "(RPC) '\(request.path)'")
+                
                 return .ok(.jsonString("{\"timestamp\" : \(consensusTime())}"))
                 
             case "/currentheight":
@@ -70,6 +72,8 @@ class RPCHandler {
                 if !settings.rpc_allow_height {
                     return .forbidden
                 }
+                
+                logger.log(level: .Debug, log: "(RPC) '\(request.path)'")
                 
                 let filePath = "./cache/blocks/current.height"
                 
@@ -99,6 +103,8 @@ class RPCHandler {
                         height = Int(p.1) ?? 0
                     }
                 }
+                
+                logger.log(level: .Debug, log: "(RPC) '\(request.path)'")
                 
                 let filePath = "./cache/blocks/\(height).block"
                 
@@ -152,6 +158,8 @@ class RPCHandler {
                 return .ok(.jsonData(try JSONEncoder().encode(GenericResponse(key: "received", value: "ok"))))
                 
             case "/int":
+                
+                logger.log(level: .Debug, log: "(RPC) '\(request.path)'")
                 
                 if request.method != "POST" {
                     throw RPCErrors.InvalidRequest
@@ -238,6 +246,8 @@ class RPCHandler {
                 return .ok(.jsonData(try JSONEncoder().encode(blockHash)))
                 
             case "/transfer":
+                
+                logger.log(level: .Debug, log: "(RPC) '\(request.path)'")
                 
                 // just flush to disk and return generic response
                 tempManager.putTransfer(Data(bytes: request.body), src: request.address)

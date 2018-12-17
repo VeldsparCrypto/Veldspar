@@ -85,6 +85,10 @@ class WalletFile {
         
         pw = password
         
+        Execute.backgroundAfter(after: 2.0) {
+            self.pollForChanges()
+        }
+        
     }
     
     func addExistingAddress(_ uuid: String) throws -> String {
@@ -118,35 +122,53 @@ class WalletFile {
             seed = Data(bytes:uuid.bytes.sha512()).prefix(32).bytes
         }
         let k = Keys(seed)
-        _ = db.execute(sql: "INSERT OR REPLACE INTO address (addressId,seed,height,name) VALUES (?,?,?,?);", params:[k.address(), encSeed!, 0, k.address()])
         
-        addressCache = nil
+        walletLock.mutex {
+            _ = db.execute(sql: "INSERT OR REPLACE INTO address (addressId,seed,height,name) VALUES (?,?,?,?);", params:[k.address(), encSeed!, 0, k.address()])
+            
+            // reset the wallets
+            log.log(level: .Warning, log: "Address added, re-syncing wallet with network.")
+            setHeight(0)
+            
+            addressCache = nil
+        }
         
         return k.address()
         
     }
     
     func setHeight(_ height: Int) {
-        _ = db.execute(sql: "UPDATE Address SET height = ?", params: [height])
-        if height == 0 {
-            _ = db.execute(sql: "DELETE FROM Transfer", params: [])
-            _ = db.execute(sql: "DELETE FROM Ledger", params: [])
-            _ = db.execute(sql: "DELETE FROM Spent", params: [])
+
+        walletLock.mutex {
+            _ = db.execute(sql: "UPDATE Address SET height = ?", params: [height])
+            if height == 0 {
+                _ = db.execute(sql: "DELETE FROM Transfer", params: [])
+                _ = db.execute(sql: "DELETE FROM Ledger", params: [])
+                _ = db.execute(sql: "DELETE FROM Spent", params: [])
+            }
         }
+
     }
     
     func height() -> Int {
         
-        let results = db.query(sql: "SELECT MIN(height) as lowest FROM address", params: [])
-        if results.error == nil && results.results.count > 0 {
-            
-            for r in results.results {
-                return r["lowest"]!.asInt() ?? 0
+        var retvalue = 0
+        
+        walletLock.mutex {
+            let results = db.query(sql: "SELECT MIN(height) as lowest FROM Address", params: [])
+            if results.error == nil && results.results.count > 0 {
+                
+                for r in results.results {
+                    retvalue = r["lowest"]!.asInt() ?? 0
+                    break
+                }
+                
             }
             
         }
         
-        return 0
+        return retvalue
+        
     }
     
     func isDecodable() -> Bool {
@@ -177,9 +199,16 @@ class WalletFile {
         
         let seed = Data(bytes:uuid.bytes.sha512()).prefix(32).bytes
         let k = Keys(seed)
-        _ = db.execute(sql: "INSERT OR REPLACE INTO address (addressId,seed,height,name) VALUES (?,?,?,?);", params:[k.address(), encSeed!, 0,k.address()])
         
-        addressCache = nil
+        walletLock.mutex {
+            
+            _ = db.execute(sql: "INSERT OR REPLACE INTO address (addressId,seed,height,name) VALUES (?,?,?,?);", params:[k.address(), encSeed!, 0,k.address()])
+            
+            // reset the wallets
+            log.log(level: .Warning, log: "Address created, re-syncing wallet with network.")
+            setHeight(0)
+            
+        }
         
         return k.address()
         
@@ -187,14 +216,21 @@ class WalletFile {
     
     func deleteAddress(_ address: String) {
         
-        _ = db.execute(sql: "DELETE FROM address WHERE addressId = ?;", params: [address])
-        _ = db.execute(sql: "DELETE FROM token WHERE address = ?;", params: [address])
+        log.log(level: .Warning, log: "Address removed, re-syncing wallet with network.")
+        
+        walletLock.mutex {
+            _ = db.execute(sql: "DELETE FROM Address WHERE addressId = ?;", params: [address])
+            addressCache = nil
+        }
+        setHeight(0)
         
     }
     
     func nameAddress(_ address: String, name: String) {
         
-        _ = db.execute(sql: "UPDATE address SET name = ? WHERE addressId = ?;", params: [name, address])
+        walletLock.mutex {
+            _ = db.execute(sql: "UPDATE Address SET name = ? WHERE addressId = ?;", params: [name, address])
+        }
         
     }
     
@@ -205,16 +241,21 @@ class WalletFile {
         }
         
         var retValue: [String] = []
-        let results = db.query(sql: "SELECT addressId FROM address", params: [])
-        if results.error == nil && results.results.count > 0 {
+        
+        walletLock.mutex {
             
-            for r in results.results {
-                retValue.append(r["addressId"]!.asString()!)
+            let results = db.query(sql: "SELECT addressId FROM address", params: [])
+            if results.error == nil && results.results.count > 0 {
+                
+                for r in results.results {
+                    retValue.append(r["addressId"]!.asString()!)
+                }
+                
             }
             
+            addressCache = retValue
+            
         }
-        
-        addressCache = retValue
         
         return retValue
         
@@ -223,13 +264,16 @@ class WalletFile {
     func addressesBytes() -> [Data] {
         
         var retValue: [Data] = []
-        let results = db.query(sql: "SELECT addressId FROM address", params: [])
-        if results.error == nil && results.results.count > 0 {
-            
-            for r in results.results {
-                retValue.append(Crypto.strAddressToData(address: r["addressId"]!.asString()!))
+        
+        walletLock.mutex {
+            let results = db.query(sql: "SELECT addressId FROM address", params: [])
+            if results.error == nil && results.results.count > 0 {
+                
+                for r in results.results {
+                    retValue.append(Crypto.strAddressToData(address: r["addressId"]!.asString()!))
+                }
+                
             }
-            
         }
         
         return retValue
@@ -238,32 +282,38 @@ class WalletFile {
     
     func seedForAddress(_ address: String) -> String? {
         
-        let results = db.query(sql: "SELECT seed FROM address WHERE addressId = ?", params: [address])
-        if results.error == nil && results.results.count > 0 {
-            
-            for r in results.results {
+        var retValue: String? = nil
+        
+        walletLock.mutex {
+            let results = db.query(sql: "SELECT seed FROM address WHERE addressId = ?", params: [address])
+            if results.error == nil && results.results.count > 0 {
                 
-                let seed = r["seed"]!.asString()!
-                do {
+                for r in results.results {
                     
-                    // this is where we check for the old format file & old AES implementation.  It's upgraded on write out.
-                    let encryptedData = seed.base58DecodedData
-                    let aes = try AES(key: Data(bytes: pw.bytes.sha512()).prefix(32).bytes, blockMode: CBC(iv: Data(bytes:pw.bytes.sha512().sha512()).prefix(16).bytes), padding: Padding.pkcs7)
-                    let decryptedSeed = String(bytes: try aes.decrypt(Array(encryptedData!)), encoding: .ascii)
-                    if !decryptedSeed!.contains("-") {
-                        return nil
+                    let seed = r["seed"]!.asString()!
+                    do {
+                        
+                        // this is where we check for the old format file & old AES implementation.  It's upgraded on write out.
+                        let encryptedData = seed.base58DecodedData
+                        let aes = try AES(key: Data(bytes: pw.bytes.sha512()).prefix(32).bytes, blockMode: CBC(iv: Data(bytes:pw.bytes.sha512().sha512()).prefix(16).bytes), padding: Padding.pkcs7)
+                        let decryptedSeed = String(bytes: try aes.decrypt(Array(encryptedData!)), encoding: .ascii)
+                        if decryptedSeed!.contains("-") {
+                            retValue = decryptedSeed
+                        } else {
+                            retValue = nil
+                            break
+                        }
+                        
+                    } catch  {
+                        
                     }
-                    return decryptedSeed!
-                    
-                } catch  {
                     
                 }
                 
             }
-            
         }
         
-        return nil
+        return retValue
         
     }
     
@@ -271,28 +321,30 @@ class WalletFile {
         
         var d: [Data:Data] = [:]
         
-        let results = db.query(sql: "SELECT addressId,seed FROM Address;", params: [])
-        if results.error == nil && results.results.count > 0 {
-            
-            for r in results.results {
+        walletLock.mutex {
+            let results = db.query(sql: "SELECT addressId,seed FROM Address;", params: [])
+            if results.error == nil && results.results.count > 0 {
                 
-                let seed = r["seed"]!.asString()!
-                let address = Crypto.strAddressToData(address: r["addressId"]!.asString()!)
-                do {
+                for r in results.results {
                     
-                    // this is where we check for the old format file & old AES implementation.  It's upgraded on write out.
-                    let encryptedData = seed.base58DecodedData
-                    let aes = try AES(key: Data(bytes: pw.bytes.sha512()).prefix(32).bytes, blockMode: CBC(iv: Data(bytes:pw.bytes.sha512().sha512()).prefix(16).bytes), padding: Padding.pkcs7)
-                    let decryptedSeed = String(bytes: try aes.decrypt(Array(encryptedData!)), encoding: .ascii)
-                    
-                    d[address] = Data((decryptedSeed!.bytes.sha512()).prefix(32))
-                    
-                } catch  {
+                    let seed = r["seed"]!.asString()!
+                    let address = Crypto.strAddressToData(address: r["addressId"]!.asString()!)
+                    do {
+                        
+                        // this is where we check for the old format file & old AES implementation.  It's upgraded on write out.
+                        let encryptedData = seed.base58DecodedData
+                        let aes = try AES(key: Data(bytes: pw.bytes.sha512()).prefix(32).bytes, blockMode: CBC(iv: Data(bytes:pw.bytes.sha512().sha512()).prefix(16).bytes), padding: Padding.pkcs7)
+                        let decryptedSeed = String(bytes: try aes.decrypt(Array(encryptedData!)), encoding: .ascii)
+                        
+                        d[address] = Data((decryptedSeed!.bytes.sha512()).prefix(32))
+                        
+                    } catch  {
+                        
+                    }
                     
                 }
                 
             }
-            
         }
         
         return d
@@ -300,144 +352,155 @@ class WalletFile {
     }
     
     func setNameForAddress(_ address: String, name: String) {
-        _ = db.execute(sql: "UPDATE address SET name = ? WHERE addressId = ?", params: [name, address])
+        walletLock.mutex {
+            _ = db.execute(sql: "UPDATE address SET name = ? WHERE addressId = ?", params: [name, address])
+        }
     }
     
     func nameForAddress(_ address: String) -> String? {
 
-        let results = db.query(sql: "SELECT name FROM address WHERE addressId = ?", params: [address])
-        if results.error == nil && results.results.count > 0 {
+        var retValue: String? = nil
+        
+        walletLock.mutex {
             
-            for r in results.results {
-                return r["name"]!.asString()!
+            let results = db.query(sql: "SELECT name FROM Address WHERE addressId = ?", params: [address])
+            if results.error == nil && results.results.count > 0 {
+                
+                for r in results.results {
+                    retValue = r["name"]!.asString()!
+                    break
+                }
+                
             }
             
         }
         
-        return nil
+        return retValue
         
     }
     
-    func addTokenIfOwned(_ token: Ledger) -> Int {
+    func addRemoveTokens(_ tokens: [Ledger], height: Int) {
         
-        if addressesBytes().contains(token.destination!) {
+        let aBytes = addressesBytes();
+        
+        walletLock.mutex {
             
-            _ = db.put(token)
-            return token.value!
+            _ = db.execute(sql: "BEGIN TRANSACTION", params: [])
+            
+            for token in tokens {
+                
+                if !aBytes.contains(token.destination!) {
+                    if aBytes.contains(token.source!) {
+                        _ = db.execute(sql: "DELETE FROM Ledger WHERE address = ? AND ore = ?", params: [token.address!, token.ore!])
+                    }
+                } else {
+                    _ = db.put(token)
+                }
+                
+            }
+            
+            addTransferRecordsFromLedgers(tokens, height: height)
+            
+            _ = db.execute(sql: "COMMIT TRANSACTION", params: [])
             
         }
         
-        return 0
-        
     }
     
-    func removeTokenIfOwned(_ token: Ledger) -> Int {
+    func balance(address: Data) -> Double {
         
-        if !addressesBytes().contains(token.destination!) {
-            if addressesBytes().contains(token.source!) {
-                _ = db.execute(sql: "DELETE FROM Ledger WHERE address = ? AND ore = ?", params: [token.address!, token.ore!])
-                return token.value!
+        var retValue = 0.0
+        
+        walletLock.mutex {
+            
+            let results = db.query(sql: "SELECT SUM(value) as totalValue FROM Ledger WHERE destination = ? AND id NOT IN (SELECT id FROM Spent)", params:[address])
+            if results.error == nil && results.results.count > 0 {
+                for r in results.results {
+                    retValue = Double((r["totalValue"]!.asInt() ?? 0) / Config.DenominationDivider)
+                    break;
+                }
             }
+            
         }
-
-        return 0
+        
+        return retValue
         
     }
     
-    func balance() -> Double {
-        
-        let results = db.query(sql: "SELECT SUM(value) as totalValue FROM Ledger WHERE id NOT IN (SELECT id FROM Spent);", params: [])
-        if results.error == nil && results.results.count > 0 {
-            for r in results.results {
-                return Double((r["totalValue"]!.asInt() ?? 0) / Config.DenominationDivider)
-            }
-        }
-        return 0
-        
-    }
-    
-    func balance(address: String) -> Double {
-        
-        let results = db.query(sql: "SELECT SUM(value) as totalValue FROM Ledger WHERE destination = ? AND id NOT IN (SELECT id FROM Spent)", params: [Crypto.strAddressToData(address: address)])
-        if results.error == nil && results.results.count > 0 {
-            for r in results.results {
-                return Double((r["totalValue"]!.asInt() ?? 0) / Config.DenominationDivider)
-            }
-        }
-        return 0
-        
-    }
-    
-    func suitableArrayOfTokensForValue(_ value: Int, networkFee: Int) -> (tokens:[Ledger], fee:[Ledger]) {
+    func suitableArrayOfTokensForValue(_ value: Int, networkFee: Int, address: Data) -> (tokens:[Ledger], fee:[Ledger]) {
         
         var returnTokens:(tokens:[Ledger],fee:[Ledger]) = ([],[])
-        let current_denominations = db.query(sql: "SELECT id,value FROM Ledger WHERE id NOT IN (SELECT id FROM Spent)", params: [])
-        var denominations: [(id:Int,value:Int)] = []
-        for r in current_denominations.results {
-            let id = r["id"]!.asInt()!
-            let value = r["value"]!.asInt()!
-            for _ in 1...current_denominations.results.count {
+        
+        walletLock.mutex {
+            
+            let current_denominations = db.query(sql: "SELECT id,value FROM Ledger WHERE id NOT IN (SELECT id FROM Spent) AND destination = ?", params: [address])
+            var denominations: [(id:Int,value:Int)] = []
+            for r in current_denominations.results {
+                let id = r["id"]!.asInt()!
+                let value = r["value"]!.asInt()!
                 denominations.append((id,value))
             }
-        }
-        
-        var attempts = 50
-        while true {
             
-            // repeatedly shuffle until a payment combo appears
-            denominations.shuffle()
-            returnTokens = ([],[])
-            var used: [Int] = []
-            
-            // now we want to randomly select tokens from the available stock
-            var remaining = value
-            var remainingFee = networkFee
-
-            for t in denominations {
+            var attempts = 50
+            while true {
                 
-                if !used.contains(t.id) {
+                // repeatedly shuffle until a payment combo appears
+                denominations.shuffle()
+                returnTokens = ([],[])
+                var used: [Int] = []
+                
+                // now we want to randomly select tokens from the available stock
+                var remaining = value
+                var remainingFee = networkFee
+                
+                for t in denominations {
                     
-                    if t.value <= remaining || t.value <= remainingFee {
+                    if !used.contains(t.id) {
                         
-                        if t.value <= remainingFee {
+                        if t.value <= remaining || t.value <= remainingFee {
                             
-                            let token = db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE id = ?", params: [t.id])
-                            if token.count > 0 {
-                                returnTokens.fee.append(token[0])
-                                remainingFee -= t.value
-                                used.append(t.id)
-                            }
-                            
-                        } else if t.value <= remaining {
-                            
-                            let token = db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE id = ?", params: [t.id])
-                            if token.count > 0 {
-                                returnTokens.tokens.append(token[0])
-                                remaining -= t.value
-                                used.append(t.id)
+                            if t.value <= remainingFee {
+                                
+                                let token = db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE id = ?", params: [t.id])
+                                if token.count > 0 {
+                                    returnTokens.fee.append(token[0])
+                                    remainingFee -= t.value
+                                    used.append(t.id)
+                                }
+                                
+                            } else if t.value <= remaining {
+                                
+                                let token = db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE id = ?", params: [t.id])
+                                if token.count > 0 {
+                                    returnTokens.tokens.append(token[0])
+                                    remaining -= t.value
+                                    used.append(t.id)
+                                }
+                                
                             }
                             
                         }
                         
-                    }
-                    
-                    if remaining == 0 && remainingFee == 0 {
-                        break
+                        if remaining == 0 && remainingFee == 0 {
+                            break
+                        }
+                        
                     }
                     
                 }
-
-            }
-            
-            if remaining == 0 && remainingFee == 0 {
-                break
-            }
-            
-            attempts -= 1
-            
-            if attempts == 0 {
-                // return nothing
-                return ([],[])
+                
+                if remaining == 0 && remainingFee == 0 {
+                    break
+                }
+                
+                attempts -= 1
+                
+                if attempts == 0 {
+                    // return nothing
+                    returnTokens = ([],[])
+                    break
+                }
+                
             }
             
         }
@@ -446,7 +509,7 @@ class WalletFile {
         
     }
     
-    func generateTransfer(distribution: (tokens:[Ledger], fee:[Ledger]), destination: Data, ref: Data) -> TransferRequest {
+    func generateTransfer(distribution: (tokens:[Ledger], fee:[Ledger]),source: Data, destination: Data, ref: Data) -> TransferRequest {
         
         let sd = seedData()
         
@@ -457,6 +520,7 @@ class WalletFile {
         for l in distribution.tokens {
             l.transaction_id = Data(bytes:UUID().uuidString.sha512().bytes.sha224())
             l.transaction_ref = ref
+            l.source = source
             l.destination = destination
             l.hash = l.signatureHash()
             tokensArr.append(l)
@@ -467,6 +531,7 @@ class WalletFile {
             l.transaction_id = Data(bytes:UUID().uuidString.sha512().bytes.sha224())
             if Config.CommunityAddress != nil {
                 l.destination = Crypto.strAddressToData(address: Config.CommunityAddress!)
+                l.source = source
                 l.hash = l.signatureHash()
                 feeArr.append(l)
             }
@@ -482,21 +547,33 @@ class WalletFile {
     
     func spend(distribution: (tokens:[Ledger], fee:[Ledger])) {
         
-        for d in distribution.tokens {
+        walletLock.mutex {
             
-            let s = Spent()
-            s.id = d.id
-            s.transferRef = d.transaction_ref
-            _ = db.put(s)
+            for d in distribution.tokens {
+                
+                let s = Spent()
+                s.id = d.id
+                s.transferRef = d.transaction_ref
+                _ = db.put(s)
+                
+            }
             
         }
         
     }
     
+    func getTransfers(wallet: ) -> {
+        
+    }
+    
     func confirmSpend(ref: Data) {
         
-        _ = db.execute(sql: "DELETE FROM Ledger WHERE id IN (SELECT id FROM Spent WHERE transferRef = ?)", params: [ref])
-        _ = db.execute(sql: "DELETE FROM Spent WHERE transferRef = ?", params: [ref])
+        walletLock.mutex {
+            
+            _ = db.execute(sql: "DELETE FROM Ledger WHERE id IN (SELECT id FROM Spent WHERE transferRef = ?)", params: [ref])
+            _ = db.execute(sql: "DELETE FROM Spent WHERE transferRef = ?", params: [ref])
+            
+        }
         
     }
     
@@ -516,6 +593,7 @@ class WalletFile {
                 }
                 tfrs[l.transaction_ref!]! -= l.value!
             } else if addressesBytes().contains(l.destination!) {
+                
                 // this is a transfer in, it could have no ref if it is a registration
                 if l.transaction_ref == nil {
                     l.transaction_ref = l.transaction_id
@@ -532,30 +610,110 @@ class WalletFile {
         
         // now write these transfers into the transfer table
         if tfrs.keys.count > 0 {
-            for tfr in tfrs {
+            
+            walletLock.mutex {
                 
-                let t = Transfer()
-                t.height = height
-                t.timestamp = Int(timestamps[tfr.key]!)
-                t.tokenValue = tfr.value
-                t.transferRef = tfr.key
-                t.target = target[tfr.key]
-                _ = db.put(t)
-                
-                let df = DateFormatter()
-                df.dateStyle = .medium
-                df.timeStyle = .medium
-                
-                if t.tokenValue! > 0 {
-                    print("Incoming \(t.transferRef!.bytes.base58EncodedString) : \(df.string(from: Date(timeIntervalSince1970: Double(t.timestamp! / 1000)))) of \(Float(t.tokenValue!) / Float(Config.DenominationDivider)) \(Config.CurrencyName)".blue)
-                } else {
-                    print("Outgoing \(t.transferRef!.bytes.base58EncodedString) : \(df.string(from: Date(timeIntervalSince1970: Double(t.timestamp! / 1000)))), of \(Float(t.tokenValue!) / Float(Config.DenominationDivider)) \(Config.CurrencyName) -> \(t.target!)".red)
+                for tfr in tfrs {
+                    
+                    let t = Transfer()
+                    t.height = height
+                    t.timestamp = Int(timestamps[tfr.key]!)
+                    t.tokenValue = tfr.value
+                    t.transferRef = tfr.key
+                    t.target = target[tfr.key]
+                    _ = db.put(t)
+                    
+                    let df = DateFormatter()
+                    df.dateStyle = .medium
+                    df.timeStyle = .medium
+                    
+                    if t.tokenValue! > 0 {
+                        print("Incoming \(t.transferRef!.bytes.base58EncodedString) : \(df.string(from: Date(timeIntervalSince1970: Double(t.timestamp! / 1000)))) of \(Float(t.tokenValue!) / Float(Config.DenominationDivider)) \(Config.CurrencyName)".blue)
+                    } else {
+                        print("Outgoing \(t.transferRef!.bytes.base58EncodedString) : \(df.string(from: Date(timeIntervalSince1970: Double(t.timestamp! / 1000)))), of \(Float(t.tokenValue!) / Float(Config.DenominationDivider)) \(Config.CurrencyName) -> \(t.target!)".red)
+                    }
+                    
+                    confirmSpend(ref: tfr.key)
+                    
                 }
-                
-                confirmSpend(ref: tfr.key)
                 
             }
             
+            print("\n")
+            
+        }
+        
+    }
+    
+    func pollForChanges() {
+        
+        var delay = 1.0
+        
+        if self.addresses().count > 0 {
+            
+            if wallet!.height() < Block.currentNetworkBlockHeight() {
+                
+                let nextHeight = wallet!.height() + 1
+                
+                let blockData = try? Data(contentsOf: URL(string:"http://\(node)/block?height=\(nextHeight)")!)
+                if blockData != nil {
+                    
+                    let b = try? JSONDecoder().decode(Block.self, from: blockData!)
+                    if b != nil {
+                        
+                        let block = b!
+                        let adds = wallet!.addressesBytes()
+                        var transactions: [Ledger] = []
+                        
+                        for l in block.transactions ?? [] {
+                            if adds.contains(l.source!) || adds.contains(l.destination!) {
+                                transactions.append(l)
+                            }
+                        }
+                        
+                        wallet!.addRemoveTokens(transactions, height: nextHeight)
+                        
+                        if block.height != nil {
+                            wallet?.setHeight(Int(block.height!))
+                        }
+                        
+                        log.log(level: .Info, log: "Downloaded block \(nextHeight) from node \(node)")
+                        delay = 0.0
+                        
+                    } else {
+                        
+                        if Block.currentNetworkBlockHeight() - self.height() > 1 {
+                            log.log(level: .Error, log: "Error downloading block \(nextHeight) from node \(node)")
+                        }
+                        
+                        delay = 10.0
+                        
+                    }
+                    
+                } else {
+                    
+                    if Block.currentNetworkBlockHeight() - self.height() > 1 {
+                        log.log(level: .Error, log: "Error downloading block \(nextHeight) from node \(node)")
+                    }
+                    
+                    delay = 10.0
+                    
+                }
+                
+            } else {
+                
+                delay = 10.0
+                
+            }
+            
+        } else {
+            
+            delay = 10.0
+            
+        }
+        
+        Execute.backgroundAfter(after: delay) {
+            self.pollForChanges()
         }
         
     }
