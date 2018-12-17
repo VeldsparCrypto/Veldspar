@@ -39,4 +39,9 @@ public struct Block : Codable {
         
     }
     
+    public static func currentNetworkBlockHeight() -> Int {
+        let currentTime = consensusTime()
+        return Int((currentTime - Config.BlockchainStartDate) / (Config.BlockTime * 1000))
+    }
+    
 }

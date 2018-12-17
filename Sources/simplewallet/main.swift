@@ -37,6 +37,7 @@ var wallet: WalletFile?
 let walletLock = Mutex()
 var node = "127.0.0.1:14242"
 var isTestNet = false
+let log = Logger()
 
 // the choice switch
 
@@ -165,81 +166,6 @@ if currentPassword != nil && currentFilename != nil {
     
 }
 
-func WalletLoop() {
-    
-    while true {
-        
-        var delay = 10.0
-        
-        walletLock.mutex {
-            
-            // fetch the current height
-            if walletOpen && wallet != nil {
-                
-                let nwHeight = try? Data(contentsOf: URL(string:"http://\(node)/currentheight")!)
-                if nwHeight != nil {
-                    let height = try? JSONDecoder().decode(CurrentHeightObject.self, from: nwHeight!)
-                    
-                    if wallet!.height() < height!.height! {
-                        
-                        let nextHeight = wallet!.height() + 1
-                        
-                        let blockData = try? Data(contentsOf: URL(string:"http://\(node)/block?height=\(nextHeight)")!)
-                        if blockData != nil {
-                            
-                            let b = try? JSONDecoder().decode(Block.self, from: blockData!)
-                            if b != nil {
-                                let block = b!
-                                var totalAdded = 0
-                                var totalSpent = 0
-                                
-                                for l in block.transactions ?? [] {
-                                    
-                                    totalAdded += wallet?.addTokenIfOwned(l) ?? 0
-                                    totalSpent += wallet?.removeTokenIfOwned(l) ?? 0
-                                    
-                                }
-                                
-                                if totalAdded > 0 || totalSpent > 0 {
-                                    
-                                    wallet?.addTransferRecordsFromLedgers(block.transactions ?? [], height: block.height!)
-                                    print("\n")
-                                    
-                                }
-                                
-                                if block.height != nil {
-                                    wallet?.setHeight(Int(block.height!))
-                                }
-                                
-                                delay = 0.0
-                                
-                            } else {
-                                
-                                delay = 10.0
-                                
-                            }
-                            
-                        }
-                        
-                        
-                    } else {
-                        
-                        delay = 60.0
-                        
-                    }
-                    
-                }
-                
-            }
-        }
-        Thread.sleep(forTimeInterval: delay)
-    }
-}
-
-Execute.background {
-    WalletLoop()
-}
-
 while true {
     
     while true {
@@ -327,7 +253,6 @@ while true {
                     print("address: \(address ?? "")")
                     print("seed uuid: \(wallet!.seedForAddress(address!) ?? "")")
                     print("")
-                    print("current balance: \(wallet!.balance())")
                     
                     ShowOpenedMenu()
                     
@@ -381,7 +306,6 @@ while true {
                     print("address: \(address ?? "")")
                     print("seed uuid: \(uuid!)")
                     print("")
-                    print("current balance: \(wallet!.balance())")
                     
                     ShowOpenedMenu()
                     
@@ -400,13 +324,60 @@ while true {
             let answer = readLine()
             switch answer?.lowercased() ?? "" {
             case "b":
+                print("Wallet balance(s)")
+                print("--------------------------------------------------")
+                print("Name                                   | Balance  ")
+                print("--------------------------------------------------")
+                
+                for a in wallet!.addresses() {
+                    var name = wallet!.nameForAddress(a)
+                    if name != nil {
+                        name! += "                                                     "
+                    }
+                    print("\(name!.prefix(36))" + "   " + "\(wallet!.balance(address: Crypto.strAddressToData(address: a)))")
+                }
                 print("")
-                print("current balance: \(wallet!.balance())")
+                ShowOpenedMenu()
+                
             case "l":
                 print("feature not implemented yet")
             case "p":
                 print("feature not implemented yet")
             case "t":
+                
+                var addStr: String? = nil
+                
+                if wallet!.addresses().count > 1 {
+                    print("Wallet balance(s)")
+                    print("--------------------------------------------------")
+                    print("Name                                   | Balance  ")
+                    print("--------------------------------------------------")
+                    
+                    var idx = 1
+                    var adds: [String] = []
+                    for a in wallet!.addresses() {
+                        var name = wallet!.nameForAddress(a)
+                        if name != nil {
+                            name! += "                                                     "
+                        }
+                        print("\(idx) \(name!.prefix(35))" + "    " + "\(wallet!.balance(address: Crypto.strAddressToData(address: a)))")
+                        idx += 1
+                        adds.append(a)
+                    }
+                    print("")
+                    ShowOpenedMenu()
+                    
+                    print("select wallet to transfer from:")
+                    var selectedAddress = readLine()
+                    if selectedAddress == nil || Int(selectedAddress!) == nil {
+                        print("ERROR: invalid wallet")
+                        break;
+                    }
+                    addStr = adds[Int(selectedAddress!) ?? 0]
+                } else {
+                    addStr = wallet!.addresses()[0]
+                }
+                
                 // create a transfer object to transfer contents from this wallet to another wallet
                 print("amount of \(Config.CurrencyNetworkAddress) to send to target? (e.g.) 10.00")
                 let amount = readLine()
@@ -421,7 +392,7 @@ while true {
                     break;
                 }
                 
-                if (Int(wallet?.balance() ?? 0) * Config.DenominationDivider) < (Config.NetworkFee + amt) {
+                if (Int(wallet?.balance(address: Crypto.strAddressToData(address: addStr!)) ?? 0) * Config.DenominationDivider) < (Config.NetworkFee + amt) {
                     print("ERROR: not enough in wallet to send total of \(Float((Config.NetworkFee + amt) / Config.DenominationDivider))")
                     break;
                 }
@@ -451,12 +422,12 @@ while true {
                     else
                     {
                         // showtime
-                        let items = wallet!.suitableArrayOfTokensForValue(amt, networkFee: Config.NetworkFee)
+                        let items = wallet!.suitableArrayOfTokensForValue(amt, networkFee: Config.NetworkFee, address: Crypto.strAddressToData(address: addStr!))
                         if items.tokens.count == 0 {
                             print("ERROR:  Unable to select the appropriate amount of tokens to make this transfer, please try again.")
                             break
                         }
-                        let tfr = wallet!.generateTransfer(distribution: items, destination: Crypto.strAddressToData(address: dest!), ref: ref.base58DecodedData!)
+                        let tfr = wallet!.generateTransfer(distribution: items,source: Crypto.strAddressToData(address: addStr!),destination: Crypto.strAddressToData(address: dest!), ref: ref.base58DecodedData!)
                         // now attempt to send this to the node for processing, then mark the transfer as Spent to avoid double spends
                         
                         
@@ -493,7 +464,6 @@ while true {
                 print("address: \(address ?? "")")
                 print("seed uuid: \(uuid)")
                 print("")
-                print("current balance: \(wallet!.balance())")
                 
                 ShowOpenedMenu()
                 
@@ -517,7 +487,6 @@ while true {
                     print("address: \(address ?? "")")
                     print("seed uuid: \(wallet?.seedForAddress(address!) ?? "")")
                     print("")
-                    print("current balance: \(wallet!.balance())")
                     
                     ShowOpenedMenu()
                     

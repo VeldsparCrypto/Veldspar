@@ -94,14 +94,14 @@ class BroadcastSwarm {
                         }
                         
                         Execute.background {
-                            processNext()
+                            BroadcastSwarm.processNext()
                         }
                         
                     } else {
                         
                         // nothing to do for this node, so sleep until there is some work
                         Execute.backgroundAfter(after: 1.0, {
-                            processNext()
+                            BroadcastSwarm.processNext()
                         })
                         
                     }
