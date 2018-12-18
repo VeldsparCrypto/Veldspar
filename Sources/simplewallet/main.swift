@@ -209,6 +209,7 @@ while true {
                         
                     } else {
                         print("incorrect password")
+                        exit(0)
                     }
                 }
                 
@@ -340,7 +341,62 @@ while true {
                 ShowOpenedMenu()
                 
             case "l":
-                print("feature not implemented yet")
+                
+                var addStr: String? = nil
+                
+                if wallet!.addresses().count > 1 {
+                    print("Wallets")
+                    print("--------------------------------------------------")
+                    print("Name                                   | Balance  ")
+                    print("--------------------------------------------------")
+                    
+                    var idx = 1
+                    var adds: [String] = []
+                    for a in wallet!.addresses() {
+                        var name = wallet!.nameForAddress(a)
+                        if name != nil {
+                            name! += "                                                     "
+                        }
+                        print("\(idx) \(name!.prefix(35))" + "    " + "\(wallet!.balance(address: Crypto.strAddressToData(address: a)))")
+                        idx += 1
+                        adds.append(a)
+                    }
+                    print("")
+                    
+                    print("select wallet to list transfers to/from:")
+                    let selectedAddress = readLine()
+                    if selectedAddress == nil || Int(selectedAddress!) == nil {
+                        print("ERROR: invalid wallet")
+                        break;
+                    }
+                    addStr = adds[Int(selectedAddress!)! - 1]
+                } else {
+                    addStr = wallet!.addresses()[0]
+                }
+                print("")
+                
+                let tfrs = wallet!.getTransfers(wallet: Crypto.strAddressToData(address: addStr!))
+                
+                for t in tfrs {
+                    let df = DateFormatter()
+                    df.dateStyle = .medium
+                    df.timeStyle = .medium
+                    
+                    if t.tokenValue! > 0 {
+                        print("Incoming \(t.transferRef!.bytes.base58EncodedString) : \(df.string(from: Date(timeIntervalSince1970: Double(t.timestamp! / 1000)))) of \(Float(t.tokenValue!) / Float(Config.DenominationDivider)) \(Config.CurrencyName)".blue)
+                    } else {
+                        print("Outgoing \(t.transferRef!.bytes.base58EncodedString) : \(df.string(from: Date(timeIntervalSince1970: Double(t.timestamp! / 1000)))), of \(Float(t.tokenValue!) / Float(Config.DenominationDivider)) \(Config.CurrencyName) -> \(t.target!)".red)
+                    }
+                }
+                
+                if tfrs.count == 0 {
+                    print("No transfers found for this wallet address")
+                }
+                
+                print("")
+                
+                ShowOpenedMenu()
+                
             case "p":
                 print("feature not implemented yet")
             case "t":
@@ -365,7 +421,6 @@ while true {
                         adds.append(a)
                     }
                     print("")
-                    ShowOpenedMenu()
                     
                     print("select wallet to transfer from:")
                     var selectedAddress = readLine()
@@ -373,7 +428,7 @@ while true {
                         print("ERROR: invalid wallet")
                         break;
                     }
-                    addStr = adds[Int(selectedAddress!) ?? 0]
+                    addStr = adds[Int(selectedAddress!)! - 1]
                 } else {
                     addStr = wallet!.addresses()[0]
                 }
@@ -400,7 +455,7 @@ while true {
                 // create a transfer object to transfer contents from this wallet to another wallet
                 print("destination address? (e.g. 'VEzTAJWTsPRN6XJJx8FQLqNE8YVi9jEARzyoQVR8Vcusk')")
                 let dest = readLine()
-                if dest == nil || dest!.count < 45 {
+                if dest == nil || dest!.count < 35 {
                     print("ERROR: invalid destination")
                     break;
                 }
