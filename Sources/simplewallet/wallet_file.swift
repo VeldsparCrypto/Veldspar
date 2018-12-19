@@ -562,7 +562,68 @@ class WalletFile {
         
     }
     
-    func getTransfers(wallet: ) -> {
+    func getTransfers(wallet: Data) -> [Transfer] {
+        
+        var tfrs: [Data:Int] = [:]
+        var timestamps: [Data:UInt64] = [:]
+        var target: [Data:String] = [:]
+        var heights: [Data:Int] = [:]
+        
+        walletLock.mutex {
+            for l in db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE (destination = ? AND source != ?) OR (destination != ? AND source = ?)", params: [wallet,wallet,wallet,wallet]) {
+                if l.source! == wallet {
+                    // this is a transfer out
+                    if tfrs[l.transaction_ref!] == nil {
+                        tfrs[l.transaction_ref!] = 0
+                        timestamps[l.transaction_ref!] = l.date
+                        target[l.transaction_ref!] = Crypto.dataAddressToStr(address: l.destination!)
+                        heights[l.transaction_ref!] = l.height!
+                    }
+                    tfrs[l.transaction_ref!]! -= l.value!
+                } else {
+                    
+                    // this is a transfer in, but not a generated token or a re-spend
+                    if l.transaction_ref == nil {
+                        l.transaction_ref = l.transaction_id
+                    }
+                    
+                    if tfrs[l.transaction_ref!] == nil {
+                        tfrs[l.transaction_ref!] = 0
+                        timestamps[l.transaction_ref!] = l.date
+                        target[l.transaction_ref!] = Crypto.dataAddressToStr(address: l.destination!)
+                        heights[l.transaction_ref!] = l.height!
+                    }
+                    tfrs[l.transaction_ref!]! += l.value!
+                }
+            }
+        }
+        
+        // now write these transfers into the transfer table
+        if tfrs.keys.count > 0 {
+            
+            var transfers: [Transfer] = []
+            
+            walletLock.mutex {
+                
+                for tfr in tfrs {
+                    
+                    let t = Transfer()
+                    t.height = heights[tfr.key]
+                    t.timestamp = Int(timestamps[tfr.key]!)
+                    t.tokenValue = tfr.value
+                    t.transferRef = tfr.key
+                    t.target = target[tfr.key]
+                    transfers.append(t)
+                    
+                }
+                
+            }
+
+            return transfers
+            
+        }
+        
+        return []
         
     }
     
