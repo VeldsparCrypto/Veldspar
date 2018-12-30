@@ -464,7 +464,7 @@ while true {
                 
                 print("\nConfirmation:  You would like to create a transaction with the following properties:")
                 print("-----------------------------------------------------------------------------------")
-                print("Amount: \(Float(amt / Config.DenominationDivider))")
+                print("Amount: \(Float(amt / Config.DenominationDivider) + Float(Config.NetworkFee / Config.DenominationDivider)) with a fee of \(Float(Config.NetworkFee / Config.DenominationDivider))")
                 print("Destination: \(dest!)")
                 print("Reference: \(ref)\n")
                 
@@ -478,7 +478,7 @@ while true {
                     {
                         // showtime
                         let items = wallet!.suitableArrayOfTokensForValue(amt, networkFee: Config.NetworkFee, address: Crypto.strAddressToData(address: addStr!))
-                        if items.tokens.count == 0 {
+                        if items.tokens.count == 0 || items.fee.count == 0 {
                             print("ERROR:  Unable to select the appropriate amount of tokens to make this transfer, please try again.")
                             break
                         }
@@ -505,6 +505,62 @@ while true {
                         }
                     }
                 }
+                
+                ShowOpenedMenu()
+                
+                break
+            case "h":
+                
+                var addStr: String? = nil
+                
+                if wallet!.addresses().count > 1 {
+                    print("Wallet balance(s)")
+                    print("--------------------------------------------------")
+                    print("Name                                   | Balance  ")
+                    print("--------------------------------------------------")
+                    
+                    var idx = 1
+                    var adds: [String] = []
+                    for a in wallet!.addresses() {
+                        var name = wallet!.nameForAddress(a)
+                        if name != nil {
+                            name! += "                                                     "
+                        }
+                        print("\(idx) \(name!.prefix(35))" + "    " + "\(wallet!.balance(address: Crypto.strAddressToData(address: a)))")
+                        idx += 1
+                        adds.append(a)
+                    }
+                    print("")
+                    
+                    print("select wallet to show:")
+                    var selectedAddress = readLine()
+                    if selectedAddress == nil || Int(selectedAddress!) == nil {
+                        print("ERROR: invalid wallet")
+                        break;
+                    }
+                    addStr = adds[Int(selectedAddress!)! - 1]
+                } else {
+                    addStr = wallet!.addresses()[0]
+                }
+                
+                // now get the breakdown
+                let contents = wallet!.getHoldings(address: Crypto.strAddressToData(address: addStr!))
+                print("Wallet holdings")
+                print("---------------------")
+                print("Token Value  | Total ")
+                print("---------------------")
+                print(" 50.00       | \(contents[5000] ?? 0)")
+                print(" 20.00       | \(contents[2000] ?? 0)")
+                print(" 10.00       | \(contents[1000] ?? 0)")
+                print("  5.00       | \(contents[500] ?? 0)")
+                print("  2.00       | \(contents[200] ?? 0)")
+                print("  1.00       | \(contents[100] ?? 0)")
+                print("  0.50       | \(contents[50] ?? 0)")
+                print("  0.20       | \(contents[20] ?? 0)")
+                print("  0.10       | \(contents[10] ?? 0)")
+                print("  0.05       | \(contents[5] ?? 0)")
+                print("  0.02       | \(contents[2] ?? 0)")
+                print("  0.01       | \(contents[1] ?? 0)")
                 
                 ShowOpenedMenu()
                 

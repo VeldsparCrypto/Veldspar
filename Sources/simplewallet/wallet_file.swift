@@ -427,6 +427,44 @@ class WalletFile {
         
     }
     
+    func getHoldings(address: Data) -> [Int:Int] {
+        
+        var retValue: [Int:Int] = [:]
+        
+        walletLock.mutex {
+            
+            let current_denominations = db.query(sql: "SELECT COUNT(*) as total,value FROM Ledger WHERE id NOT IN (SELECT id FROM Spent) AND destination = ? GROUP BY value", params: [address])
+            for r in current_denominations.results {
+                let total = r["total"]!.asInt()!
+                let value = r["value"]!.asInt()!
+                retValue[value] = total
+            }
+            
+        }
+        
+        return retValue
+        
+    }
+    
+    func pickTokenForExchange(_ value: Int, address: Data) -> (tokens:[Ledger], fee:[Ledger]) {
+        
+        var retValue: (tokens:[Ledger], fee:[Ledger]) = ([],[])
+        
+        walletLock.mutex {
+            
+            let token = db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE id NOT IN (SELECT id FROM Spent) AND destination = ? AND value = ?", params: [address, value])
+            if token.count > 0 {
+                
+                retValue = ([token[0]],[])
+                
+            }
+            
+        }
+        
+        return retValue
+        
+    }
+    
     func suitableArrayOfTokensForValue(_ value: Int, networkFee: Int, address: Data) -> (tokens:[Ledger], fee:[Ledger]) {
         
         var returnTokens:(tokens:[Ledger],fee:[Ledger]) = ([],[])
@@ -496,8 +534,41 @@ class WalletFile {
                 attempts -= 1
                 
                 if attempts == 0 {
-                    // return nothing
-                    returnTokens = ([],[])
+                    
+                    // work out if we were just simply unable to make the network fee because we don't have a token small enough
+                    if remaining == 0 && remainingFee != 0 {
+                        // work through the list, and try and find the smallest oversized token
+                        
+                        var selectedToken: (id:Int,value:Int)?
+                        
+                        for t in denominations {
+                            if !used.contains(t.id) {
+                                if t.value >= remainingFee {
+                                    if selectedToken == nil || selectedToken!.value > t.value {
+                                        selectedToken = t
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if selectedToken != nil {
+                            
+                            // we found the smallest "over" fee payment
+                            let token = db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE id = ?", params: [selectedToken!.id])
+                            if token.count > 0 {
+                                returnTokens.tokens.append(token[0])
+                                remaining -= selectedToken!.value
+                                used.append(selectedToken!.id)
+                            }
+                            
+                        } else {
+                            
+                            // return nothing
+                            returnTokens = ([],[])
+                            
+                        }
+                    }
+                    
                     break
                 }
                 
@@ -522,6 +593,7 @@ class WalletFile {
             l.transaction_ref = ref
             l.source = source
             l.destination = destination
+            l.op = LedgerOPType.ChangeOwner.rawValue
             l.hash = l.signatureHash()
             tokensArr.append(l)
         }
@@ -532,6 +604,7 @@ class WalletFile {
             if Config.CommunityAddress != nil {
                 l.destination = Crypto.strAddressToData(address: Config.CommunityAddress!)
                 l.source = source
+                l.op = LedgerOPType.ChangeOwner.rawValue
                 l.hash = l.signatureHash()
                 feeArr.append(l)
             }
@@ -558,6 +631,15 @@ class WalletFile {
                 
             }
             
+            for d in distribution.fee {
+                
+                let s = Spent()
+                s.id = d.id
+                s.transferRef = d.transaction_ref
+                _ = db.put(s)
+                
+            }
+            
         }
         
     }
@@ -570,8 +652,9 @@ class WalletFile {
         var heights: [Data:Int] = [:]
         
         walletLock.mutex {
-            for l in db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE (destination = ? AND source != ?) OR (destination != ? AND source = ?)", params: [wallet,wallet,wallet,wallet]) {
+            for l in db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE (destination != source) AND (destination = ? OR source = ?)", params: [wallet,wallet]) {
                 if l.source! == wallet {
+                    
                     // this is a transfer out
                     if tfrs[l.transaction_ref!] == nil {
                         tfrs[l.transaction_ref!] = 0
@@ -580,6 +663,7 @@ class WalletFile {
                         heights[l.transaction_ref!] = l.height!
                     }
                     tfrs[l.transaction_ref!]! -= l.value!
+                    
                 } else {
                     
                     // this is a transfer in, but not a generated token or a re-spend
@@ -594,6 +678,7 @@ class WalletFile {
                         heights[l.transaction_ref!] = l.height!
                     }
                     tfrs[l.transaction_ref!]! += l.value!
+                    
                 }
             }
         }
@@ -631,7 +716,6 @@ class WalletFile {
         
         walletLock.mutex {
             
-            _ = db.execute(sql: "DELETE FROM Ledger WHERE id IN (SELECT id FROM Spent WHERE transferRef = ?)", params: [ref])
             _ = db.execute(sql: "DELETE FROM Spent WHERE transferRef = ?", params: [ref])
             
         }
@@ -682,7 +766,6 @@ class WalletFile {
                     t.tokenValue = tfr.value
                     t.transferRef = tfr.key
                     t.target = target[tfr.key]
-                    _ = db.put(t)
                     
                     let df = DateFormatter()
                     df.dateStyle = .medium

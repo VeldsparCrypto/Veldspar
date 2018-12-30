@@ -27,7 +27,8 @@ public enum LedgerOPType : Int {
     case Unset = 0
     case RegisterToken = 1
     case ChangeOwner = 2
-    case ReWriteToken = 3
+    case RequestExchange = 3
+    case ReWriteToken = 4
     
 }
 

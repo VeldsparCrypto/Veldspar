@@ -46,7 +46,7 @@ class RecieveTransfer {
         // we ask the data layer to check that every single one of the tokens one-by-one, then transfer.  A boolean is returned to indicate success or failure.
         if blockchain.commitLedgerItems(tokens: tr.tokens, failIfAny: true, op: .ChangeOwner) {
             
-            logger.log(level: .Info, log: "Transfer request from VE\(tr.tokens[0].destination!.bytes.base58EncodedString) to VE\(tr.tokens[0].source!.bytes.base58EncodedString) of \(tr.tokens.count) objects.")
+            logger.log(level: .Info, log: "Transfer request from VE\(tr.tokens[0].source!.bytes.base58EncodedString) to VE\(tr.tokens[0].destination!.bytes.base58EncodedString) of \(tr.tokens.count) objects.")
             
             // distribute this transfer to other nodes
             broadcaster.add(tr.tokens, atomic: true, op: .ChangeOwner)
