@@ -60,6 +60,15 @@ public class Config {
     // seed nodes
     public static let SeedNodes: [String] = ["primary.veldspar.co:14242"]
     public static let TestNetNodes: [String] = ["testnet.veldspar.co:14242"]
+    
+    // exchange nodes
+    public static let ExchangeNodes: [String] = ["exchange.veldspar.co:14242"]
+    
+    // fee free address
+    /*
+     *      Used for exchange nodes to allow VELD == VELD exchanges minus only the service fee if any.
+     */
+    public static let FeeFreeAddresses: [String] = ["VE8ESJL5oALAa4TEGnaMyUfg6Moiz3QEAiNtsfkmw8KeWt"]
 
     
 }

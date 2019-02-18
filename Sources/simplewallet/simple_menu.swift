@@ -51,7 +51,9 @@ func ShowOpenedMenu() {
         "C" : "Create new wallet",
         "A" : "Add existing wallet",
         "D" : "Delete wallet",
-        "W" : "List wallets", "N" : "Name a wallet"])
+        "W" : "List wallets",
+        "N" : "Name a wallet",
+        "H" : "Show holdings (contents)"])
 }
 
 func ListWallets() {

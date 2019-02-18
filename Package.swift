@@ -10,6 +10,8 @@ let package = Package(
         .executable     (name: "veldspard",        targets: ["veldspard"]),
         .executable     (name: "miner",            targets: ["miner"]),
         .executable     (name: "simplewallet",     targets: ["simplewallet"]),
+        .executable     (name: "paperwallet",      targets: ["paperwallet"]),
+        .executable     (name: "onlinewallet",     targets: ["onlinewallet"]),
         ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
@@ -27,12 +29,20 @@ let package = Package(
             dependencies: ["CryptoSwift","Swifter","Swifter","SwiftClient","VeldsparCore","Ed25519","SWSQLite","Rainbow"],
             path: "./Sources/daemon"),
         .target(
+            name: "paperwallet",
+            dependencies: ["CryptoSwift","Swifter","Swifter","SwiftClient","VeldsparCore","Ed25519","SWSQLite","Rainbow"],
+            path: "./Sources/paperwallet"),
+        .target(
+            name: "onlinewallet",
+            dependencies: ["CryptoSwift","Swifter","Swifter","SwiftClient","VeldsparCore","Ed25519","SWSQLite","Rainbow"],
+            path: "./Sources/onlinewallet"),
+        .target(
             name: "miner",
             dependencies: ["CryptoSwift","Swifter","SWSQLite","VeldsparCore","Ed25519","SwiftClient","Swifter"],
             path: "./Sources/miner"),
         .target(
             name: "simplewallet",
-            dependencies: ["CryptoSwift","Swifter","SWSQLite","VeldsparCore","Swifter","SwiftClient","Ed25519","Rainbow"],
+            dependencies: ["Rainbow","CryptoSwift","Swifter","SWSQLite","VeldsparCore","Swifter","SwiftClient","Ed25519"],
             path: "./Sources/simplewallet"),
         .target(
             name: "VeldsparCore",

@@ -3,18 +3,18 @@
 ## Purpose:
 
 * To think about block chain currencies differently (in this case to try to solve the issues that currently affect coin systems in production).  
-* To use PoW & PoS to good affect.  The PoS actually being the amount in hash power you apply to the network.
+* To use PoW & PoS to good affect.  The PoS actually being the amount in hash power you apply to the network giving you a proportionate return. 
 
-## The concept (still in development as problems are discovered and overcome):
+## The concept:
 
 There are two parallel parts to the chain; 
 
 1) the ORE to be mined, 
-2) the traditional transactions block chain.
+2) the traditional transactions block chain secured through consensus and not mining.
 
-To mimic real life (resource based / effort based), there is ORE to mine, but this does not go away, you can mine this forever trying to find tokens.  Once found the miner can claim that token as theirs and it will be entered into the block chain as the originating owner of that token.  The token value is based on complexity of the problem solved, so it will be easy to mine the ore to find low value tokens but take significantly longer to find larger value tokens, with an exponential curve on the effort/reward.
+To mimic real life (resource based / effort based), there is ORE to mine, but this does not go away or timeout. You can mine this forever trying to find tokens.  Once found the miner can claim that token as theirs and it will be entered into the block chain as the originating owner of that token.  The token value is random, based on which of the "magic values" were found within the hash, this is to allow for tokens to be found at various denominations, with the lower values being more numerous to create a more relaistic supply.
 
-Because ORE can be mined forever, hash rate will be spread across the entire block chain not just used to crack a single block.  Miners may wish to mine only a single block of ORE for many months, trying to find the highest possible value token they can, before moving onto a new one.
+Because the ORE can be imed independently and randomly, hash power has no effect on the blockchain and it is not possible for larger miners to "swoop in" and take anything from miners who are say just using a laptop at home.
 
 Tokens are defined as addresses describing the position within the ore they were found in, and a reproducible path to the discovery of the pattern.  Once a token has been found, it is submitted to the network with the miners’ details and an agreed timestamp (by consensus). If that miner was the first to find that token then it is written into the ledger, and that token is created, and its journey starts.
 
@@ -40,11 +40,11 @@ Tokens are described as the positional information of their location within the 
 
 And example would be:
 
-`<height><method><algorithm><value><add1>..<add n>`
+`<ore>-<algorithm>-<value>-<address>`
 
 Which looks, for a 64bit token with 8 paths, like:
 
-`00000001-00-00-00000001-00046411-00005839-0002C3CD-000B5BA9-00010B6F-00002AEA-0007E24D-000EC5F6`
+`01-01-01-00046411000058390002C3CD`
   
   
 ### Methods:
