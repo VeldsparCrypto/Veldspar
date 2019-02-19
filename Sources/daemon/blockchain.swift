@@ -142,6 +142,19 @@ class BlockChain {
         
     }
     
+    func superBlockAtHeight(_ height: Int) -> SuperBlock? {
+        
+        var block: SuperBlock? = nil
+        
+        blockchain_lock.mutex {
+            // query database
+            block = Database.SuperBlockAtHeight(height)
+        }
+        
+        return block
+        
+    }
+    
     func blockAtHeight(_ height: Int, includeTransactions: Bool) -> Block? {
         
         var block: Block? = nil
@@ -161,6 +174,18 @@ class BlockChain {
         
         blockchain_lock.mutex {
             ledgers = Database.LedgersForHeight(height)
+        }
+        
+        return ledgers
+        
+    }
+    
+    func LedgersForAddress(_ height: Int, addresses: [Data]) -> [Ledger] {
+        
+        var ledgers: [Ledger] = []
+        
+        blockchain_lock.mutex {
+            ledgers = Database.LedgersForAddresses(height: height, addresses: addresses)
         }
         
         return ledgers
