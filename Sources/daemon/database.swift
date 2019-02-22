@@ -263,9 +263,41 @@ class Database {
         
     }
     
+    class func SuperBlockAtHeight(_ height: Int) -> SuperBlock? {
+        
+        var blocks = SuperBlock()
+        for i in (height-9999)...height {
+            let b = self.BlockAtHeight(i, includeTransactions: true)
+            if b == nil {
+                return nil
+            }
+            blocks.blocks.append(b!)
+        }
+        return blocks
+        
+    }
+    
     class func PendingLedgers(_ tidemark: Int, height: Int) -> [Ledger] {
         
         return db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE id > ? AND height >= ? ORDER BY id LIMIT 1000", params: [tidemark, height])
+        
+    }
+    
+    class func LedgersForAddresses(height: Int, addresses: [Data]) -> [Ledger] {
+        
+        var params: [Any] = []
+        params.append(height)
+        params.append(contentsOf: addresses)
+        params.append(contentsOf: addresses)
+        
+        var holders: [String] = []
+        for _ in addresses {
+            holders.append("?")
+        }
+        
+        let sql = "SELECT * FROM Ledger WHERE height >= ? NAD (destination IN (" + holders.joined(separator: ",") + ") OR source IN (" + holders.joined(separator: ",") + ")) ORDER BY height,address"
+        
+        return db.query(Ledger(), sql: sql, params: params)
         
     }
     

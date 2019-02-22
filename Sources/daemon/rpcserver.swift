@@ -136,6 +136,55 @@ class RPCHandler {
                     
                 }
                 
+            case "/superblock":
+                
+                if !settings.rpc_allow_block {
+                    return .forbidden
+                }
+                
+                var height = 0
+                for p in request.queryParams {
+                    if p.0 == "height" {
+                        height = Int(p.1) ?? 0
+                    }
+                }
+                
+                logger.log(level: .Debug, log: "(RPC) '\(request.path)'")
+                
+                let filePath = "./cache/blocks/\(height).superblock"
+                
+                // check to see if there is a local cache file, if not generate a block
+                let r = try? Data(contentsOf: URL(fileURLWithPath: filePath))
+                if r != nil {
+                    
+                    return .ok(.jsonData(r!))
+                    
+                } else {
+                    
+                    let block = blockchain.superBlockAtHeight(height)
+                    if block != nil {
+                        
+                        let d = try? JSONEncoder().encode(block!)
+                        if d != nil {
+                            
+                            // execute an update to cache this block
+                            Execute.background {
+                                try? d?.write(to: URL(fileURLWithPath: filePath))
+                            }
+                            return .ok(.jsonData(d!))
+                            
+                        } else {
+                            
+                            return .notFound
+                            
+                        }
+                        
+                    } else {
+                        return .notFound
+                    }
+                    
+                }
+                
             case "/register":
                 
                 var token = ""
@@ -171,6 +220,51 @@ class RPCHandler {
                 
                 // flush to disk and return
                 tempManager.putInterNodeTransfer(Data(bytes: request.body), src: request.address)
+                
+                return .ok(.jsonData(try JSONEncoder().encode(GenericResponse(key: "received", value: "ok"))))
+                
+            case "/ledgersforaddress":
+                
+                if !settings.rpc_allow_block {
+                    return .forbidden
+                }
+                
+                var height = 0
+                for p in request.queryParams {
+                    if p.0 == "height" {
+                        height = Int(p.1) ?? 0
+                    }
+                }
+                
+                logger.log(level: .Debug, log: "(RPC) '\(request.path)'")
+                
+                if request.method != "POST" {
+                    throw RPCErrors.InvalidRequest
+                }
+                
+                if request.body.count < 2 {
+                    throw RPCErrors.InvalidRequest
+                }
+                
+                let d = Data(bytes: request.body)
+                let req = try? JSONDecoder().decode(RequestLedgers.self, from: d)
+                if req != nil {
+                    
+                    var addresses: [Data] = []
+                    for a in req!.addresses {
+                        addresses.append(Crypto.strAddressToData(address: a))
+                    }
+                    
+                    let ledgers = blockchain.LedgersForAddress(height, addresses: addresses)
+                    let response = Ledgers()
+                    response.transactions = ledgers
+                    
+                    let rd = try? JSONEncoder().encode(response)
+                    if rd != nil {
+                        return .ok(.jsonData(rd!))
+                    }
+                    
+                }
                 
                 return .ok(.jsonData(try JSONEncoder().encode(GenericResponse(key: "received", value: "ok"))))
                 
