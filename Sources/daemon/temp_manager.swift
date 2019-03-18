@@ -30,8 +30,7 @@ class TempManager {
     var TEMP_PATH_INBOUND_INT = "./temp/inbound/int"
     var TEMP_PATH_INBOUND_REG = "./temp/inbound/reg"
     var TEMP_PATH_INBOUND_TFR = "./temp/inbound/tfr"
-    var TEMP_PATH_OUTBOUND_SEED = "./temp/outbound/seeds"
-    var TEMP_PATH_OUTBOUND_BROADCAST = "./temp/outbound/broadcast"
+    var TEMP_PATH_OUTBOUND_BROADCAST = "./temp/outbound"
     var TEMP_PATH_TIDEMARK = "./temp/tidemark"
     
     var lock_inbound = Mutex()
@@ -49,20 +48,7 @@ class TempManager {
         try? FileManager.default.createDirectory(atPath: TEMP_PATH_INBOUND_INT, withIntermediateDirectories: true, attributes: nil)
         try? FileManager.default.createDirectory(atPath: TEMP_PATH_INBOUND_REG, withIntermediateDirectories: true, attributes: nil)
         try? FileManager.default.createDirectory(atPath: TEMP_PATH_INBOUND_TFR, withIntermediateDirectories: true, attributes: nil)
-        try? FileManager.default.createDirectory(atPath: TEMP_PATH_OUTBOUND_SEED, withIntermediateDirectories: true, attributes: nil)
         try? FileManager.default.createDirectory(atPath: TEMP_PATH_OUTBOUND_BROADCAST, withIntermediateDirectories: true, attributes: nil)
-        
-        // now create folders for all the seed nodes as well
-        var nodes: [String] = []
-        if !isTestNet {
-            nodes.append(contentsOf: Config.SeedNodes)
-        } else {
-            nodes.append(contentsOf: Config.TestNetNodes)
-        }
-        for s in nodes {
-            try? FileManager.default.createDirectory(atPath: "\(TEMP_PATH_OUTBOUND_SEED)/\(s.sha224())", withIntermediateDirectories: true, attributes: nil)
-        }
-        
     }
     
     fileprivate func NextIdentifier() -> UInt64 {
@@ -110,18 +96,6 @@ class TempManager {
     func putBroadcastOut(_  data: Data) {
         
         putTempItem(data, identifier: NextIdentifier(), path: TEMP_PATH_OUTBOUND_BROADCAST, type: "int", src: nil)
-        
-    }
-    
-    func putBroadcastOutSeed(_  data: Data, seed: String) {
-        
-        putTempItem(data, identifier: NextIdentifier(), path: "\(self.TEMP_PATH_OUTBOUND_SEED)/\(seed.sha224())", type: "int", src: nil)
-        
-    }
-    
-    func putBroadcastOutSeed(_  data: Data, seed: String, named: String) {
-        
-        putTempItem(data, path: "\(self.TEMP_PATH_OUTBOUND_SEED)/\(seed.sha224())", name: named)
         
     }
     
@@ -221,20 +195,6 @@ class TempManager {
         
         return d
     }
-    
-    func popIntOutSeed(_ seed: String) -> (fileId: String, data: Data)? {
-        
-        // this condition is a tricky one, as we only wish to remove the file once successfullly transmitted
-        
-        var d: (fileId: String, data: Data)?
-        
-        lock_outbound.mutex {
-            d = peekTempItem(path: "\(self.TEMP_PATH_OUTBOUND_SEED)/\(seed.sha224())", type:"int")
-        }
-        
-        return d
-    }
-    
     
     func peekTempItem(path: String, type: String) -> (fileId: String, data: Data)? {
         

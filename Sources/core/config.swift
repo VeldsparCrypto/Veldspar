@@ -24,7 +24,7 @@ import Foundation
 
 public class Config {
     
-    public static let Version = "0.2.1 beta"
+    public static let Version = "0.2.2 beta"
     public static let CurrencyName = "Veldspar"
     public static let CurrencyNetworkAddress = "VE"
     public static let GenesisID = "0fcbb8951fd052764f71a634b02361448386c5b0f70eadb716cc0f3f"
@@ -63,6 +63,7 @@ public class Config {
     
     // exchange nodes
     public static let ExchangeNodes: [String] = ["exchange.veldspar.co:14242"]
+    public static let BootstrapNodes: [String] = ["bootstrap.veldspar.co"]
     
     // fee free address
     /*

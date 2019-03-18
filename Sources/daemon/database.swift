@@ -31,7 +31,7 @@ class Database {
     class func Initialize() {
         
         db.create(Block(), pk: "height", auto: false, indexes:[])
-        db.create(Ledger(), pk: "id", auto: true, indexes:["address,date","height,address","transaction_id"])
+        db.create(Ledger(), pk: "id", auto: true, indexes:["address,date","height,address","transaction_id","source,height","destination,height"])
         db.create(PeeringNode(), pk: "uuid", auto: false, indexes: [])
         db.create(NodeInstance(), pk: "nodeId", auto: false, indexes: [])
         _ = db.execute(sql: "PRAGMA cache_size = -\(settings.database_cache_size_mb * 1024)", params: [])
@@ -147,11 +147,17 @@ class Database {
                                 retValue = false
                             }
                             
+                        } else {
+                            
+                            // invalid/exists already
+                            retValue = false
+                            
                         }
                         
                     } else {
                         
                         // record already exists, no action taken
+                        retValue = false
                         
                     }
                     
@@ -263,23 +269,90 @@ class Database {
         
     }
     
-    class func SuperBlockAtHeight(_ height: Int) -> SuperBlock? {
-        
-        var blocks = SuperBlock()
-        for i in (height-9999)...height {
-            let b = self.BlockAtHeight(i, includeTransactions: true)
-            if b == nil {
-                return nil
-            }
-            blocks.blocks.append(b!)
-        }
-        return blocks
-        
-    }
-    
     class func PendingLedgers(_ tidemark: Int, height: Int) -> [Ledger] {
         
         return db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE id > ? AND height >= ? ORDER BY id LIMIT 1000", params: [tidemark, height])
+        
+    }
+    
+    class func WalletAddressContents(address: Data) -> WalletAddress {
+        
+        let w = WalletAddress()
+        let allocation = db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE destination = ?", params: [address]) as [Ledger]
+        let spends = db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE source = ? AND source != destination", params: [address]) as [Ledger]
+        
+        // aggregate together all of the allocations, which have not been spent
+        for alloc in allocation {
+            
+            var found = false
+            for spend in spends {
+                if alloc.destination == spend.source {
+                    found = true
+                    break
+                }
+            }
+            
+            if !found {
+                w.current_tokens.append(alloc)
+            }
+            
+        }
+        
+        // create an incoming dictionary
+        var incoming: [Data:Int] = [:]
+        var outgoing: [Data:Int] = [:]
+        
+        for c in w.current_tokens {
+            if c.op! == LedgerOPType.ChangeOwner.rawValue {
+                if incoming[c.transaction_ref!] == nil {
+                    incoming[c.transaction_ref!] = c.value ?? 0
+                } else {
+                    incoming[c.transaction_ref!]! += c.value ?? 0
+                }
+            }
+        }
+        
+        for s in spends {
+            if s.op! == LedgerOPType.ChangeOwner.rawValue {
+                if outgoing[s.transaction_ref!] == nil {
+                    outgoing[s.transaction_ref!] = s.value ?? 0
+                } else {
+                    outgoing[s.transaction_ref!]! += s.value ?? 0
+                }
+            }
+        }
+        
+        for c in w.current_tokens {
+            if c.op! == LedgerOPType.ChangeOwner.rawValue {
+            if incoming[c.transaction_ref!] != nil {
+                let t = WalletTransfer()
+                t.destination = c.destination
+                t.ref = c.transaction_ref
+                t.date = c.date
+                t.total = incoming[c.transaction_ref!]
+                t.source = c.source
+                w.incoming.append(t)
+                incoming.removeValue(forKey: c.transaction_ref!)
+            }
+            }
+        }
+        
+        for c in spends {
+            if c.op! == LedgerOPType.ChangeOwner.rawValue {
+            if outgoing[c.transaction_ref!] != nil {
+                let t = WalletTransfer()
+                t.destination = c.destination
+                t.ref = c.transaction_ref
+                t.date = c.date
+                t.total = outgoing[c.transaction_ref!]
+                t.source = c.source
+                w.outgoing.append(t)
+                outgoing.removeValue(forKey: c.transaction_ref!)
+            }
+            }
+        }
+        
+        return w
         
     }
     
@@ -295,7 +368,7 @@ class Database {
             holders.append("?")
         }
         
-        let sql = "SELECT * FROM Ledger WHERE height >= ? NAD (destination IN (" + holders.joined(separator: ",") + ") OR source IN (" + holders.joined(separator: ",") + ")) ORDER BY height,address"
+        let sql = "SELECT * FROM Ledger WHERE height >= ? AND (destination IN (" + holders.joined(separator: ",") + ") OR source IN (" + holders.joined(separator: ",") + ")) ORDER BY height,address"
         
         return db.query(Ledger(), sql: sql, params: params)
         

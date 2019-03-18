@@ -145,7 +145,6 @@ let interNodeTransfer = InterNodeTransferProcessor()
 let registrations = RegistrationProcessor()
 let transfers = TransferProcessor()
 let broadcastSwarm = BroadcastSwarm()
-let broadcastSeeds = BroadcastSeed()
 
 // initialisation complete, now we need to work out if we are behind and then play catchup with the network
 if !settings.isSeedNode && (blockmaker.currentNetworkBlockHeight() - blockchain.height()) > 1 {
@@ -154,40 +153,28 @@ if !settings.isSeedNode && (blockmaker.currentNetworkBlockHeight() - blockchain.
     
     logger.log(level: .Warning, log: "This node is behind the network, playing catchup until up-to-date.")
     
-    while blockchain.height() < blockmaker.currentNetworkBlockHeight() {
+    // check to see if this is a first time startup
+    if blockchain.height() == -1 {
         
-        let b = comms.blockAtHeight(height: blockchain.height()+1)
-        if b.block != nil {
+        // bootstrap the catchup
+        let n = Config.BootstrapNodes[0]
+        
+        // go and get the bootstrap data, and then execute it
+        logger.log(level: .Info, log: "Downloading bootstrap from 'bootstrap.veldspar.co/bootstrap.veldspar'")
+        let sql = try? String(contentsOf: URL(string: "http://\(n)/bootstrap.veldspar")!)
+        if sql != nil {
             
-            // we have a block, commit it into the datastore
-            _ = blockchain.removeBlockAtHeight(b.block!.height!)
-            _ = blockchain.addBlock(b.block!)
-            
-            // now write out a cache record
-            Execute.background {
-                if settings.blockchain_export_data {
-                    
-                    try? FileManager.default.createDirectory(atPath: "./cache/blocks", withIntermediateDirectories: true, attributes: [:])
-                    let filePath = "./cache/blocks/\(b.block!.height!).block"
-                    
-                    if b.data != nil {
-                        do {
-                            try b.data!.write(to: URL(fileURLWithPath: filePath))
-                        } catch {
-                            logger.log(level: .Error, log: "Failed to export block \(b.block!.height!), error = '\(error)'")
-                        }
-                    }
-                    
+            logger.log(level: .Info, log: "Downloaded bootstrap archive, size \(Float((sql!.count / 1024 / 1024))) mb'")
+            logger.log(level: .Info, log: "Executing bootstrap, this may take some time ...... ")
+            for s in sql!.components(separatedBy: "\n") {
+                if s.count > 0 {
+                    _ = db.execute(sql: s, params: [])
                 }
             }
-            
-            logger.log(level: .Info, log: "Downloaded block \(b.block!.height!) with hash \(b.block!.hash!.toHexString()) from network.")
+            logger.log(level: .Info, log: "Execution complete, blockchain at height \(blockchain.height())")
             
         } else {
-            
-            logger.log(level: .Warning, log: "Unable to sync with the network, waiting 30s until network is available.")
-            Thread.sleep(forTimeInterval: 30.0)
-            
+            logger.log(level: .Error, log: "Failed to download bootstrap archive, doing it the long way.")
         }
         
     }

@@ -26,11 +26,10 @@ import VeldsparCore
 class BroadcastSwarm {
     
     static var lock = Mutex()
-    static var outstanding: Int = 0
-    static var threshhold = 10
     
     init() {
         
+        URLSession.shared.configuration.timeoutIntervalForRequest = 10
         BroadcastSwarm.processNext()
         
     }
@@ -66,48 +65,39 @@ class BroadcastSwarm {
         
         lock.mutex {
             
-            if outstanding <= threshhold {
-                Execute.background {
+            Execute.background {
+                
+                let d = tempManager.popIntOutBroadcast()
+                if d != nil {
                     
-                    let d = tempManager.popIntOutBroadcast()
-                    if d != nil {
+                    let id = d!.sha224().toHexString()
+                    logger.log(level: .Info, log: "Sent broadcast intra-node-transfer to swarm. Hash of \(id)")
+                    
+                    // get everywhere this needs to be sent
+                    let nodes = blockchain.nodesAll()
+
+                    for n in nodes {
                         
-                        logger.log(level: .Info, log: "Sent broadcast intra-node-transfer to swarm. Hash of \(d!.sha224().toHexString())")
-                        
-                        // get everywhere this needs to be sent
-                        let nodes = blockchain.nodesAll()
-                        lock.mutex {
-                            outstanding += nodes.count
+                        self.HTTPPostJSON(url: "http://\(n)/int?id=\(id)", data: d!) { (err, result) in
                         }
-                        
-                        for n in nodes {
-                            
-                            self.HTTPPostJSON(url: "http://\(n)/int", data: d!) { (err, result) in
-                                
-                                // now decrement the outstanding
-                                lock.mutex {
-                                    outstanding -= 1
-                                }
-                                
-                            }
-                            
-                        }
-                        
-                        Execute.background {
-                            BroadcastSwarm.processNext()
-                        }
-                        
-                    } else {
-                        
-                        // nothing to do for this node, so sleep until there is some work
-                        Execute.backgroundAfter(after: 1.0, {
-                            BroadcastSwarm.processNext()
-                        })
                         
                     }
                     
+                    Execute.background {
+                        BroadcastSwarm.processNext()
+                    }
+                    
+                } else {
+                    
+                    // nothing to do for this node, so sleep until there is some work
+                    Execute.backgroundAfter(after: 1.0, {
+                        BroadcastSwarm.processNext()
+                    })
+                    
                 }
+                
             }
+            
         }
 
     }

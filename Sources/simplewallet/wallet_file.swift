@@ -34,54 +34,24 @@ enum WalletErrors : Error {
     case InvalidSeed
 }
 
-class Address : Codable {
-    
-    var addressId: String?
-    var seed: String?
-    var height: Int?
-    var name: String?
-    
-    public init() {}
-    
-}
-
-class Transfer : Codable {
-    
-    var id: Int?
-    var timestamp: Int?
-    var transferRef: Data?
-    var tokenValue: Int?
-    var height: Int?
-    var target: String?
-    
-    
-    public init() {}
-    
-}
-
-class Spent : Codable {
-    
-    var id: Int?
-    var transferRef: Data?
-
-    public init() {}
-    
-}
-
 class WalletFile {
     
-    private var db: SWSQLite
     private var pw: String
-    private var addressCache: [String]?
+    private var w: Wallet?
     
     init(_ walletFilePath: String, password: String) {
         
-        db = SWSQLite(path: "./", filename: walletFilePath)
-        
-        db.create(Address(), pk: "addressId", auto: false, indexes:[])
-        db.create(Transfer(), pk: "id", auto: true, indexes:[])
-        db.create(Ledger(), pk: "id", auto: true, indexes:["address"])
-        db.create(Spent(), pk: "id", auto: true, indexes:["address", "transferRef"])
+        let d = try? Data(contentsOf: URL(fileURLWithPath: walletFilePath))
+        if d != nil {
+            w = try? JSONDecoder().decode(Wallet.self, from: d!)
+            if w == nil {
+                log.log(level: .Error, log: "Unable to open wallet file")
+                exit(1)
+            }
+            
+        } else {
+            w = Wallet()
+        }
         
         pw = password
         
@@ -93,12 +63,12 @@ class WalletFile {
     
     func addExistingAddress(_ uuid: String) throws -> String {
         
-        var encSeed: String?
+        var encSeed: Data?
         
         do {
             let aes = try AES(key: Data(bytes: pw.bytes.sha512()).prefix(32).bytes, blockMode: CBC(iv: Data(bytes:pw.bytes.sha512().sha512()).prefix(16).bytes), padding: Padding.pkcs7)
             
-            encSeed = try aes.encrypt(uuid.data(using: String.Encoding.ascii)!.bytes).base58EncodedString
+            encSeed = try Data(aes.encrypt(uuid.data(using: String.Encoding.ascii)!.bytes))
             
         } catch {
             
@@ -124,50 +94,19 @@ class WalletFile {
         let k = Keys(seed)
         
         walletLock.mutex {
-            _ = db.execute(sql: "INSERT OR REPLACE INTO address (addressId,seed,height,name) VALUES (?,?,?,?);", params:[k.address(), encSeed!, 0, k.address()])
             
-            // reset the wallets
-            log.log(level: .Warning, log: "Address added, re-syncing wallet with network.")
-            setHeight(0)
+            let newWallet = WalletAddress()
+            newWallet.address = Crypto.strAddressToData(address: k.address())
+            newWallet.height = 0
+            newWallet.seed = encSeed
             
-            addressCache = nil
+            w?.wallets.append(newWallet)
+            
+            log.log(level: .Warning, log: "Address added")
+            
         }
         
         return k.address()
-        
-    }
-    
-    func setHeight(_ height: Int) {
-
-        walletLock.mutex {
-            _ = db.execute(sql: "UPDATE Address SET height = ?", params: [height])
-            if height == 0 {
-                _ = db.execute(sql: "DELETE FROM Transfer", params: [])
-                _ = db.execute(sql: "DELETE FROM Ledger", params: [])
-                _ = db.execute(sql: "DELETE FROM Spent", params: [])
-            }
-        }
-
-    }
-    
-    func height() -> Int {
-        
-        var retvalue = 0
-        
-        walletLock.mutex {
-            let results = db.query(sql: "SELECT MIN(height) as lowest FROM Address", params: [])
-            if results.error == nil && results.results.count > 0 {
-                
-                for r in results.results {
-                    retvalue = r["lowest"]!.asInt() ?? 0
-                    break
-                }
-                
-            }
-            
-        }
-        
-        return retvalue
         
     }
     
@@ -184,12 +123,12 @@ class WalletFile {
         
         let uuid = UUID().uuidString.lowercased() + "-" + UUID().uuidString.lowercased()
         
-        var encSeed: String?
+        var encSeed: Data?
         
         do {
             let aes = try AES(key: Data(bytes: pw.bytes.sha512()).prefix(32).bytes, blockMode: CBC(iv: Data(bytes:pw.bytes.sha512().sha512()).prefix(16).bytes), padding: Padding.pkcs7)
             
-            encSeed = try aes.encrypt(uuid.data(using: String.Encoding.ascii)!.bytes).base58EncodedString
+            encSeed = try Data(aes.encrypt(uuid.data(using: String.Encoding.ascii)!.bytes))
             
         } catch {
             
@@ -202,11 +141,14 @@ class WalletFile {
         
         walletLock.mutex {
             
-            _ = db.execute(sql: "INSERT OR REPLACE INTO address (addressId,seed,height,name) VALUES (?,?,?,?);", params:[k.address(), encSeed!, 0,k.address()])
+            let newWallet = WalletAddress()
+            newWallet.address = Crypto.strAddressToData(address: k.address())
+            newWallet.height = 0
+            newWallet.seed = encSeed
+            w?.wallets.append(newWallet)
             
             // reset the wallets
-            log.log(level: .Warning, log: "Address created, re-syncing wallet with network.")
-            setHeight(0)
+            log.log(level: .Warning, log: "Address created")
             
         }
         
@@ -216,13 +158,25 @@ class WalletFile {
     
     func deleteAddress(_ address: String) {
         
-        log.log(level: .Warning, log: "Address removed, re-syncing wallet with network.")
+        log.log(level: .Warning, log: "Address removed")
         
         walletLock.mutex {
-            _ = db.execute(sql: "DELETE FROM Address WHERE addressId = ?;", params: [address])
-            addressCache = nil
+            
+            var foundWallet: Int?
+            for idx in 0...w!.wallets.count-1 {
+                let wa = w!.wallets[idx]
+                if Crypto.dataAddressToStr(address: wa.address!) == address {
+                    foundWallet = idx
+                    break
+                }
+            }
+            
+            if foundWallet != nil {
+                w?.wallets.remove(at: foundWallet!)
+            }
+            
         }
-        setHeight(0)
+
         
     }
     
