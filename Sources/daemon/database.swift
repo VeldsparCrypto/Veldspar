@@ -286,7 +286,7 @@ class Database {
             
             var found = false
             for spend in spends {
-                if alloc.destination == spend.source {
+                if alloc.destination == spend.source && alloc.ore == spend.ore && alloc.address == spend.address {
                     found = true
                     break
                 }

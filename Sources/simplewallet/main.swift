@@ -308,6 +308,8 @@ while true {
                     print("seed uuid: \(uuid!)")
                     print("")
                     
+                    wallet!.Save()
+                    
                     ShowOpenedMenu()
                     
                 }
@@ -334,6 +336,8 @@ while true {
                     var name = wallet!.nameForAddress(a)
                     if name != nil {
                         name! += "                                                     "
+                    } else {
+                        name = a
                     }
                     print("\(name!.prefix(36))" + "   " + "\(wallet!.balance(address: Crypto.strAddressToData(address: a)))")
                 }
@@ -356,6 +360,8 @@ while true {
                         var name = wallet!.nameForAddress(a)
                         if name != nil {
                             name! += "                                                     "
+                        } else {
+                            name = a
                         }
                         print("\(idx) \(name!.prefix(35))" + "    " + "\(wallet!.balance(address: Crypto.strAddressToData(address: a)))")
                         idx += 1
@@ -377,19 +383,25 @@ while true {
                 
                 let tfrs = wallet!.getTransfers(wallet: Crypto.strAddressToData(address: addStr!))
                 
-                for t in tfrs {
+                for t in tfrs.incoming {
                     let df = DateFormatter()
                     df.dateStyle = .medium
                     df.timeStyle = .medium
                     
-                    if t.tokenValue! > 0 {
-                        print("Incoming \(t.transferRef!.bytes.base58EncodedString) : \(df.string(from: Date(timeIntervalSince1970: Double(t.timestamp! / 1000)))) of \(Float(t.tokenValue!) / Float(Config.DenominationDivider)) \(Config.CurrencyName)".blue)
-                    } else {
-                        print("Outgoing \(t.transferRef!.bytes.base58EncodedString) : \(df.string(from: Date(timeIntervalSince1970: Double(t.timestamp! / 1000)))), of \(Float(t.tokenValue!) / Float(Config.DenominationDivider)) \(Config.CurrencyName) -> \(t.target!)".red)
-                    }
+                    print("Incoming \(t.ref!.bytes.base58EncodedString) : \(df.string(from: Date(timeIntervalSince1970: Double(t.date! / 1000)))) of \(Float(t.total!) / Float(Config.DenominationDivider)) \(Config.CurrencyName)".blue)
+        
                 }
                 
-                if tfrs.count == 0 {
+                for t in tfrs.outgoing {
+                    let df = DateFormatter()
+                    df.dateStyle = .medium
+                    df.timeStyle = .medium
+                    
+                    print("Outgoing \(t.ref!.bytes.base58EncodedString) : \(df.string(from: Date(timeIntervalSince1970: Double(t.date! / 1000)))) of \(Float(t.total!) / Float(Config.DenominationDivider)) \(Config.CurrencyName)".blue)
+                    
+                }
+                
+                if tfrs.incoming.count == 0 && tfrs.outgoing.count == 0 {
                     print("No transfers found for this wallet address")
                 }
                 
@@ -397,8 +409,6 @@ while true {
                 
                 ShowOpenedMenu()
                 
-            case "p":
-                print("feature not implemented yet")
             case "t":
                 
                 var addStr: String? = nil
@@ -415,6 +425,8 @@ while true {
                         var name = wallet!.nameForAddress(a)
                         if name != nil {
                             name! += "                                                     "
+                        } else {
+                            name = a
                         }
                         print("\(idx) \(name!.prefix(35))" + "    " + "\(wallet!.balance(address: Crypto.strAddressToData(address: a)))")
                         idx += 1
@@ -494,8 +506,7 @@ while true {
                                     print("ERROR: cound not send transfer to node, please check node is online and available.")
                                     
                                 } else {
-                                    
-                                    wallet!.spend(distribution: items)
+                            
                                     print("Transfer requested from network.")
                                     
                                 }
@@ -663,17 +674,9 @@ while true {
                 ShowOpenedMenu()
                 break
                 
-            case "r":
-                
-                print("Rebuilding wallet, a full re-sync will now take place.")
-                
-                walletLock.mutex {
-                    
-                    wallet!.setHeight(0)
-                    
-                }
-                
             case "x":
+                print("saving wallet to disk")
+                wallet!.Save()
                 exit(0)
             case "s":
                 walletLock.mutex {
@@ -683,8 +686,6 @@ while true {
                     }
                     
                 }
-            case "h":
-                ShowOpenedMenu()
             case "help":
                 ShowOpenedMenu()
             default:
