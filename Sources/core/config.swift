@@ -24,6 +24,7 @@ import Foundation
 
 public class Config {
     
+    public static let VersionIdentifier = "0_2_2b"
     public static let Version = "0.2.2 beta"
     public static let CurrencyName = "Veldspar"
     public static let CurrencyNetworkAddress = "VE"

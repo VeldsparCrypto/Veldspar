@@ -160,17 +160,25 @@ if !settings.isSeedNode && (blockmaker.currentNetworkBlockHeight() - blockchain.
         let n = Config.BootstrapNodes[0]
         
         // go and get the bootstrap data, and then execute it
-        logger.log(level: .Info, log: "Downloading bootstrap from 'bootstrap.veldspar.co/bootstrap.veldspar'")
-        let sql = try? String(contentsOf: URL(string: "http://\(n)/bootstrap.veldspar")!)
+        logger.log(level: .Info, log: "Downloading bootstrap from 'bootstrap_\(Config.VersionIdentifier).veldspar'")
+
+        let sql = try? String(contentsOf: URL(string: "http://\(n)/bootstrap_\(Config.VersionIdentifier).veldspar")!)
         if sql != nil {
             
             logger.log(level: .Info, log: "Downloaded bootstrap archive, size \(Float((sql!.count / 1024 / 1024))) mb'")
             logger.log(level: .Info, log: "Executing bootstrap, this may take some time ...... ")
-            for s in sql!.components(separatedBy: "\n") {
-                if s.count > 0 {
-                    _ = db.execute(sql: s, params: [])
+            
+            // skim through the string and execute a substring
+            var lastPos = sql!.startIndex
+            while sql![lastPos...].firstIndex(of: "\n") != nil {
+                let d = sql![lastPos...sql![lastPos...].firstIndex(of: "\n")!]
+                lastPos = sql!.index(after: sql![lastPos...].firstIndex(of: "\n")!)
+                _ = db.execute(sql: String(d.utf8)!, params: [])
+                if lastPos == sql!.endIndex {
+                    break
                 }
             }
+            
             logger.log(level: .Info, log: "Execution complete, blockchain at height \(blockchain.height())")
             
         } else {

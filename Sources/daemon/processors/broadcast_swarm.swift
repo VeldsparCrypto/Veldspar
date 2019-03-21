@@ -71,14 +71,24 @@ class BroadcastSwarm {
                 if d != nil {
                     
                     let id = d!.sha224().toHexString()
-                    logger.log(level: .Info, log: "Sent broadcast intra-node-transfer to swarm. Hash of \(id)")
-                    
-                    // get everywhere this needs to be sent
-                    let nodes = blockchain.nodesAll()
 
+                    // get everywhere this needs to be sent
+                    let nodes = blockchain.nodesReachable()
+                    for s in Config.SeedNodes {
+                        Execute.background {
+                            logger.log(level: .Info, log: "Sent broadcast intra-node-transfer to Seed Node \(s). Hash of \(id)")
+                            self.HTTPPostJSON(url: "http://\(s)/int?id=\(id)", data: d!) { (err, result) in
+                            }
+                        }
+                    }
+                    
+                    logger.log(level: .Info, log: "Sent broadcast intra-node-transfer to Swarm. Hash of \(id)")
+                    
                     for n in nodes {
                         
-                        self.HTTPPostJSON(url: "http://\(n)/int?id=\(id)", data: d!) { (err, result) in
+                        Execute.background {
+                            self.HTTPPostJSON(url: "http://\(n)/int?id=\(id)", data: d!) { (err, result) in
+                            }
                         }
                         
                     }

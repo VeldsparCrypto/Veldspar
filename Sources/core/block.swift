@@ -46,3 +46,10 @@ public struct Block : Codable {
     
 }
 
+public struct BlockCollection : Codable {
+    
+    public var blocks: [Block] = []
+    public init() {}
+    
+}
+
