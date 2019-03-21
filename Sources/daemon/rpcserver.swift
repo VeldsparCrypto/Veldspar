@@ -125,6 +125,12 @@ class RPCHandler {
                         let d = try? JSONEncoder().encode(block!)
                         if d != nil {
                             
+                            // flush this to disk
+                            Execute.background {
+                                try? FileManager.default.createDirectory(atPath: "./cache/blocks/", withIntermediateDirectories: true, attributes: nil)
+                                try? d!.write(to: URL(fileURLWithPath: filePath))
+                            }
+                            
                             return .ok(.jsonData(d!))
                             
                         } else {
