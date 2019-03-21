@@ -47,7 +47,6 @@ func ShowOpenedMenu() {
                 "X" : "Exit",
                 "T" : "Transfer \(Config.CurrencyName) to another address.",
         "S" : "Show seed",
-        "R" : "Rebuild wallet",
         "C" : "Create new wallet",
         "A" : "Add existing wallet",
         "D" : "Delete wallet",

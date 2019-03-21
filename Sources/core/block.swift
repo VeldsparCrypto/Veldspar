@@ -46,12 +46,10 @@ public struct Block : Codable {
     
 }
 
-public struct SuperBlock : Codable {
+public struct BlockCollection : Codable {
     
-    // block variables
     public var blocks: [Block] = []
-    public init() {
-        
-    }
+    public init() {}
     
 }
+

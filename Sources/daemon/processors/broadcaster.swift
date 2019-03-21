@@ -44,13 +44,6 @@ class Broadcaster {
             let d = try? JSONEncoder().encode(l)
             if d != nil {
                 tempManager.putBroadcastOut(d!)
-                var seedNodes = Config.SeedNodes
-                if isTestNet {
-                    seedNodes = Config.TestNetNodes
-                }
-                for n in seedNodes {
-                    tempManager.putBroadcastOutSeed(d!, seed: n)
-                }
             }
             
         }

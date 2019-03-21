@@ -26,11 +26,10 @@ import VeldsparCore
 class BroadcastSwarm {
     
     static var lock = Mutex()
-    static var outstanding: Int = 0
-    static var threshhold = 10
     
     init() {
         
+        URLSession.shared.configuration.timeoutIntervalForRequest = 10
         BroadcastSwarm.processNext()
         
     }
@@ -66,48 +65,49 @@ class BroadcastSwarm {
         
         lock.mutex {
             
-            if outstanding <= threshhold {
-                Execute.background {
+            Execute.background {
+                
+                let d = tempManager.popIntOutBroadcast()
+                if d != nil {
                     
-                    let d = tempManager.popIntOutBroadcast()
-                    if d != nil {
-                        
-                        logger.log(level: .Info, log: "Sent broadcast intra-node-transfer to swarm. Hash of \(d!.sha224().toHexString())")
-                        
-                        // get everywhere this needs to be sent
-                        let nodes = blockchain.nodesAll()
-                        lock.mutex {
-                            outstanding += nodes.count
-                        }
-                        
-                        for n in nodes {
-                            
-                            self.HTTPPostJSON(url: "http://\(n)/int", data: d!) { (err, result) in
-                                
-                                // now decrement the outstanding
-                                lock.mutex {
-                                    outstanding -= 1
-                                }
-                                
+                    let id = d!.sha224().toHexString()
+
+                    // get everywhere this needs to be sent
+                    let nodes = blockchain.nodesReachable()
+                    for s in Config.SeedNodes {
+                        Execute.background {
+                            logger.log(level: .Info, log: "Sent broadcast intra-node-transfer to Seed Node \(s). Hash of \(id)")
+                            self.HTTPPostJSON(url: "http://\(s)/int?id=\(id)", data: d!) { (err, result) in
                             }
-                            
                         }
+                    }
+                    
+                    logger.log(level: .Info, log: "Sent broadcast intra-node-transfer to Swarm. Hash of \(id)")
+                    
+                    for n in nodes {
                         
                         Execute.background {
-                            BroadcastSwarm.processNext()
+                            self.HTTPPostJSON(url: "http://\(n)/int?id=\(id)", data: d!) { (err, result) in
+                            }
                         }
-                        
-                    } else {
-                        
-                        // nothing to do for this node, so sleep until there is some work
-                        Execute.backgroundAfter(after: 1.0, {
-                            BroadcastSwarm.processNext()
-                        })
                         
                     }
                     
+                    Execute.background {
+                        BroadcastSwarm.processNext()
+                    }
+                    
+                } else {
+                    
+                    // nothing to do for this node, so sleep until there is some work
+                    Execute.backgroundAfter(after: 1.0, {
+                        BroadcastSwarm.processNext()
+                    })
+                    
                 }
+                
             }
+            
         }
 
     }
