@@ -24,8 +24,8 @@ import Foundation
 
 public class Config {
     
-    public static let VersionIdentifier = "0_2_2b"
-    public static let Version = "0.2.2 beta"
+    public static let VersionIdentifier = "0_2_3b"
+    public static let Version = "0.2.3 beta"
     public static let CurrencyName = "Veldspar"
     public static let CurrencyNetworkAddress = "VE"
     public static let GenesisID = "0fcbb8951fd052764f71a634b02361448386c5b0f70eadb716cc0f3f"

@@ -275,84 +275,14 @@ class Database {
         
     }
     
-    class func WalletAddressContents(address: Data) -> WalletAddress {
+    class func WalletAddressContents(address: Data) -> (allocations: [Ledger], spends: [Ledger]) {
         
-        let w = WalletAddress()
+        // just return the data to free up the DB lock as quickly as possible
+        
         let allocation = db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE destination = ?", params: [address]) as [Ledger]
         let spends = db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE source = ? AND source != destination", params: [address]) as [Ledger]
         
-        // aggregate together all of the allocations, which have not been spent
-        for alloc in allocation {
-            
-            var found = false
-            for spend in spends {
-                if alloc.destination == spend.source && alloc.ore == spend.ore && alloc.address == spend.address {
-                    found = true
-                    break
-                }
-            }
-            
-            if !found {
-                w.current_tokens.append(alloc)
-            }
-            
-        }
-        
-        // create an incoming dictionary
-        var incoming: [Data:Int] = [:]
-        var outgoing: [Data:Int] = [:]
-        
-        for c in w.current_tokens {
-            if c.op! == LedgerOPType.ChangeOwner.rawValue {
-                if incoming[c.transaction_ref!] == nil {
-                    incoming[c.transaction_ref!] = c.value ?? 0
-                } else {
-                    incoming[c.transaction_ref!]! += c.value ?? 0
-                }
-            }
-        }
-        
-        for s in spends {
-            if s.op! == LedgerOPType.ChangeOwner.rawValue {
-                if outgoing[s.transaction_ref!] == nil {
-                    outgoing[s.transaction_ref!] = s.value ?? 0
-                } else {
-                    outgoing[s.transaction_ref!]! += s.value ?? 0
-                }
-            }
-        }
-        
-        for c in w.current_tokens {
-            if c.op! == LedgerOPType.ChangeOwner.rawValue {
-            if incoming[c.transaction_ref!] != nil {
-                let t = WalletTransfer()
-                t.destination = c.destination
-                t.ref = c.transaction_ref
-                t.date = c.date
-                t.total = incoming[c.transaction_ref!]
-                t.source = c.source
-                w.incoming.append(t)
-                incoming.removeValue(forKey: c.transaction_ref!)
-            }
-            }
-        }
-        
-        for c in spends {
-            if c.op! == LedgerOPType.ChangeOwner.rawValue {
-            if outgoing[c.transaction_ref!] != nil {
-                let t = WalletTransfer()
-                t.destination = c.destination
-                t.ref = c.transaction_ref
-                t.date = c.date
-                t.total = outgoing[c.transaction_ref!]
-                t.source = c.source
-                w.outgoing.append(t)
-                outgoing.removeValue(forKey: c.transaction_ref!)
-            }
-            }
-        }
-        
-        return w
+        return (allocation,spends)
         
     }
     

@@ -145,6 +145,7 @@ let interNodeTransfer = InterNodeTransferProcessor()
 let registrations = RegistrationProcessor()
 let transfers = TransferProcessor()
 let broadcastSwarm = BroadcastSwarm()
+let broadcastFailures = BroadcastFailed()
 
 // initialisation complete, now we need to work out if we are behind and then play catchup with the network
 if !settings.isSeedNode && (blockmaker.currentNetworkBlockHeight() - blockchain.height()) > 1 {
