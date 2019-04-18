@@ -14,13 +14,10 @@ let package = Package(
         .executable     (name: "onlinewallet",     targets: ["onlinewallet"]),
         ],
     dependencies: [
-        // Dependencies declare other packages that this package depends on.
-        // .package(url: /* package url */, from: "1.0.0"),
-        
         .package(url: "https://github.com/VeldsparCrypto/CSQlite.git", .exact("1.0.8")),
         .package(url: "https://github.com/krzyzanowskim/CryptoSwift.git", .exact("0.15.0")),
-        .package(url: "https://github.com/VeldsparCrypto/Ed25519.git", .exact("0.0.2")),
-        .package(url: "https://github.com/VeldsparCrypto/SWSQLite.git", .exact("1.0.28")),
+        .package(url: "https://github.com/VeldsparCrypto/Ed25519.git", .exact("0.0.3")),
+        .package(url: "https://github.com/VeldsparCrypto/SWSQLite.git", .exact("1.0.30")),
         .package(url: "https://github.com/VeldsparCrypto/swifter.git", .exact("1.4.8")),
         .package(url: "https://github.com/onevcat/Rainbow.git", .exact("3.1.5")),
         ],
@@ -50,5 +47,7 @@ let package = Package(
             dependencies: ["CryptoSwift","Ed25519"],
             path: "./Sources/core"),
         ],
-            swiftLanguageVersions: [4]
+        swiftLanguageVersions: [
+            4
+        ]
 )
