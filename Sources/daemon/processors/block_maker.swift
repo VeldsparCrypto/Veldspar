@@ -47,8 +47,9 @@ class BlockMaker {
         
         while true {
             
-            queueBlockProductionIfRequired()
-            Thread.sleep(forTimeInterval: 0.2)
+            if !inProgress {
+                queueBlockProductionIfRequired()
+            }
             
         }
         
@@ -56,8 +57,9 @@ class BlockMaker {
     
     func validateNewBlockWithNetwork(_ newBlock: Block) {
         
+        let currentNWHeight = Block.currentNetworkBlockHeight()
         var behind = false
-        if (Block.currentNetworkBlockHeight() - newBlock.height!) > 2 {
+        if (currentNWHeight - newBlock.height!) > 2 {
             behind = true
         }
         
@@ -124,6 +126,7 @@ class BlockMaker {
                 
                 // something we have is either missing or extra :(.  Ask the authoritive node for all of the transactions for a certain height
                 var authoritiveBlockData = comms.blockDataAtHeight(height: newBlock.height!)
+                
                 if authoritiveBlockData == nil {
                     // unable to get the block data from the seed node, wait and try again
                     if !behind {
@@ -155,6 +158,7 @@ class BlockMaker {
                     
                     // inflate the block data back into an object
                     let o = try? JSONDecoder().decode(Block.self, from: authoritiveBlockData!)
+                    
                     if o != nil {
                         
                         if !behind {
