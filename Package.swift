@@ -28,7 +28,7 @@ let package = Package(
             path: "./Sources/daemon"),
         .target(
             name: "paperwallet",
-            dependencies: ["CryptoSwift","VeldsparCore","Ed25519","SWSQLite","Rainbow"],
+            dependencies: ["CryptoSwift","VeldsparCore","Ed25519","SWSQLite","Rainbow","Swifter"],
             path: "./Sources/paperwallet"),
         .target(
             name: "onlinewallet",
