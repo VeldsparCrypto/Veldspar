@@ -155,4 +155,13 @@ cp simplewallet ~/.Veldspar/simplewallet
 
 ```
 
+# Bootstrapping:
+
+You can download the latest bootstrap database from the official veldspar.co site by running the following command on linux:
+
+```
+cd ~/.Veldspar
+rm Veldspar.db
+wget bootstrap.veldspar.co/Veldspar.db
+```
 
