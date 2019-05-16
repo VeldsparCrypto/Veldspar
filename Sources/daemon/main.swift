@@ -91,7 +91,6 @@ try? encoder.encode(settings).write(to: URL(fileURLWithPath: "veldspar.settings"
 Database.Initialize()
 
 let logger = Logger(debug: debug_on)
-let blockmaker = BlockMaker()
 
 logger.log(level: .Info, log: "---------------------------")
 logger.log(level: .Info, log: "\(Config.CurrencyName) Daemon v\(Config.Version)")
@@ -148,50 +147,11 @@ let broadcastSwarm = BroadcastSwarm()
 let broadcastFailures = BroadcastFailed()
 
 // initialisation complete, now we need to work out if we are behind and then play catchup with the network
-if !settings.isSeedNode && (blockmaker.currentNetworkBlockHeight() - blockchain.height()) > 1 {
+if !settings.isSeedNode && (Block.currentNetworkBlockHeight() - blockchain.height()) > 1 {
     
     // we are more than the current block +1 out, so we need to play catch-up before starting the webserver and services.
     
     logger.log(level: .Warning, log: "This node is behind the network, playing catchup until up-to-date.")
-    
-    // check to see if this is a first time startup
-    if blockchain.height() == -1 {
-        
-        // bootstrap the catchup
-        let n = Config.BootstrapNodes[0]
-        
-        // go and get the bootstrap data, and then execute it
-        logger.log(level: .Info, log: "Downloading bootstrap from 'bootstrap_\(Config.VersionIdentifier).veldspar'")
-
-        let sql = try? String(contentsOf: URL(string: "http://\(n)/bootstrap_\(Config.VersionIdentifier).veldspar")!)
-        if sql != nil {
-            
-            logger.log(level: .Info, log: "Downloaded bootstrap archive, size \(Float((sql!.count / 1024 / 1024))) mb'")
-            logger.log(level: .Info, log: "Executing bootstrap, this may take some time ...... ")
-            
-            // skim through the string and execute a substring
-            var lastPos = sql!.startIndex
-            while sql![lastPos...].firstIndex(of: "\n") != nil {
-                let d = sql![lastPos...sql![lastPos...].firstIndex(of: "\n")!]
-                lastPos = sql!.index(after: sql![lastPos...].firstIndex(of: "\n")!)
-                _ = db.execute(sql: String(d.utf8)!, params: [])
-                if lastPos == sql!.endIndex {
-                    break
-                }
-            }
-            
-            logger.log(level: .Info, log: "Execution complete, blockchain at height \(blockchain.height())")
-            
-        } else {
-            logger.log(level: .Error, log: "Failed to download bootstrap archive, doing it the long way.")
-        }
-        
-    }
-    
-} else if settings.isSeedNode {
-    
-    // we need to catch up as quickly as possible with any of the transactions we may have missed from the registered nodes.  This happens by suspending block production until reasonable catchups have been achieved.
-    
     
 }
 
@@ -204,18 +164,14 @@ Execute.background {
 }
 
 Execute.background {
-    // endlessly run the main process loop
-    logger.log(level: .Info, log: "Block formation service started")
-    blockmaker.Loop()
-}
-
-Execute.background {
     // endlessly sync node peer records
     if !settings.isSeedNode {
         logger.log(level: .Info, log: "Node swarm service started")
         NodeSync.SyncNodes()
     }
 }
+
+let blockmaker = BlockMaker()
 
 // now start the webserver and block
 RPCServer.start()
