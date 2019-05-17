@@ -71,14 +71,14 @@ class BlockMaker {
         } catch BlockmakerErrors.NotDue {
             Thread.sleep(forTimeInterval: 1)
         } catch BlockmakerErrors.Done {
-            // do nothing, get onto the next block as quickly as possible 
+            // do nothing, get onto the next block as quickly as possible
         } catch {
             Thread.sleep(forTimeInterval: 0.2)
         }
         
-        Execute.background {
+        Execute.backgroundAfter(after: 0.1, {
             self.run()
-        }
+        })
         
     }
     

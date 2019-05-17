@@ -96,7 +96,7 @@ class BlockChain {
     func setNewHeight(_ newHeight: Int) {
         
         stats_lock.mutex {
-            current_height = newHeight
+            self.current_height = newHeight
         }
         
     }
@@ -106,8 +106,8 @@ class BlockChain {
         var count: Int = -1
         
         stats_lock.mutex {
-            if current_height != nil {
-                count = current_height!
+            if self.current_height != nil {
+                count = self.current_height!
             }
         }
         
@@ -119,8 +119,8 @@ class BlockChain {
             
             // query the database to find the highest block there is
             count = Database.CurrentHeight() ?? -1
-            stats_lock.mutex {
-                current_height = Int(count)
+            self.stats_lock.mutex {
+                self.current_height = Int(count)
             }
             
         }
@@ -285,10 +285,10 @@ class BlockChain {
         
         blockchain_lock.mutex {
             
-            if block.height! > height() {
+            if block.height! > self.height() {
                 retValue = Database.WriteBlock(block)
                 if retValue {
-                    setNewHeight(Int(block.height!))
+                    self.setNewHeight(Int(block.height!))
                 }
             }
             

@@ -73,8 +73,8 @@ public class Logger {
             
             // write out to the logfile and print out to the screen.
             print(outString)
-            _ = fileHandle.seekToEndOfFile()
-            fileHandle.write(fileString.data(using: .ascii)!)
+            _ = self.fileHandle.seekToEndOfFile()
+            self.fileHandle.write(fileString.data(using: .ascii)!)
             
         }
         
