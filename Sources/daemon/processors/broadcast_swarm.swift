@@ -29,7 +29,7 @@ class BroadcastSwarm {
     
     init() {
         
-        URLSession.shared.configuration.timeoutIntervalForRequest = 30
+        URLSession.shared.configuration.timeoutIntervalForRequest = 600
         BroadcastSwarm.processNext()
         
     }

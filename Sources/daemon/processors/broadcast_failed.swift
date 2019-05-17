@@ -32,7 +32,7 @@ class BroadcastFailed {
     
     init() {
         
-        URLSession.shared.configuration.timeoutIntervalForRequest = 30
+        URLSession.shared.configuration.timeoutIntervalForRequest = 600
         BroadcastFailed.processNext()
         
     }
