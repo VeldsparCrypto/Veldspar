@@ -22,9 +22,12 @@ public class WalletAddress : Codable {
     public var seed: Data?
     public var height: Int?
     
-    public var current_tokens: [Ledger] = []
+    public var current_balance: Int?
+    public var pending_balance: Int?
     public var incoming: [WalletTransfer] = []
     public var outgoing: [WalletTransfer] = []
+    public var incoming_pending: [WalletTransfer] = []
+    public var outgoing_pending: [WalletTransfer] = []
     
     public init() {}
     

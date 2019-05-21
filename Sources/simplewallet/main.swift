@@ -472,7 +472,13 @@ while true {
                     break;
                 }
                 
-                let ref = Data(UUID().uuidString.bytes.sha224()).prefix(24).bytes.base58EncodedString
+                print("payment reference [ENTER for default]? (e.g. 'INV-102332'.  Max 24 chars.)")
+                var ref = readLine()
+                if ref == nil || ref!.count < 1 {
+                    ref = Data(UUID().uuidString.bytes.sha224()).prefix(24).bytes.base58EncodedString
+                } else {
+                    ref = ref?.prefix(24)
+                }
                 
                 print("\nConfirmation:  You would like to create a transaction with the following properties:")
                 print("-----------------------------------------------------------------------------------")
@@ -488,7 +494,9 @@ while true {
                     }
                     else
                     {
-                        // showtime
+                        // showtime, call the node and generate the transfer.
+                        
+                        
                         let items = wallet!.suitableArrayOfTokensForValue(amt, networkFee: Config.NetworkFee, address: Crypto.strAddressToData(address: addStr!))
                         if items.tokens.count == 0 || items.fee.count == 0 {
                             print("ERROR:  Unable to select the appropriate amount of tokens to make this transfer, please try again.")

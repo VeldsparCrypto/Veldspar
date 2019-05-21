@@ -111,7 +111,7 @@ class WalletFile {
             newWallet.height = 0
             newWallet.seed = encSeed
             
-            w?.wallets.append(newWallet)
+            self.w?.wallets.append(newWallet)
             
             log.log(level: .Warning, log: "Address added")
             
@@ -363,119 +363,6 @@ class WalletFile {
         }
         
         return retValue
-        
-    }
-    
-    func suitableArrayOfTokensForValue(_ value: Int, networkFee: Int, address: Data) -> (tokens:[Ledger], fee:[Ledger]) {
-        
-        var returnTokens:(tokens:[Ledger],fee:[Ledger]) = ([],[])
-        
-        // as a suggestion from anemol (https://github.com/anemol), we will use the "Greedy Method"
-        
-        var leftToFind: Int = value
-        var leftToFee: Int = networkFee
-        
-        walletLock.mutex {
-            for wa in w?.wallets ?? [] {
-                if wa.address == address {
-                    
-                    var tokens: [Ledger] = []
-                    tokens.append(contentsOf: wa.current_tokens)
-                    
-                    while leftToFind > 0 {
-                        var chosen: Ledger?
-                        for c in tokens {
-                            if c.value ?? 0 <= leftToFind {
-                                if chosen == nil || chosen?.value ?? 0 < c.value ?? 0 {
-                                    chosen = c
-                                }
-                            }
-                        }
-                        if chosen == nil {
-                            
-                            // nothing would fit, so escape
-                            returnTokens.fee = []
-                            returnTokens.tokens = []
-                            break;
-                            
-                        } else {
-                            
-                            // value chosen, so add it to the array
-                            returnTokens.tokens.append(chosen!)
-                            
-                            // remove it from the available list
-                            var idx = 0
-                            var match = 0
-                            for l in tokens {
-                                if l.id == chosen?.id {
-                                    match = idx
-                                    break
-                                }
-                                idx += 1
-                            }
-                            
-                            if match > 0 {
-                                tokens.remove(at: match)
-                            }
-                            
-                            leftToFind -= chosen!.value!
-                            
-                            chosen = nil
-                            
-                        }
-                    }
-                    
-                    
-                    while leftToFee > 0 {
-                        var chosen: Ledger?
-                        for c in tokens {
-                            if c.value ?? 0 <= leftToFee {
-                                if chosen == nil || chosen?.value ?? 0 < c.value ?? 0 {
-                                    chosen = c
-                                }
-                            }
-                        }
-                        if chosen == nil {
-                            
-                            // nothing would fit, so escape
-                            returnTokens.fee = []
-                            returnTokens.tokens = []
-                            break;
-                            
-                        } else {
-                            
-                            // value chosen, so add it to the array
-                            returnTokens.fee.append(chosen!)
-                            
-                            // remove it from the available list
-                            var idx = 0
-                            var match = 0
-                            for l in tokens {
-                                if l.id == chosen?.id {
-                                    match = idx
-                                    break
-                                }
-                                idx += 1
-                            }
-                            
-                            if match > 0 {
-                                tokens.remove(at: match)
-                            }
-                            
-                            leftToFee -= chosen!.value!
-                            
-                            chosen = nil
-                            
-                        }
-                    }
-                    
-                    wa.current_tokens = tokens
-                    
-                }
-            }
-        }
-        
-        return returnTokens
         
     }
     

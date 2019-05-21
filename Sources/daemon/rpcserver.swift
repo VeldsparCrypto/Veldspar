@@ -38,7 +38,7 @@ enum RPCErrors : Error {
 
 class RPCHandler {
     
-    func request(_ request: HttpRequest) -> HttpResponse {
+    class func request(_ request: HttpRequest) -> HttpResponse {
         
         do {
             
@@ -207,33 +207,6 @@ class RPCHandler {
 
                 return .ok(.jsonData(try JSONEncoder().encode(GenericResponse(key: "received", value: "ok"))))
                 
-            case "/wallet":
-                
-                if !settings.rpc_allow_block {
-                    return .forbidden
-                }
-                
-                var address: String? = nil
-                for p in request.queryParams {
-                    if p.0 == "address" {
-                        address = p.1
-                    }
-                }
-                
-                if address == nil {
-                    return .forbidden
-                }
-                
-                logger.log(level: .Debug, log: "(RPC) '\(request.path)'")
-                
-                let wallet = blockchain.WalletAddressContents(address: Crypto.strAddressToData(address: address!))
-                let rd = try? JSONEncoder().encode(wallet)
-                if rd != nil {
-                    return .ok(.jsonData(rd!))
-                }
-                
-                return .internalServerError
-                
             case "/announce":
                 
                 var nodeId = ""
@@ -305,15 +278,6 @@ class RPCHandler {
                 
                 return .ok(.jsonData(try JSONEncoder().encode(blockHash)))
                 
-            case "/transfer":
-                
-                logger.log(level: .Debug, log: "(RPC) '\(request.path)'")
-                
-                // just flush to disk and return generic response
-                tempManager.putTransfer(Data(bytes: request.body), src: request.address)
-                
-                return .ok(.jsonData(try JSONEncoder().encode(GenericResponse(key: "received", value: "ok"))))
-                
             default:
                 return .notFound
             }
@@ -347,20 +311,140 @@ class RPCServer {
     
     class func start() {
         
-        this.server[""] = { request in
-            return RPCHandler().request(request)
-        }
-        this.server["*"] = { request in
-            return RPCHandler().request(request)
-        }
-        this.server["*/*"] = { request in
-            return RPCHandler().request(request)
-        }
-        this.server["*/*/*"] = { request in
-            return RPCHandler().request(request)
+        this.server["/wallet"] = { request in
+            
+            if !settings.rpc_allow_block {
+                return .forbidden
+            }
+            
+            var address: String? = nil
+            for p in request.queryParams {
+                if p.0 == "address" {
+                    address = p.1
+                }
+            }
+            
+            if address == nil {
+                return .forbidden
+            }
+            
+            logger.log(level: .Debug, log: "(RPC) '\(request.path)'")
+            
+            let wallet = blockchain.WalletAddressContents(address: Crypto.strAddressToData(address: address!))
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .prettyPrinted
+            let rd = try? encoder.encode(wallet)
+            if rd != nil {
+                return .ok(.jsonData(rd!))
+            }
+
+            return .internalServerError
+            
         }
         
-        try? this.server.start(14242, forceIPv4: true, priority: .default)
+        this.server["/transferrequest"] = { request in
+            
+            /*
+             *  So ..  we need:
+             
+                1) A source address
+                2) Target Address
+                3) Amount to transfer
+             
+             */
+            
+            if !settings.rpc_allow_block {
+                return .forbidden
+            }
+            
+            var address: String? = nil
+            var target: String? = nil
+            var reference: String? = nil
+            var amount: Int? = nil
+            
+            for p in request.queryParams {
+                if p.0 == "address" {
+                    address = p.1
+                }
+            }
+            
+            for p in request.queryParams {
+                if p.0 == "target" {
+                    target = p.1
+                }
+            }
+            
+            for p in request.queryParams {
+                if p.0 == "amount" {
+                    amount = Int(p.1)
+                }
+            }
+            
+            for p in request.queryParams {
+                if p.0 == "reference" {
+                    reference = p.1
+                }
+            }
+            
+            if address == nil {
+                return .forbidden
+            }
+            
+            if target == nil {
+                return .forbidden
+            }
+            
+            if amount == nil {
+                return .forbidden
+            }
+            
+            if reference == nil {
+                return .forbidden
+            }
+            
+            logger.log(level: .Debug, log: "(RPC) '\(request.path)'")
+            
+            let tfrRequest = blockchain.GenerateTransferRequest(owner: Crypto.strAddressToData(address: address!), destination: Crypto.strAddressToData(address: target!),reference: reference!.base58DecodedData, amount: amount!)
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .prettyPrinted
+            let rd = try? encoder.encode(tfrRequest)
+            if rd != nil {
+                return .ok(.jsonData(rd!))
+            }
+            
+            return .internalServerError
+            
+        }
+        
+        this.server.POST["/transfer"] = { request in
+            
+            logger.log(level: .Debug, log: "(RPC) '\(request.path)'")
+            
+            // just flush to disk and return generic response
+            tempManager.putTransfer(Data(bytes: request.body), src: request.address)
+            
+            return .ok(.jsonData(try! JSONEncoder().encode(GenericResponse(key: "received", value: "ok"))))
+            
+        }
+        
+        this.server[""] = { request in
+            return RPCHandler.request(request)
+        }
+        this.server["*"] = { request in
+            return RPCHandler.request(request)
+        }
+        this.server["*/*"] = { request in
+            return RPCHandler.request(request)
+        }
+        this.server["*/*/*"] = { request in
+            return RPCHandler.request(request)
+        }
+        
+        do { try this.server.start(14242, forceIPv4: true, priority: .default) }
+        catch {
+            logger.log(level: .Error, log: "WORLD IS ON FIRE, Unable to start API server")
+            exit(1)
+        }
         
     }
     

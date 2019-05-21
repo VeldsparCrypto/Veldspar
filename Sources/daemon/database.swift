@@ -279,7 +279,7 @@ class Database {
         
         // just return the data to free up the DB lock as quickly as possible
         
-        let allocation = db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE destination = ?", params: [address]) as [Ledger]
+        let allocation = db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE destination = ? ORDER BY value DESC", params: [address]) as [Ledger]
         let spends = db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE source = ? AND source != destination", params: [address]) as [Ledger]
         
         return (allocation,spends)

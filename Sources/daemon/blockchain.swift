@@ -179,18 +179,97 @@ class BlockChain {
         
     }
     
-    func WalletAddressContents(address: Data) -> WalletAddress {
+    func GenerateTransferRequest(owner: Data, destination: Data, reference: Data?, amount: Int) -> TransferRequest? {
+        
+        // get me all the tokens, these are sorted largest to smallest
+        let current = CurrentlyOwnedTokens(address: owner)
+        let ref = reference ?? "\(UUID().uuidString.prefix(24))".base58EncodedString.base58DecodedData
+        
+        var leftToFind: Int = amount
+        var leftToFee: Int = Config.NetworkFee
+        
+        var fee_tokens: [Ledger] = []
+        var pay_tokens: [Ledger] = []
+        
+        for l in current {
+            
+            // because we are going sequentially through this looking for large to small, it is safe to not worry about previously spent tokens
+            if leftToFind > 0 {
+                if l.value! <= leftToFind {
+                    leftToFind -= l.value!
+                    l.id = nil
+                    l.height = nil
+                    l.date = UInt64(consensusTime())
+                    l.transaction_id = Data(bytes:UUID().uuidString.sha512().bytes.sha224())
+                    l.transaction_ref = ref
+                    l.source = owner
+                    l.destination = destination
+                    l.op = LedgerOPType.ChangeOwner.rawValue
+                    l.hash = l.signatureHash()
+                    pay_tokens.append(l)
+                }
+            }
+        }
+        
+        // now we look for the fee, but we can't pick anything already in the pay array
+        
+        for l in current {
+            
+            // because we are going sequentially through this looking for large to small, it is safe to not worry about previously spent tokens
+            if leftToFee > 0 {
+                if l.value! <= leftToFee {
+                    
+                    // now check it's not been used already
+                    var found = false
+                        for t in pay_tokens {
+                            if t.id == l.id {
+                                found = true
+                            }
+                        }
+                    
+                    if !found {
+                        leftToFee -= l.value!
+                        l.transaction_ref = ref
+                        l.transaction_id = Data(bytes:UUID().uuidString.sha512().bytes.sha224())
+                        l.id = nil
+                        l.height = nil
+                        l.date = UInt64(consensusTime())
+                        if Config.CommunityAddress != nil {
+                            l.destination = Crypto.strAddressToData(address: Config.CommunityAddress!)
+                            l.source = owner
+                            l.op = LedgerOPType.ChangeOwner.rawValue
+                            l.hash = l.signatureHash()
+                            fee_tokens.append(l)
+                        }
+                    }
+                }
+            }
+        }
+        
+        if leftToFee > 0 || leftToFind > 0 {
+            return nil
+        }
+        
+        let newTransfer = TransferRequest()
+        newTransfer.fee = fee_tokens
+        newTransfer.tokens = pay_tokens
+        
+        return newTransfer
+        
+    }
+    
+    func CurrentlyOwnedTokens(address: Data) -> [Ledger] {
         
         var retValue: (allocations: [Ledger], spends: [Ledger]) = ([],[])
         
         blockchain_lock.mutex {
             retValue = Database.WalletAddressContents(address: address)
         }
-        
-        let w = WalletAddress()
-        
+
+        let maxHeight = Block.currentNetworkBlockHeight()
         let allocation = retValue.allocations
         let spends = retValue.spends
+        var current_tokens: [Ledger] = []
         
         // aggregate together all of the allocations, which have not been spent
         for alloc in allocation {
@@ -204,36 +283,104 @@ class BlockChain {
             }
             
             if !found {
-                w.current_tokens.append(alloc)
+                if alloc.height! <= maxHeight {
+                    current_tokens.append(alloc)
+                }
             }
             
         }
         
-        // create an incoming dictionary
+        return current_tokens
+        
+    }
+    
+    func WalletAddressContents(address: Data) -> WalletAddress {
+        
+        var retValue: (allocations: [Ledger], spends: [Ledger]) = ([],[])
+        
+        blockchain_lock.mutex {
+            retValue = Database.WalletAddressContents(address: address)
+        }
+        
+        let w = WalletAddress()
+        let maxHeight = Block.currentNetworkBlockHeight()
+        let allocation = retValue.allocations
+        let spends = retValue.spends
+        var current_tokens: [Ledger] = []
+        
+        // aggregate together all of the allocations, which have not been spent
+        for alloc in allocation {
+            
+            var found = false
+            for spend in spends {
+                if alloc.destination == spend.source && alloc.ore == spend.ore && alloc.address == spend.address {
+                    found = true
+                    break
+                }
+            }
+            
+            if w.current_balance == nil {
+                w.current_balance = 0
+            }
+            
+            if w.pending_balance == nil {
+                w.pending_balance = 0
+            }
+            
+            if !found {
+                if alloc.height! <= maxHeight {
+                    w.current_balance! += alloc.value!
+                } else {
+                    w.pending_balance! += alloc.value!
+                }
+                current_tokens.append(alloc)
+            }
+            
+        }
+        
+        // create an incoming and outgoing dictionary
         var incoming: [Data:Int] = [:]
         var outgoing: [Data:Int] = [:]
+        var incoming_pending: [Data:Int] = [:]
+        var outgoing_pending: [Data:Int] = [:]
         
-        for c in w.current_tokens {
+        for c in current_tokens {
             if c.op! == LedgerOPType.ChangeOwner.rawValue {
-                if incoming[c.transaction_ref!] == nil {
-                    incoming[c.transaction_ref!] = c.value ?? 0
+                if c.height! <= maxHeight {
+                    if incoming[c.transaction_ref!] == nil {
+                        incoming[c.transaction_ref!] = c.value ?? 0
+                    } else {
+                        incoming[c.transaction_ref!]! += c.value ?? 0
+                    }
                 } else {
-                    incoming[c.transaction_ref!]! += c.value ?? 0
+                    if incoming_pending[c.transaction_ref!] == nil {
+                        incoming_pending[c.transaction_ref!] = c.value ?? 0
+                    } else {
+                        incoming_pending[c.transaction_ref!]! += c.value ?? 0
+                    }
                 }
             }
         }
         
         for s in spends {
             if s.op! == LedgerOPType.ChangeOwner.rawValue {
-                if outgoing[s.transaction_ref!] == nil {
-                    outgoing[s.transaction_ref!] = s.value ?? 0
+                if s.height! <= maxHeight {
+                    if outgoing[s.transaction_ref!] == nil {
+                        outgoing[s.transaction_ref!] = s.value ?? 0
+                    } else {
+                        outgoing[s.transaction_ref!]! += s.value ?? 0
+                    }
                 } else {
-                    outgoing[s.transaction_ref!]! += s.value ?? 0
+                    if outgoing_pending[s.transaction_ref!] == nil {
+                        outgoing_pending[s.transaction_ref!] = s.value ?? 0
+                    } else {
+                        outgoing_pending[s.transaction_ref!]! += s.value ?? 0
+                    }
                 }
             }
         }
         
-        for c in w.current_tokens {
+        for c in current_tokens {
             if c.op! == LedgerOPType.ChangeOwner.rawValue {
                 if incoming[c.transaction_ref!] != nil {
                     let t = WalletTransfer()
@@ -244,6 +391,16 @@ class BlockChain {
                     t.source = c.source
                     w.incoming.append(t)
                     incoming.removeValue(forKey: c.transaction_ref!)
+                }
+                if incoming_pending[c.transaction_ref!] != nil {
+                    let t = WalletTransfer()
+                    t.destination = c.destination
+                    t.ref = c.transaction_ref
+                    t.date = c.date
+                    t.total = incoming_pending[c.transaction_ref!]
+                    t.source = c.source
+                    w.incoming_pending.append(t)
+                    incoming_pending.removeValue(forKey: c.transaction_ref!)
                 }
             }
         }
@@ -259,6 +416,16 @@ class BlockChain {
                     t.source = c.source
                     w.outgoing.append(t)
                     outgoing.removeValue(forKey: c.transaction_ref!)
+                }
+                if outgoing_pending[c.transaction_ref!] != nil {
+                    let t = WalletTransfer()
+                    t.destination = c.destination
+                    t.ref = c.transaction_ref
+                    t.date = c.date
+                    t.total = outgoing_pending[c.transaction_ref!]
+                    t.source = c.source
+                    w.outgoing_pending.append(t)
+                    outgoing_pending.removeValue(forKey: c.transaction_ref!)
                 }
             }
         }
