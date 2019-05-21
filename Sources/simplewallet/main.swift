@@ -78,6 +78,19 @@ func HTTPPostJSON(url: String,  data: Data,
     HTTPsendRequest(request: request, callback: callback)
 }
 
+func HTTPPost(url: String,  object: Encodable,
+                  callback: @escaping (Error?, String?) -> Void) {
+    
+    let data = object.toJSONData()
+    var request = URLRequest(url: URL(string: url)!)
+    
+    request.httpMethod = "POST"
+    request.addValue("application/json",forHTTPHeaderField: "Content-Type")
+    request.addValue("application/json",forHTTPHeaderField: "Accept")
+    request.httpBody = data
+    HTTPsendRequest(request: request, callback: callback)
+}
+
 var currentAction: WalletAction = .ShowOptions
 
 let args: [String] = CommandLine.arguments
@@ -477,14 +490,14 @@ while true {
                 if ref == nil || ref!.count < 1 {
                     ref = Data(UUID().uuidString.bytes.sha224()).prefix(24).bytes.base58EncodedString
                 } else {
-                    ref = ref?.prefix(24)
+                    ref = "\(ref!.prefix(24))"
                 }
                 
                 print("\nConfirmation:  You would like to create a transaction with the following properties:")
                 print("-----------------------------------------------------------------------------------")
                 print("Amount: \(Float(amt / Config.DenominationDivider) + Float(Config.NetworkFee / Config.DenominationDivider)) with a fee of \(Float(Config.NetworkFee / Config.DenominationDivider))")
                 print("Destination: \(dest!)")
-                print("Reference: \(ref)\n")
+                print("Reference: \(ref!)\n")
                 
                 print("do you wish to proceed? [Y/n]")
                 var cont = readLine()
@@ -494,92 +507,51 @@ while true {
                     }
                     else
                     {
+                        
+                        let request = CreateTransferRequest()
+                        request.address = Crypto.strAddressToData(address: addStr!)
+                        request.target = Crypto.strAddressToData(address: dest!)
+                        request.amount = amt
+                        request.reference = ref!.base58EncodedString.base58DecodedData!
+                        
                         // showtime, call the node and generate the transfer.
-                        
-                        
-                        let items = wallet!.suitableArrayOfTokensForValue(amt, networkFee: Config.NetworkFee, address: Crypto.strAddressToData(address: addStr!))
-                        if items.tokens.count == 0 || items.fee.count == 0 {
-                            print("ERROR:  Unable to select the appropriate amount of tokens to make this transfer, please try again.")
-                            break
-                        }
-                        let tfr = wallet!.generateTransfer(distribution: items,source: Crypto.strAddressToData(address: addStr!),destination: Crypto.strAddressToData(address: dest!), ref: ref.base58DecodedData!)
-                        // now attempt to send this to the node for processing, then mark the transfer as Spent to avoid double spends
-                        
-                        
-                        do {
-                            let d = try JSONEncoder().encode(tfr)
-                            HTTPPostJSON(url: "http://\(node)/transfer", data: d) { (err, result) in
-                                if(err != nil) {
-                                    
-                                    print("ERROR: cound not send transfer to node, please check node is online and available.")
-                                    
-                                } else {
+                        HTTPPost(url: "http://\(node)/transferrequest", object: request) { (err, string) in
                             
-                                    print("Transfer requested from network.")
+                            if err != nil {
+                                print("ERROR:  Unable to action request for transfer.")
+                            } else {
+                            
+                                do {
                                     
+                                    let tfr = try JSONDecoder().decode(TransferRequest.self, from: string!.data(using: .ascii)!)
+                                    
+                                    // now sign the transfer request
+                                    
+                                    wallet!.signTransfer(reqest: tfr)
+                                    
+                                    let d = try JSONEncoder().encode(tfr)
+                                    HTTPPostJSON(url: "http://\(node)/transfer", data: d) { (err, result) in
+                                        if(err != nil) {
+                                            
+                                            print("ERROR: cound not send transfer to node, please check node is online and available.")
+                                            
+                                        } else {
+                                            
+                                            print("Transfer requested from network.")
+                                            
+                                        }
+                                    }
+                                    
+                                } catch {
+                                    print("ERROR:  Unable to action request for transfer.")
                                 }
+                                
                             }
-                        } catch {
-                            
                         }
+                        
+                        
                     }
                 }
-                
-                ShowOpenedMenu()
-                
-                break
-            case "h":
-                
-                var addStr: String? = nil
-                
-                if wallet!.addresses().count > 1 {
-                    print("Wallet balance(s)")
-                    print("--------------------------------------------------")
-                    print("Name                                   | Balance  ")
-                    print("--------------------------------------------------")
-                    
-                    var idx = 1
-                    var adds: [String] = []
-                    for a in wallet!.addresses() {
-                        var name = wallet!.nameForAddress(a)
-                        if name != nil {
-                            name! += "                                                     "
-                        }
-                        print("\(idx) \(name!.prefix(35))" + "    " + "\(wallet!.balance(address: Crypto.strAddressToData(address: a)))")
-                        idx += 1
-                        adds.append(a)
-                    }
-                    print("")
-                    
-                    print("select wallet to show:")
-                    var selectedAddress = readLine()
-                    if selectedAddress == nil || Int(selectedAddress!) == nil {
-                        print("ERROR: invalid wallet")
-                        break;
-                    }
-                    addStr = adds[Int(selectedAddress!)! - 1]
-                } else {
-                    addStr = wallet!.addresses()[0]
-                }
-                
-                // now get the breakdown
-                let contents = wallet!.getHoldings(address: Crypto.strAddressToData(address: addStr!))
-                print("Wallet holdings")
-                print("---------------------")
-                print("Token Value  | Total ")
-                print("---------------------")
-                print(" 50.00       | \(contents[5000] ?? 0)")
-                print(" 20.00       | \(contents[2000] ?? 0)")
-                print(" 10.00       | \(contents[1000] ?? 0)")
-                print("  5.00       | \(contents[500] ?? 0)")
-                print("  2.00       | \(contents[200] ?? 0)")
-                print("  1.00       | \(contents[100] ?? 0)")
-                print("  0.50       | \(contents[50] ?? 0)")
-                print("  0.20       | \(contents[20] ?? 0)")
-                print("  0.10       | \(contents[10] ?? 0)")
-                print("  0.05       | \(contents[5] ?? 0)")
-                print("  0.02       | \(contents[2] ?? 0)")
-                print("  0.01       | \(contents[1] ?? 0)")
                 
                 ShowOpenedMenu()
                 

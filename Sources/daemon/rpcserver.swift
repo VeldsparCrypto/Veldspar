@@ -342,7 +342,7 @@ class RPCServer {
             
         }
         
-        this.server["/transferrequest"] = { request in
+        this.server.POST["/transferrequest"] = { request in
             
             /*
              *  So ..  we need:
@@ -357,60 +357,25 @@ class RPCServer {
                 return .forbidden
             }
             
-            var address: String? = nil
-            var target: String? = nil
-            var reference: String? = nil
-            var amount: Int? = nil
-            
-            for p in request.queryParams {
-                if p.0 == "address" {
-                    address = p.1
+            do {
+                
+                let tfr = try JSONDecoder().decode(CreateTransferRequest.self, from: Data(bytes: request.body))
+                
+                logger.log(level: .Debug, log: "(RPC) '\(request.path)'")
+                
+                let tfrRequest = blockchain.GenerateTransferRequest(owner: tfr.address!, destination: tfr.target!, reference: tfr.reference, amount: tfr.amount!)
+                let encoder = JSONEncoder()
+                encoder.outputFormatting = .prettyPrinted
+                let rd = try? encoder.encode(tfrRequest)
+                if rd != nil {
+                    return .ok(.jsonData(rd!))
                 }
+                
+            } catch {
+                
             }
             
-            for p in request.queryParams {
-                if p.0 == "target" {
-                    target = p.1
-                }
-            }
             
-            for p in request.queryParams {
-                if p.0 == "amount" {
-                    amount = Int(p.1)
-                }
-            }
-            
-            for p in request.queryParams {
-                if p.0 == "reference" {
-                    reference = p.1
-                }
-            }
-            
-            if address == nil {
-                return .forbidden
-            }
-            
-            if target == nil {
-                return .forbidden
-            }
-            
-            if amount == nil {
-                return .forbidden
-            }
-            
-            if reference == nil {
-                return .forbidden
-            }
-            
-            logger.log(level: .Debug, log: "(RPC) '\(request.path)'")
-            
-            let tfrRequest = blockchain.GenerateTransferRequest(owner: Crypto.strAddressToData(address: address!), destination: Crypto.strAddressToData(address: target!),reference: reference!.base58DecodedData, amount: amount!)
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = .prettyPrinted
-            let rd = try? encoder.encode(tfrRequest)
-            if rd != nil {
-                return .ok(.jsonData(rd!))
-            }
             
             return .internalServerError
             
