@@ -36,8 +36,19 @@ class RecieveTransfer {
             t.id = nil
         }
         
+        for t in tr.fee {
+            t.height = block
+            t.id = nil
+        }
+        
         // if this is the entry point into the system for this transaction, then we need to allocate ids
         for t in tr.tokens {
+            if t.transaction_id == nil {
+                throw RPCErrors.InvalidRequest
+            }
+        }
+        
+        for t in tr.fee {
             if t.transaction_id == nil {
                 throw RPCErrors.InvalidRequest
             }

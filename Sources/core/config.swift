@@ -59,7 +59,7 @@ public class Config {
     public static let TokenAddressSize = 3
     
     // seed nodes
-    public static let SeedNodes: [String] = ["primary.veldspar.co:14242"]
+    public static let SeedNodes: [String] = ["127.0.0.1:14242"]
     public static let TestNetNodes: [String] = ["testnet.veldspar.co:14242"]
     
     // exchange nodes
