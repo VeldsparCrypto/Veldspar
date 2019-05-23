@@ -32,7 +32,7 @@ let package = Package(
             path: "./Sources/paperwallet"),
         .target(
             name: "onlinewallet",
-            dependencies: ["CryptoSwift","VeldsparCore","Ed25519","SWSQLite","Rainbow"],
+            dependencies: ["CryptoSwift","VeldsparCore","Ed25519","SWSQLite","Rainbow","Swifter"],
             path: "./Sources/onlinewallet"),
         .target(
             name: "miner",
