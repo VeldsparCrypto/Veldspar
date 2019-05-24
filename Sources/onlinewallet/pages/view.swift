@@ -54,11 +54,11 @@ extension Pages {
         </tr>
         <tr>
         <td class="tg-alz1">Balance:</td>
-        <td class="tg-alz1">\(Float(wallet.current_balance!) / Float(Config.DenominationDivider)) \(Config.CurrencyNetworkAddress)</td>
+        <td class="tg-alz1">\(Float(wallet.current_balance ?? 0) / Float(Config.DenominationDivider)) \(Config.CurrencyNetworkAddress)</td>
         </tr>
         <tr>
         <td class="tg-0lax">Pending:</td>
-        <td class="tg-0lax">\(Float(wallet.pending_balance!) / Float(Config.DenominationDivider)) \(Config.CurrencyNetworkAddress)</td>
+        <td class="tg-0lax">\(Float(wallet.pending_balance ?? 0) / Float(Config.DenominationDivider)) \(Config.CurrencyNetworkAddress)</td>
         </tr>
         </table>
         """
