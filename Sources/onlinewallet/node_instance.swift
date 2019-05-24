@@ -21,14 +21,10 @@
 //    SOFTWARE.
 
 import Foundation
-import VeldsparCore
 
-class RPCGetBlock {
+public struct NodeInstance : Codable {
     
-    class func action(_ height: Int) -> Block? {
-        
-        return blockchain.blockAtHeight(height, includeTransactions: true)
-        
-    }
+    public var nodeId: String?
+    init(){}
     
 }

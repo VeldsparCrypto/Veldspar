@@ -23,14 +23,17 @@
 import Foundation
 import VeldsparCore
 
-class BroadcastSwarm {
+typealias BroadcastFailure = (address: String, id: String, data: Data, date: Int, failCount: Int)
+
+class BroadcastFailed {
     
     static var lock = Mutex()
+    static var failed: [BroadcastFailure] = []
     
     init() {
         
         URLSession.shared.configuration.timeoutIntervalForRequest = 600
-        BroadcastSwarm.processNext()
+        BroadcastFailed.processNext()
         
     }
     
@@ -61,60 +64,52 @@ class BroadcastSwarm {
         
     }
     
+    class func enqeueBroadcast(failure: BroadcastFailure) {
+        lock.mutex {
+            failed.append(failure)
+        }
+    }
+    
     class func processNext() {
         
         lock.mutex {
             
             Execute.background {
                 
-                let d = tempManager.popIntOutBroadcast()
-                if d != nil {
+                if failed.count > 0 {
                     
-                    let id = d!.sha224().toHexString()
-
-                    // get everywhere this needs to be sent
-                    let nodes = blockchain.nodesReachable()
-                    for s in Config.SeedNodes {
-                        Execute.background {
-                            logger.log(level: .Info, log: "Sent broadcast intra-node-transfer to Seed Node \(s). Hash of \(id)")
-                            self.HTTPPostJSON(url: "http://\(s)/int?id=\(id)", data: d!) { (err, result) in
+                    let fCopy = Array<BroadcastFailure>(self.failed)
+                    self.failed = []
+                    
+                    for failure in fCopy {
+                        
+                        var f = failure
+                        
+                        // try to re-send every single failure until failure count has reached max
+                        if f.failCount < 10 {
+                            
+                            logger.log(level: .Debug, log: "Sending failed intra-node-transfer (\(f.id)) to Seed Node \(f.address)")
+                            self.HTTPPostJSON(url: "http://\(f.address)/int?id=\(f.id)", data: f.data) { (err, result) in
                                 if err != nil {
-                                    logger.log(level: .Debug, log: "Error communicating with seed node \(s)")
-                                    BroadcastFailed.enqeueBroadcast(failure: (address: s, id: id, data: d!, date: Int(Date().timeIntervalSince1970), failCount: 0))
+                                    f.failCount = f.failCount + 1
+                                    lock.mutex {
+                                        self.failed.append(f)
+                                    }
+                                } else {
+                                    
                                 }
                             }
                         }
                     }
-                    
-                    logger.log(level: .Info, log: "Sent broadcast intra-node-transfer to Swarm. Hash of \(id)")
-                    
-                    for n in nodes {
-                        
-                        Execute.background {
-                            self.HTTPPostJSON(url: "http://\(n)/int?id=\(id)", data: d!) { (err, result) in
-                                logger.log(level: .Debug, log: "Error communicating with \(n.address!)")
-                            }
-                        }
-                        
-                    }
-                    
-                    Execute.background {
-                        BroadcastSwarm.processNext()
-                    }
-                    
-                } else {
-                    
-                    // nothing to do for this node, so sleep until there is some work
-                    Execute.backgroundAfter(after: 1.0, {
-                        BroadcastSwarm.processNext()
-                    })
-                    
                 }
                 
+                // queue up the next thread to process the failures
+                Execute.backgroundAfter(after: 60.0, {
+                    self.processNext()
+                })
+                
             }
-            
         }
-
     }
-    
 }
+

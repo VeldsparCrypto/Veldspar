@@ -116,26 +116,24 @@ clang,libicu-dev,sqlite3,libsqlite3-dev
 #linux-swift-install
 sudo apt-get -y update
 sudo apt-get -y upgrade
-sudo apt-get -y install clang libicu-dev sqlite3 libsqlite3-dev uuid-dev
+sudo apt-get install clang libicu-dev sqlite3 libsqlite3-dev uuid-dev
 ```
 
+Swift 5.0.0 from swift.org.
+https://swift.org/builds/swift-5.0-release/ubuntu1804/swift-5.0-RELEASE/swift-5.0-RELEASE-ubuntu18.04.tar.gz
 
-
-Swift 4.1.3 from swift.org.
-https://swift.org/builds/swift-4.2.1-release/ubuntu1804/swift-4.2.1-RELEASE/swift-4.2.1-RELEASE-ubuntu18.04.tar.gz
-
-The following script downloads Swift and jams it into /usr.  Best done on a sandbox VM.  
+The following script downloads Swift and jams it into /usr (not pretty, but effective).  Best done on a sandbox VM.  
 
 PERFORM AS SU/ROOT
 ```
 cd ~/
-wget https://swift.org/builds/swift-4.2.1-release/ubuntu1804/swift-4.2.1-RELEASE/swift-4.2.1-RELEASE-ubuntu18.04.tar.gz
-tar -xvf swift-4.2.1-RELEASE-ubuntu18.04.tar.gz
-cd swift-4.2.1-RELEASE-ubuntu18.04
+wget https://swift.org/builds/swift-5.0-release/ubuntu1804/swift-5.0-RELEASE/swift-5.0-RELEASE-ubuntu18.04.tar.gz
+tar -xvf swift-5.0-RELEASE-ubuntu18.04.tar.gz
+cd swift-5.0-RELEASE-ubuntu18.04
 sudo cp -R usr/* /usr
 cd ~/
-rm -rf swift-4.2.1-RELEASE-ubuntu18.04
-rm swift-4.2.1-RELEASE-ubuntu18.04.tar.gz
+rm -rf swift-5.0-RELEASE-ubuntu18.04
+rm swift-5.0-RELEASE-ubuntu18.04.tar.gz
 ```
 
 PERFORM AS NORMAL USER
@@ -155,10 +153,15 @@ cp veldspard ~/.Veldspar/veldspard
 cp miner ~/.Veldspar/miner
 cp simplewallet ~/.Veldspar/simplewallet
 
-mkdir ~/.Veldspar/cache
-mkdir ~/.Veldspar/cache/blocks
-
-
 ```
 
+# Bootstrapping:
+
+You can download the latest bootstrap database from the official veldspar.co site by running the following command on linux:
+
+```
+cd ~/.Veldspar
+rm Veldspar.db
+wget bootstrap.veldspar.co/Veldspar.db
+```
 

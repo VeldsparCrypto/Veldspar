@@ -260,7 +260,7 @@ class BlockChain {
     
     func CurrentlyOwnedTokens(address: Data) -> [Ledger] {
         
-        var retValue: (allocations: [Ledger], spends: [Ledger]) = ([],[])
+        var retValue: (allocations: [Ledger], spends: [Ledger], mining: [Ledger]) = ([],[],[])
         
         blockchain_lock.mutex {
             retValue = Database.WalletAddressContents(address: address)
@@ -296,13 +296,14 @@ class BlockChain {
     
     func WalletAddressContents(address: Data) -> WalletAddress {
         
-        var retValue: (allocations: [Ledger], spends: [Ledger]) = ([],[])
+        var retValue: (allocations: [Ledger], spends: [Ledger], mining: [Ledger]) = ([],[],[])
         
         blockchain_lock.mutex {
             retValue = Database.WalletAddressContents(address: address)
         }
         
         let w = WalletAddress()
+        w.address = address
         let maxHeight = Block.currentNetworkBlockHeight()
         let allocation = retValue.allocations
         let spends = retValue.spends
@@ -430,6 +431,8 @@ class BlockChain {
             }
         }
         
+        w.mining = retValue.mining
+        
         return w
         
     }
@@ -508,72 +511,7 @@ class BlockChain {
         
     }
     
-    func registerToken(tokenString: String, address: String, block: Int) throws -> Bool {
-        
-        let token = tokenString
-        var t: Token?
-        
-        // first off, check that the token is essentially valid in construction
-        // 0-1-32-00018467-00043A62-0006F243
-        let components = token.components(separatedBy: "-")
-        if components.count != 4 {
-            throw BlockchainErrors.InvalidToken
-        }
-        
-        do {
-            t = try Token(token)
-        } catch {
-            throw BlockchainErrors.InvalidToken
-        }
-        
-        if AlgorithmManager.sharedInstance().depricated(type: t!.algorithm, height: UInt(t!.oreHeight)) {
-            logger.log(level: .Debug, log: "(BlockChain) token submitted to 'registerToken(token: String, address: String, block: Int) -> Bool' was of deprecated method.")
-            throw BlockchainErrors.InvalidAlgo
-        }
-        
-        // create the ledger
-        let l = Ledger()
-        l.op = LedgerOPType.RegisterToken.rawValue
-        l.address = t!.address
-        l.height = block
-        l.algorithm = t!.algorithm.rawValue
-        l.date = UInt64(consensusTime())
-        l.destination = Crypto.strAddressToData(address: address)
-        l.ore = t!.oreHeight
-        l.transaction_id = Data(bytes: UUID().uuidString.sha512().bytes.sha224())
-        l.source = Crypto.strAddressToData(address: address)
-        l.value = t!.value()
-        l.hash = l.signatureHash()
-        var success = false;
-        
-        // the atomicity & validity of the ledger will be checked by the data layer upon submission
-        blockchain_lock.mutex {
-            success = Database.CommitLedger(ledgers: [l], failAll: true, op: .RegisterToken)
-        }
-        
-        if success {
-            
-            logger.log(level: .Info, log: "Token submitted with address '\(l.address!.toHexString())' succeeded, token written.")
-            
-            // now broadcast this transaction to the connected nodes
-            broadcaster.add([l], atomic: true, op: .RegisterToken)
-            
-            return true
-            
-        } else {
-            
-            if t!.value() == 0 {
-                logger.log(level: .Debug, log: "Token submitted with address '\(l.address!.toHexString())' was invalid and has no value.")
-                throw BlockchainErrors.TokenHasNoValue
-            }
-            
-            logger.log(level: .Debug, log: "Token submitted with address '\(l.address!.toHexString())' failed, this token exists already in blockchain.db")
-            
-        }
-        
-        return false
-        
-    }
+    
     
     
 }

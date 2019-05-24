@@ -22,7 +22,6 @@
 
 
 import Foundation
-import SwiftClient
 import Dispatch
 
 public class Comms {

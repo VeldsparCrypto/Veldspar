@@ -111,7 +111,7 @@ class WalletFile {
             newWallet.height = 0
             newWallet.seed = encSeed
             
-            w?.wallets.append(newWallet)
+            self.w?.wallets.append(newWallet)
             
             log.log(level: .Warning, log: "Address added")
             
@@ -156,7 +156,7 @@ class WalletFile {
             newWallet.address = Crypto.strAddressToData(address: k.address())
             newWallet.height = 0
             newWallet.seed = encSeed
-            w?.wallets.append(newWallet)
+            self.w?.wallets.append(newWallet)
             
             // reset the wallets
             log.log(level: .Warning, log: "Address created")
@@ -174,8 +174,8 @@ class WalletFile {
         walletLock.mutex {
             
             var foundWallet: Int?
-            for idx in 0...w!.wallets.count-1 {
-                let wa = w!.wallets[idx]
+            for idx in 0...self.w!.wallets.count-1 {
+                let wa = self.w!.wallets[idx]
                 if Crypto.dataAddressToStr(address: wa.address!) == address {
                     foundWallet = idx
                     break
@@ -183,7 +183,7 @@ class WalletFile {
             }
             
             if foundWallet != nil {
-                w?.wallets.remove(at: foundWallet!)
+                self.w?.wallets.remove(at: foundWallet!)
             }
             
         }
@@ -194,7 +194,7 @@ class WalletFile {
     func nameAddress(_ address: String, name: String) {
         
         walletLock.mutex {
-            for wa in w?.wallets ?? [] {
+            for wa in self.w?.wallets ?? [] {
                 if Crypto.dataAddressToStr(address: wa.address!) == address {
                     wa.name = name
                 }
@@ -208,7 +208,7 @@ class WalletFile {
         var retValue: [String] = []
         
         walletLock.mutex {
-            for wa in w?.wallets ?? [] {
+            for wa in self.w?.wallets ?? [] {
                 retValue.append(Crypto.dataAddressToStr(address: wa.address!))
             }
         }
@@ -222,7 +222,7 @@ class WalletFile {
         var retValue: [Data] = []
         
         walletLock.mutex {
-            for wa in w?.wallets ?? [] {
+            for wa in self.w?.wallets ?? [] {
                 retValue.append(wa.address!)
             }
         }
@@ -236,14 +236,14 @@ class WalletFile {
         var retValue: String? = nil
         
         walletLock.mutex {
-            for wa in w?.wallets ?? [] {
+            for wa in self.w?.wallets ?? [] {
                 if Crypto.dataAddressToStr(address: wa.address!) == address {
                     // this is the one
                     do {
                         
                         // this is where we check for the old format file & old AES implementation.  It's upgraded on write out.
                         let encryptedData = wa.seed
-                        let aes = try AES(key: Data(bytes: pw.bytes.sha512()).prefix(32).bytes, blockMode: CBC(iv: Data(bytes:pw.bytes.sha512().sha512()).prefix(16).bytes), padding: Padding.pkcs7)
+                        let aes = try AES(key: Data(bytes: self.pw.bytes.sha512()).prefix(32).bytes, blockMode: CBC(iv: Data(bytes:self.pw.bytes.sha512().sha512()).prefix(16).bytes), padding: Padding.pkcs7)
                         let decryptedSeed = String(bytes: try aes.decrypt(Array(encryptedData!)), encoding: .ascii)
                         if decryptedSeed!.contains("-") {
                             retValue = decryptedSeed
@@ -268,12 +268,12 @@ class WalletFile {
         var d: [Data:Data] = [:]
         
         walletLock.mutex {
-            for wa in w?.wallets ?? [] {
+            for wa in self.w?.wallets ?? [] {
                 do {
                     
                     // this is where we check for the old format file & old AES implementation.  It's upgraded on write out.
                     let encryptedData = wa.seed
-                    let aes = try AES(key: Data(bytes: pw.bytes.sha512()).prefix(32).bytes, blockMode: CBC(iv: Data(bytes:pw.bytes.sha512().sha512()).prefix(16).bytes), padding: Padding.pkcs7)
+                    let aes = try AES(key: Data(bytes: self.pw.bytes.sha512()).prefix(32).bytes, blockMode: CBC(iv: Data(bytes:self.pw.bytes.sha512().sha512()).prefix(16).bytes), padding: Padding.pkcs7)
                     let decryptedSeed = try aes.decrypt(Array(encryptedData!))
                     let uuid = String(bytes: decryptedSeed, encoding: .ascii)!
                     var oldMethod = false
@@ -303,7 +303,7 @@ class WalletFile {
         var retValue: String? = nil
         
         walletLock.mutex {
-            for wa in w?.wallets ?? [] {
+            for wa in self.w?.wallets ?? [] {
                 if Crypto.dataAddressToStr(address: wa.address!) == address {
                     retValue = wa.name
                 }
@@ -314,28 +314,14 @@ class WalletFile {
         
     }
     
-    func setTokens(address: Data, current: [Ledger], incoming: [WalletTransfer], outgoing: [WalletTransfer]) {
-        walletLock.mutex {
-            for wa in w?.wallets ?? [] {
-                if wa.address == address {
-                    wa.current_tokens = current
-                    wa.incoming = incoming
-                    wa.outgoing = outgoing
-                }
-            }
-        }
-    }
-    
     func balance(address: Data) -> Double {
         
         var retValue = 0.0
         
         walletLock.mutex {
-            for wa in w?.wallets ?? [] {
+            for wa in self.w?.wallets ?? [] {
                 if wa.address == address {
-                    for c in wa.current_tokens {
-                        retValue += Double(Double(c.value ?? 0) / Double(Config.DenominationDivider))
-                    }
+                    retValue += Double(Double(wa.current_balance ?? 0) / Double(Config.DenominationDivider))
                 }
             }
         }
@@ -344,176 +330,11 @@ class WalletFile {
         
     }
     
-    func getHoldings(address: Data) -> [Int:Int] {
-        
-        var retValue: [Int:Int] = [:]
-        
-        walletLock.mutex {
-            for wa in w?.wallets ?? [] {
-                if wa.address == address {
-                    for c in wa.current_tokens {
-                        if retValue[c.value!] == nil {
-                            retValue[c.value!] = 1
-                        } else {
-                            retValue[c.value!]! += 1
-                        }
-                    }
-                }
-            }
-        }
-        
-        return retValue
-        
-    }
-    
-    func suitableArrayOfTokensForValue(_ value: Int, networkFee: Int, address: Data) -> (tokens:[Ledger], fee:[Ledger]) {
-        
-        var returnTokens:(tokens:[Ledger],fee:[Ledger]) = ([],[])
-        
-        // as a suggestion from anemol (https://github.com/anemol), we will use the "Greedy Method"
-        
-        var leftToFind: Int = value
-        var leftToFee: Int = networkFee
-        
-        walletLock.mutex {
-            for wa in w?.wallets ?? [] {
-                if wa.address == address {
-                    
-                    var tokens: [Ledger] = []
-                    tokens.append(contentsOf: wa.current_tokens)
-                    
-                    while leftToFind > 0 {
-                        var chosen: Ledger?
-                        for c in tokens {
-                            if c.value ?? 0 <= leftToFind {
-                                if chosen == nil || chosen?.value ?? 0 < c.value ?? 0 {
-                                    chosen = c
-                                }
-                            }
-                        }
-                        if chosen == nil {
-                            
-                            // nothing would fit, so escape
-                            returnTokens.fee = []
-                            returnTokens.tokens = []
-                            break;
-                            
-                        } else {
-                            
-                            // value chosen, so add it to the array
-                            returnTokens.tokens.append(chosen!)
-                            
-                            // remove it from the available list
-                            var idx = 0
-                            var match = 0
-                            for l in tokens {
-                                if l.id == chosen?.id {
-                                    match = idx
-                                    break
-                                }
-                                idx += 1
-                            }
-                            
-                            if match > 0 {
-                                tokens.remove(at: match)
-                            }
-                            
-                            leftToFind -= chosen!.value!
-                            
-                            chosen = nil
-                            
-                        }
-                    }
-                    
-                    
-                    while leftToFee > 0 {
-                        var chosen: Ledger?
-                        for c in tokens {
-                            if c.value ?? 0 <= leftToFee {
-                                if chosen == nil || chosen?.value ?? 0 < c.value ?? 0 {
-                                    chosen = c
-                                }
-                            }
-                        }
-                        if chosen == nil {
-                            
-                            // nothing would fit, so escape
-                            returnTokens.fee = []
-                            returnTokens.tokens = []
-                            break;
-                            
-                        } else {
-                            
-                            // value chosen, so add it to the array
-                            returnTokens.fee.append(chosen!)
-                            
-                            // remove it from the available list
-                            var idx = 0
-                            var match = 0
-                            for l in tokens {
-                                if l.id == chosen?.id {
-                                    match = idx
-                                    break
-                                }
-                                idx += 1
-                            }
-                            
-                            if match > 0 {
-                                tokens.remove(at: match)
-                            }
-                            
-                            leftToFee -= chosen!.value!
-                            
-                            chosen = nil
-                            
-                        }
-                    }
-                    
-                    wa.current_tokens = tokens
-                    
-                }
-            }
-        }
-        
-        return returnTokens
-        
-    }
-    
-    func generateTransfer(distribution: (tokens:[Ledger], fee:[Ledger]),source: Data, destination: Data, ref: Data) -> TransferRequest {
+    func signTransfer(reqest: TransferRequest) {
         
         let sd = seedData()
-        
-        let t = TransferRequest()
-        var tokensArr: [Ledger] = []
-        var feeArr: [Ledger] = []
-        
-        for l in distribution.tokens {
-            l.transaction_id = Data(bytes:UUID().uuidString.sha512().bytes.sha224())
-            l.transaction_ref = ref
-            l.source = source
-            l.destination = destination
-            l.op = LedgerOPType.ChangeOwner.rawValue
-            l.hash = l.signatureHash()
-            tokensArr.append(l)
-        }
-        for l in distribution.fee {
-            
-            l.transaction_ref = ref
-            l.transaction_id = Data(bytes:UUID().uuidString.sha512().bytes.sha224())
-            if Config.CommunityAddress != nil {
-                l.destination = Crypto.strAddressToData(address: Config.CommunityAddress!)
-                l.source = source
-                l.op = LedgerOPType.ChangeOwner.rawValue
-                l.hash = l.signatureHash()
-                feeArr.append(l)
-            }
-            
-        }
-        
-        t.tokens = Crypto.sign(seed: sd[distribution.tokens[0].source!]!, ledgers: tokensArr)
-        t.fee = Crypto.sign(seed: sd[distribution.tokens[0].source!]!, ledgers: feeArr)
-        
-        return t
+        reqest.tokens = Crypto.sign(seed: sd[reqest.tokens[0].source!]!, ledgers: reqest.tokens)
+        reqest.fee = Crypto.sign(seed: sd[reqest.fee[0].source!]!, ledgers: reqest.fee)
         
     }
     
@@ -522,7 +343,7 @@ class WalletFile {
         var retValue: (incoming: [WalletTransfer], outgoing: [WalletTransfer]) = ([],[])
         
         walletLock.mutex {
-            for wa in w?.wallets ?? [] {
+            for wa in self.w?.wallets ?? [] {
                 if wa.address == wallet {
                     retValue.incoming = wa.incoming
                     retValue.outgoing = wa.outgoing
@@ -549,9 +370,11 @@ class WalletFile {
                 if b != nil {
                     
                     walletLock.mutex {
-                        for wa in w?.wallets ?? [] {
+                        for wa in self.w?.wallets ?? [] {
                             if Crypto.dataAddressToStr(address: wa.address!) == a {
-                                wa.current_tokens = b!.current_tokens
+                                wa.current_balance = b!.current_balance
+                                wa.incoming_pending = b!.incoming_pending
+                                wa.outgoing_pending = b!.outgoing_pending
                                 wa.incoming = b!.incoming
                                 wa.outgoing = b!.outgoing
                             }

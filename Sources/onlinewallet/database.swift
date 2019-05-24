@@ -34,7 +34,7 @@ class Database {
         db.create(Ledger(), pk: "id", auto: true, indexes:["address,date","height,address","transaction_id","source,height","destination,height"])
         db.create(PeeringNode(), pk: "uuid", auto: false, indexes: [])
         db.create(NodeInstance(), pk: "nodeId", auto: false, indexes: [])
-        _ = db.execute(sql: "PRAGMA cache_size = -\(settings.database_cache_size_mb * 1024)", params: [])
+        _ = db.execute(sql: "PRAGMA cache_size = -\(8 * 1024)", params: [])
         
     }
     
@@ -275,14 +275,16 @@ class Database {
         
     }
     
-    class func WalletAddressContents(address: Data) -> (allocations: [Ledger], spends: [Ledger]) {
+    class func WalletAddressContents(address: Data) -> (allocations: [Ledger], spends: [Ledger], mining: [Ledger]) {
         
         // just return the data to free up the DB lock as quickly as possible
         
         let allocation = db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE destination = ? ORDER BY value DESC", params: [address]) as [Ledger]
         let spends = db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE source = ? AND source != destination", params: [address]) as [Ledger]
         
-        return (allocation,spends)
+        let mining = db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE source = ? AND destination = ? ORDER BY date DESC LIMIT 30", params: [address, address]) as [Ledger]
+        
+        return (allocation,spends,mining)
         
     }
     

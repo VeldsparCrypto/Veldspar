@@ -57,20 +57,20 @@ class TempManager {
         
         lock_index.mutex {
             
-            if nextValue == nil {
-                let data = try? Data(contentsOf: URL(fileURLWithPath: TEMP_PATH_TIDEMARK))
+            if self.nextValue == nil {
+                let data = try? Data(contentsOf: URL(fileURLWithPath: self.TEMP_PATH_TIDEMARK))
                 if data != nil {
-                    nextValue = data!.withUnsafeBytes { (ptr: UnsafePointer<UInt64>) -> UInt64 in
+                    self.nextValue = data!.withUnsafeBytes { (ptr: UnsafePointer<UInt64>) -> UInt64 in
                         return ptr.pointee
                     }
                 } else {
-                    nextValue = 1
+                    self.nextValue = 1
                 }
             }
             
-            i = nextValue!
-            nextValue! += UInt64(1)
-            var mutableValue = nextValue!
+            i = self.nextValue!
+            self.nextValue! += UInt64(1)
+            var mutableValue = self.nextValue!
             
             // thread off this update to a serial queue
             Execute.background {
@@ -157,7 +157,7 @@ class TempManager {
         var d: Data?
         
         lock_inbound.mutex {
-            d = popTempItem(path: self.TEMP_PATH_INBOUND_INT, type:"int")
+            d = self.popTempItem(path: self.TEMP_PATH_INBOUND_INT, type:"int")
         }
         
         return d
@@ -168,7 +168,7 @@ class TempManager {
         var d: Data?
         
         lock_inbound.mutex {
-            d = popTempItem(path: self.TEMP_PATH_INBOUND_REG, type: "reg")
+            d = self.popTempItem(path: self.TEMP_PATH_INBOUND_REG, type: "reg")
         }
         
         return d
@@ -179,7 +179,7 @@ class TempManager {
         var d: Data?
         
         lock_inbound.mutex {
-            d = popTempItem(path: self.TEMP_PATH_INBOUND_TFR, type:"tfr")
+            d = self.popTempItem(path: self.TEMP_PATH_INBOUND_TFR, type:"tfr")
         }
         
         return d
@@ -190,7 +190,7 @@ class TempManager {
         var d: Data?
         
         lock_inbound.mutex {
-            d = popTempItem(path: self.TEMP_PATH_OUTBOUND_BROADCAST, type:"int")
+            d = self.popTempItem(path: self.TEMP_PATH_OUTBOUND_BROADCAST, type:"int")
         }
         
         return d

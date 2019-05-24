@@ -361,3 +361,8 @@ public extension Sequence {
 }
 #endif
 
+public extension Encodable {
+    func toJSONData() -> Data? {
+        return try? JSONEncoder().encode(self)
+    }
+}
