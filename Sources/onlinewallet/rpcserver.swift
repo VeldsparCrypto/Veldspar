@@ -56,13 +56,11 @@ class RPCHandler {
             switch request.path {
             case "/":
                 
-                return .ok(.text("Hello"))
+                return .ok(.text(Pages.Root("")))
                 
-            case "/timestamp":
+            case "/view":
                 
-                logger.log(level: .Debug, log: "(RPC) '\(request.path)'")
-                
-                return .ok(.jsonString("{\"timestamp\" : \(consensusTime())}"))
+                return .ok(.text(Pages.View(request)))
                 
             default:
                 return .notFound

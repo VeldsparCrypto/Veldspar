@@ -275,14 +275,16 @@ class Database {
         
     }
     
-    class func WalletAddressContents(address: Data) -> (allocations: [Ledger], spends: [Ledger]) {
+    class func WalletAddressContents(address: Data) -> (allocations: [Ledger], spends: [Ledger], mining: [Ledger]) {
         
         // just return the data to free up the DB lock as quickly as possible
         
         let allocation = db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE destination = ? ORDER BY value DESC", params: [address]) as [Ledger]
         let spends = db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE source = ? AND source != destination", params: [address]) as [Ledger]
         
-        return (allocation,spends)
+        let mining = db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE source = ? AND destination = ? ORDER BY date DESC LIMIT 30", params: [address, address]) as [Ledger]
+        
+        return (allocation,spends,mining)
         
     }
     

@@ -25,6 +25,7 @@ public class WalletAddress : Codable {
     public var current_balance: Int?
     public var pending_balance: Int?
     public var incoming: [WalletTransfer] = []
+    public var mining: [Ledger] = []
     public var outgoing: [WalletTransfer] = []
     public var incoming_pending: [WalletTransfer] = []
     public var outgoing_pending: [WalletTransfer] = []

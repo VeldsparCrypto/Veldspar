@@ -260,7 +260,7 @@ class BlockChain {
     
     func CurrentlyOwnedTokens(address: Data) -> [Ledger] {
         
-        var retValue: (allocations: [Ledger], spends: [Ledger]) = ([],[])
+        var retValue: (allocations: [Ledger], spends: [Ledger], mining: [Ledger]) = ([],[],[])
         
         blockchain_lock.mutex {
             retValue = Database.WalletAddressContents(address: address)
@@ -296,13 +296,14 @@ class BlockChain {
     
     func WalletAddressContents(address: Data) -> WalletAddress {
         
-        var retValue: (allocations: [Ledger], spends: [Ledger]) = ([],[])
+        var retValue: (allocations: [Ledger], spends: [Ledger], mining: [Ledger]) = ([],[],[])
         
         blockchain_lock.mutex {
             retValue = Database.WalletAddressContents(address: address)
         }
         
         let w = WalletAddress()
+        w.address = address
         let maxHeight = Block.currentNetworkBlockHeight()
         let allocation = retValue.allocations
         let spends = retValue.spends
@@ -429,6 +430,8 @@ class BlockChain {
                 }
             }
         }
+        
+        w.mining = retValue.mining
         
         return w
         
