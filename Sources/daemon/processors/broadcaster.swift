@@ -32,7 +32,7 @@ class Broadcaster {
         let l = Ledgers()
         l.atomic = atomic
         l.broadcastId = UUID().uuidString.lowercased()
-        l.source_nodeId = thisNode.nodeId
+        l.source_nodeId = thisNode
         l.visitedNodes = []
         l.transactions = []
         l.transactions.append(contentsOf: ledgers)

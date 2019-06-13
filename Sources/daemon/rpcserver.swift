@@ -268,7 +268,7 @@ class RPCHandler {
                     blockHash.ready = true
                     blockHash.height = height
                     blockHash.hash = block?.hash
-                    blockHash.nodeId = thisNode.nodeId
+                    blockHash.nodeId = thisNode
                     
                 } else {
                     
@@ -330,7 +330,7 @@ class RPCServer {
             
             logger.log(level: .Debug, log: "(RPC) '\(request.path)'")
             
-            let wallet = blockchain.WalletAddressContents(address: Crypto.strAddressToData(address: address!))
+            let wallet = blockchain.WalletAddressSummary(address: Crypto.strAddressToData(address: address!))
             let encoder = JSONEncoder()
             encoder.outputFormatting = .prettyPrinted
             let rd = try? encoder.encode(wallet)

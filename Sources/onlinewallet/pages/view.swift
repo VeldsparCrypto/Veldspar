@@ -22,7 +22,7 @@ extension Pages {
             return Root("Invalid address")
         }
         
-        let wallet = blockchain.WalletAddressContents(address: Crypto.strAddressToData(address: formData["address"]!))
+        let wallet = blockchain.WalletAddressSummary(address: Crypto.strAddressToData(address: formData["address"]!))
         
         return CommonEmbedding([WalletSummary(wallet), WalletIncomingTransactions(wallet), WalletOutgoingTransactions(wallet), WalletLatestMining(wallet)])
         
@@ -132,9 +132,11 @@ extension Pages {
         var incoming = ""
         
         for t in wallet.mining {
+            let token = Token(oreHeight: t.ore!, address: t.address!, algorithm: AlgorithmType(rawValue: t.algorithm!)!)
             incoming += """
             <tr>
             <td class="tg-0lax">\(Date(timeIntervalSince1970: Double(t.date! / 1000)))</td>
+            <td class="tg-0lax">\(token.tokenStringId())</td>
             <td class="tg-0lax">\(Float(t.value!) / Float(Config.DenominationDivider))</td>
             </tr>
             """
@@ -148,6 +150,7 @@ extension Pages {
         </tr>
         <tr>
         <td class="tg-alz1">Date</td>
+        <td class="tg-alz1">Token</td>
         <td class="tg-alz1">Amount</td>
         </tr>
         \(incoming)

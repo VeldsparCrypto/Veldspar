@@ -437,6 +437,18 @@ class BlockChain {
         
     }
     
+    func WalletAddressSummary(address: Data) -> WalletAddress {
+        
+        var retValue = WalletAddress()
+        
+        blockchain_lock.mutex {
+            retValue = Database.WalletAddressSummary(address: address)
+        }
+        
+        return retValue
+        
+    }
+    
     func HashForBlock(_ height: Int) -> Data {
         
         var ledgerHash: Data = Data()

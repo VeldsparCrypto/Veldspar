@@ -33,7 +33,6 @@ class Database {
         db.create(Block(), pk: "height", auto: false, indexes:[])
         db.create(Ledger(), pk: "id", auto: true, indexes:["address,date","height,address","transaction_id","source,height","destination,height"])
         db.create(PeeringNode(), pk: "uuid", auto: false, indexes: [])
-        db.create(NodeInstance(), pk: "nodeId", auto: false, indexes: [])
         _ = db.execute(sql: "PRAGMA cache_size = -\(settings.database_cache_size_mb * 1024)", params: [])
         
     }
@@ -272,6 +271,157 @@ class Database {
     class func PendingLedgers(_ tidemark: Int, height: Int) -> [Ledger] {
         
         return db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE id > ? AND height >= ? ORDER BY id LIMIT 1000", params: [tidemark, height])
+        
+    }
+    
+    class func WalletAddressSummary(address: Data) -> WalletAddress {
+        
+        // just return the data to free up the DB lock as quickly as possible
+        
+        let w = WalletAddress()
+        w.address = address
+        w.alias = []
+        w.height = Block.currentNetworkBlockHeight()
+
+        let current_balance = db.query(sql: "SELECT SUM(value) as balance FROM Ledger WHERE destination = ? AND id NOT IN (SELECT id FROM Ledger WHERE source = ? AND source != destination) AND height <= ?", params: [address,address,Block.currentNetworkBlockHeight()])
+        
+        w.current_balance = current_balance.results[0]["balance"]?.asInt() ?? 0
+        
+        let pending_balance = db.query(sql: "SELECT SUM(value) as balance FROM Ledger WHERE destination = ? AND height > ?", params: [address,Block.currentNetworkBlockHeight()])
+        
+        w.pending_balance = pending_balance.results[0]["balance"]?.asInt() ?? 0
+        
+        let spends_out = db.query(sql:
+"""
+        SELECT
+            transaction_ref,
+            date,
+            destination,
+            SUM(value)
+        FROM Ledger
+        WHERE
+            source = ?
+        AND
+            source != destination
+        AND
+            op > 1
+        AND
+            height <= ?
+        GROUP BY transaction_ref
+
+""", params: [address,Block.currentNetworkBlockHeight()])
+        
+        w.outgoing = []
+        
+        for r in spends_out.results {
+            let tfr = WalletTransfer()
+            tfr.date = r["date"]?.asUInt64()
+            tfr.destination = r["destination"]?.asData()
+            tfr.ref = r["transaction_ref"]?.asData()
+            tfr.source = address
+            tfr.total = r["SUM(value)"]?.asInt()
+            w.outgoing.append(tfr)
+        }
+        
+        let spends_out_pending = db.query(sql:
+            """
+        SELECT
+            transaction_ref,
+            date,
+            destination,
+            SUM(value)
+        FROM Ledger
+        WHERE
+            source = ?
+        AND
+            source != destination
+        AND
+            op > 1
+        AND
+            height > ?
+        GROUP BY transaction_ref
+
+""", params: [address,Block.currentNetworkBlockHeight()])
+        
+        w.outgoing_pending = []
+        
+        for r in spends_out_pending.results {
+            let tfr = WalletTransfer()
+            tfr.date = r["date"]?.asUInt64()
+            tfr.destination = r["destination"]?.asData()
+            tfr.ref = r["transaction_ref"]?.asData()
+            tfr.source = address
+            tfr.total = r["SUM(value)"]?.asInt()
+            w.outgoing_pending.append(tfr)
+        }
+        
+        let transfer_in = db.query(sql:
+            """
+        SELECT
+            transaction_ref,
+            date,
+            source,
+            SUM(value)
+        FROM Ledger
+        WHERE
+            destination = ?
+        AND
+            source != destination
+        AND
+            op > 1
+        AND
+            height <= ?
+        GROUP BY transaction_ref
+
+""", params: [address, Block.currentNetworkBlockHeight()])
+        
+        w.incoming = []
+        
+        for r in transfer_in.results {
+            let tfr = WalletTransfer()
+            tfr.date = r["date"]?.asUInt64()
+            tfr.destination = address
+            tfr.ref = r["transaction_ref"]?.asData()
+            tfr.source = r["source"]?.asData()
+            tfr.total = r["SUM(value)"]?.asInt()
+            w.incoming.append(tfr)
+        }
+        
+        let transfer_in_pending = db.query(sql:
+            """
+        SELECT
+            transaction_ref,
+            date,
+            source,
+            SUM(value)
+        FROM Ledger
+        WHERE
+            destination = ?
+        AND
+            source != destination
+        AND
+            op > 1
+        AND
+            height > ?
+        GROUP BY transaction_ref
+
+""", params: [address, Block.currentNetworkBlockHeight()])
+        
+        w.incoming_pending = []
+        
+        for r in transfer_in_pending.results {
+            let tfr = WalletTransfer()
+            tfr.date = r["date"]?.asUInt64()
+            tfr.destination = address
+            tfr.ref = r["transaction_ref"]?.asData()
+            tfr.source = r["source"]?.asData()
+            tfr.total = r["SUM(value)"]?.asInt()
+            w.incoming_pending.append(tfr)
+        }
+        
+        w.mining = db.query(Ledger(), sql: "SELECT * FROM Ledger WHERE op = 1 AND destination = ? ORDER BY date DESC LIMIT 20", params: [address])
+        
+        return w
         
     }
     

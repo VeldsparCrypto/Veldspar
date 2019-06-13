@@ -47,7 +47,7 @@ class InterNodeTransferProcessor {
                     // check to see if this transaciton is too old and dump it.
                     if l!.transactions.count > 0 {
                         
-                        if l!.source_nodeId == thisNode.nodeId {
+                        if l!.source_nodeId == thisNode {
                             // throw this away as this is an internal transfer
                             InterNodeTransferProcessor.processNext()
                             return

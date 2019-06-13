@@ -30,7 +30,7 @@ class Announcer {
         while true {
             
             // send a registration ping to the seed nodes
-            _ = comms.request(method: "announce", parameters: ["nodeid" : "\(thisNode.nodeId!)", "port" : "\(settings.network_port)"])
+            _ = comms.request(method: "announce", parameters: ["nodeid" : "\(thisNode)", "port" : "\(settings.network_port)"])
             Thread.sleep(forTimeInterval: 30)
             
         }

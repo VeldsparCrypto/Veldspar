@@ -131,14 +131,7 @@ if isTestNet {
 
 logger.log(level: .Info, log: "Blockchain exists, currently at height \(blockchain.height())")
 
-// check to see if we have generated a node identifier yet
-if db.query(NodeInstance(), sql: "SELECT * FROM NodeInstance", params: []).count == 0 {
-    var n = NodeInstance()
-    n.nodeId = UUID().uuidString.lowercased()
-    _ = db.put(n)
-}
-
-let thisNode = db.query(NodeInstance(), sql: "SELECT * FROM NodeInstance", params: [])[0]
+let thisNode = UUID().uuidString.lowercased()
 let broadcaster = Broadcaster()
 let interNodeTransfer = InterNodeTransferProcessor()
 let registrations = RegistrationProcessor()
